@@ -99,7 +99,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
                 <configuration>
-                    <mainClass>com.car.jiulongpo.JiulongpoApplication</mainClass>
+                    <mainClass>com.jiulongpo.App</mainClass>
                     <skip>true</skip>
                 </configuration>
                 <executions>
