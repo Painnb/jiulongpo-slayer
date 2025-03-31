@@ -1,1 +1,0 @@
-"# jiulongpo-slayer\n\n## 项目简介\n九龙坡车辆管理系统是一个基于Spring Boot的车辆管理平台。\n\n## 功能说明\n- 车辆信息管理\n- 用户权限管理\n- 数据报表导出\n- MQTT设备通信\n\n## 安装步骤\n1. 克隆项目\n2. 配置MySQL数据库\n3. 运行`mvn spring-boot:run`启动项目\n\n## 使用方法\n1. 访问`http://localhost:8080`\n2. 使用管理员账号登录\n3. 开始管理系统"
