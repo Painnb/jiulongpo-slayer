@@ -1,7 +1,8 @@
 package org.swu.vehiclecloud.service;
 
+import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 
 public interface ExcelService {
-    ResponseEntity<byte[]> exportExcel(String tableName);
+    ResponseEntity<Resource> exportExcel(String tableName);
 }

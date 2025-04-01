@@ -60,21 +60,21 @@
         </dependency>
 
         <dependency>
-        <groupId>org.eclipse.paho</groupId>
-        <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
-        <version>1.2.5</version>
+            <groupId>org.eclipse.paho</groupId>
+            <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
+            <version>1.2.5</version>
         </dependency>
 
         <dependency>
-        <groupId>org.apache.poi</groupId>
-        <artifactId>poi</artifactId>
-        <version>5.2.3</version>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>5.2.3</version>
         </dependency>
 
         <dependency>
-        <groupId>org.apache.poi</groupId>
-        <artifactId>poi-ooxml</artifactId>
-        <version>5.2.3</version>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.3</version>
         </dependency>
 
         <!-- api template -->
@@ -109,13 +109,6 @@
             <groupId>org.mybatis.spring.boot</groupId>
             <artifactId>mybatis-spring-boot-starter</artifactId>
             <version>3.0.3</version>
-        </dependency>
-
-        <!-- mybatis -->
-        <dependency>
-            <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-core</artifactId>
-            <version>3.5.2</version>
         </dependency>
 
         <!-- MyBatis Plus -->
@@ -156,7 +149,7 @@
         </dependencies>
     </dependencyManagement>
 
-    // 远程仓库
+    <!-- 远程仓库 -->
     <repositories>
         <repository>
             <id>aliyun</id>
@@ -170,8 +163,17 @@
         </repository>
     </repositories>
 
-
     <build>
+        <resources>
+            <!-- 扫描resources下所有资源 -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*.properties</include>
+                </includes>
+            </resource>
+        </resources>
+
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
