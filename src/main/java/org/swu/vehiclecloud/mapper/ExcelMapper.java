@@ -1,6 +1,7 @@
 package org.swu.vehiclecloud.mapper;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.*;
 
 import java.util.List;
 import java.util.Map;
@@ -15,5 +16,6 @@ public interface ExcelMapper {
      * @param tableName 要查询的表名
      * @return 包含表数据的Map列表
      */
+    @Select("SELECT * FROM ${tableName}")
     List<Map<String, Object>> selectAllFromTable(String tableName);
 }
