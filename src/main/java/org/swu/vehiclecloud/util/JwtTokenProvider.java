@@ -16,12 +16,13 @@ public class JwtTokenProvider {
     private long jwtExpiration;
 
     // 根据用户id生成JWT token
-    public String generateToken(String id) {
+    public String generateToken(Integer id) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpiration);
+        String StringId = id.toString();
 
         return Jwts.builder()
-                .setSubject(id)
+                .setSubject(StringId)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(SignatureAlgorithm.HS512, jwtSecret)
