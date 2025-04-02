@@ -11,7 +11,7 @@ public interface UserMapper {
 
     void insert(User user);
 
-    User findByUsername(String username);
+    User findByUsername(@Param("username") String username);
 
     User findById(Long id);
 
