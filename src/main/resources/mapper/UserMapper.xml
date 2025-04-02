@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.jiulongpo.mapper.UserMapper">
+<mapper namespace="org.swu.vehiclecloud.mapper.UserMapper">
 
     <!-- 通用查询映射结果 -->
-    <resultMap id="BaseResultMap" type="com.jiulongpo.entity.User">
+    <resultMap id="BaseResultMap" type="org.swu.vehiclecloud.entity.User">
         <id column="id" property="id"/>
         <result column="username" property="username"/>
         <result column="password" property="password"/>
@@ -23,13 +23,13 @@
     </select>
 
     <!-- 插入用户 -->
-    <insert id="insert" parameterType="com.jiulongpo.entity.User" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insert" parameterType="org.swu.vehiclecloud.entity.User" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO user (username, password, email, create_time, update_time)
         VALUES (#{username}, #{password}, #{email}, NOW(), NOW())
     </insert>
 
     <!-- 更新用户 -->
-    <update id="update" parameterType="com.jiulongpo.entity.User">
+    <update id="update" parameterType="org.swu.vehiclecloud.entity.User">
         UPDATE user
         SET username = #{username},
             password = #{password},
