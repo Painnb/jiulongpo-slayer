@@ -49,7 +49,6 @@ public class UserController {
      * @return 包含登录结果的响应实体
      */
     @PostMapping("/public/login")
-    // @PreAuthorize("hasAnyRole('USER', 'SYS_ADMIN', 'BIZ_ADMIN', 'GUEST')")
     public ApiResult<Map<String, Object>> login(@RequestBody Map<String, Object> requestBody) {
         return userServiceImpl.login(requestBody);
     }
