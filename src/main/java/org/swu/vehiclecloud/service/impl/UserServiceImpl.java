@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -123,9 +124,7 @@ public class UserServiceImpl implements UserService {
         
         // 加密密码
         user.setPassword(encryptPassword(user.getPassword()));
-        user.setStatus(1);
-        user.setCreateTime(LocalDateTime.now());
-        user.setUpdateTime(LocalDateTime.now());
+
         
         // 保存用户
         userMapper.insert(user);
@@ -133,7 +132,7 @@ public class UserServiceImpl implements UserService {
     }
     
     @Override
-    public User getUserById(String id) {
+    public User getUserById(Integer id) {
         return userMapper.findById(id);
     }
     
@@ -146,7 +145,7 @@ public class UserServiceImpl implements UserService {
         
         // 更新用户信息
         existingUser.setEmail(user.getEmail());
-        existingUser.setUpdateTime(LocalDateTime.now());
+        existingUser.setCreated_time(new Date());
         
         // 如果密码不为空，则验证并更新密码
         if (user.getPassword() != null && !user.getPassword().isEmpty()) {
@@ -162,7 +161,7 @@ public class UserServiceImpl implements UserService {
     }
     
     @Override
-    public void deleteUser(String id) {
+    public void deleteUser(Integer id) {
         userMapper.deleteById(id);
     }
     

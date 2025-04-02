@@ -18,7 +18,7 @@ public interface UserMapper {
      * @param password 密码
      * @return 匹配的用户对象
      */
-    @Select("SELECT * FROM user WHERE username = #{username} AND password_hash = #{password}")
+    @Select("SELECT * FROM user WHERE username = #{username} AND password = #{password}")
     User findByUsernameAndPassword(@Param("username") String username, @Param("password") String password);
 
     /**
@@ -43,7 +43,7 @@ public interface UserMapper {
      * @return 匹配的用户对象
      */
     @Select("SELECT * FROM user WHERE id = #{id}")
-    User findById(String id);
+    User findById(Integer id);
 
     /**
      * 更新用户信息
@@ -57,5 +57,5 @@ public interface UserMapper {
      * @param id 用户ID
      */
     @Delete("DELETE FROM user WHERE id = #{id}")
-    void deleteById(String id);
+    void deleteById(Integer id);
 }

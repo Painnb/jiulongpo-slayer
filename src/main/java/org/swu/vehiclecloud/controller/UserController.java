@@ -61,7 +61,7 @@ public class UserController {
      * @return 包含用户信息的响应实体
      */
     @GetMapping("/public/{id}")
-    public ResponseEntity<User> getUser(@PathVariable String id) {
+    public ResponseEntity<User> getUser(@PathVariable Integer id) {
         User user = userServiceImpl.getUserById(id);
         return ResponseEntity.ok(user);
     }
@@ -76,7 +76,7 @@ public class UserController {
      * @return 包含更新后的用户信息的响应实体
      */
     @PutMapping("/public/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable String id, @RequestBody User user) {
+    public ResponseEntity<User> updateUser(@PathVariable Integer id, @RequestBody User user) {
         user.setId(null);
         User updatedUser = userServiceImpl.updateUser(user);
         return ResponseEntity.ok(updatedUser);
@@ -91,7 +91,7 @@ public class UserController {
      * @return 空响应实体
      */
     @DeleteMapping("/public/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable String id) {
+    public ResponseEntity<Void> deleteUser(@PathVariable Integer id) {
         userServiceImpl.deleteUser(id);
         return ResponseEntity.ok().build();
     }

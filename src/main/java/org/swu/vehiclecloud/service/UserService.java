@@ -24,7 +24,7 @@ public interface UserService {
      * @param id 用户ID
      * @return 用户对象
      */
-    User getUserById(String id);
+    User getUserById(Integer id);
 
     /**
      * 更新用户信息
@@ -37,7 +37,7 @@ public interface UserService {
      * 删除用户
      * @param id 用户ID
      */
-    void deleteUser(String id);
+    void deleteUser(Integer id);
 
     /**
      * 验证密码
