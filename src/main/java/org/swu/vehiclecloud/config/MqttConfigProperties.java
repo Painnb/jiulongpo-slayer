@@ -12,7 +12,7 @@ public class MqttConfigProperties {
     private String username;
     private String password;
     private List<String> subscribeTopics;
-    private int connectionTimeout = 30;
+    private final int connectionTimeout = 30;
 
     // Getters and Setters (需 Lombok 或手动生成)
 }

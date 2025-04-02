@@ -28,7 +28,6 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private final JwtTokenProvider tokenProvider;
 
-    //    @Autowired
     public UserServiceImpl(UserMapper userMapper, JwtTokenProvider tokenProvider) {
         this.userMapper = userMapper;
         this.tokenProvider = tokenProvider;
@@ -147,15 +146,6 @@ public class UserServiceImpl implements UserService {
         
         // 保存用户
         userMapper.insert(user);
-        return user;
-    }
-    
-    @Override
-    public User login(String username, String password) {
-        User user = userMapper.findByUsername(username);
-        if (user == null || !verifyPassword(password, user.getPassword())) {
-            throw new RuntimeException("用户名或密码错误");
-        }
         return user;
     }
     
