@@ -122,10 +122,17 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException(passwordValidationMessage);
         }
         
+        // 设置默认值
+        if (user.getRole() == null || user.getRole().isEmpty()) {
+            user.setRole("USER");
+        }
+        
         // 加密密码
         user.setPassword(encryptPassword(user.getPassword()));
-
         
+        // 设置创建时间为当前时间
+        user.setCreated_time(new Date());
+
         // 保存用户
         userMapper.insert(user);
         return user;
