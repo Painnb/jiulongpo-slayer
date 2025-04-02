@@ -1,9 +1,11 @@
 package org.swu.vehiclecloud;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
+@MapperScan("org.swu.vehiclecloud.mapper")
 public class VehicleCloudApplication {
 
     public static void main(String[] args) {
