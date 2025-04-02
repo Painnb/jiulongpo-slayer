@@ -1,5 +1,6 @@
 package org.swu.vehiclecloud.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.swu.vehiclecloud.controller.template.ApiResult;
 import org.swu.vehiclecloud.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +31,7 @@ public class UserController {
      * 接收POST请求，路径为 /api/usermanage/public/register
      * 请求体需要包含username和password字段
      *
-     * @param userDTO 用户DTO对象，包含用户名和密码
+     * @param user 用户DTO对象，包含用户名和密码
      * @return 包含注册结果的响应实体
      */
     @PostMapping("/public/register")  // 处理POST请求，路径为 /register
@@ -48,6 +49,7 @@ public class UserController {
      * @return 包含登录结果的响应实体
      */
     @PostMapping("/public/login")
+    // @PreAuthorize("hasAnyRole('USER', 'SYS_ADMIN', 'BIZ_ADMIN', 'GUEST')")
     public ApiResult<Map<String, Object>> login(@RequestBody Map<String, Object> requestBody) {
         return userServiceImpl.login(requestBody);
     }

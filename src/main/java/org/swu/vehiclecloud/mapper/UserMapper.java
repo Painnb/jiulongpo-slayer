@@ -18,14 +18,14 @@ public interface UserMapper {
      * @param password 密码
      * @return 匹配的用户对象
      */
-    @Select("SELECT * FROM user WHERE username = #{username} AND password = #{password}")
+    @Select("SELECT * FROM user WHERE username = #{username} AND password_hash = #{password}")
     User findByUsernameAndPassword(@Param("username") String username, @Param("password") String password);
 
     /**
      * 插入新用户
      * @param user 用户对象
      */
-    @Insert("INSERT INTO user (username, password, email, create_time, update_time) VALUES (#{username}, #{password}, #{email}, NOW(), NOW())")
+    @Insert("INSERT INTO user (username, password_hash, email, created_at, role) VALUES (#{username}, #{password}, #{email}, NOW(), #{role})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     void insert(User user);
 
@@ -49,7 +49,7 @@ public interface UserMapper {
      * 更新用户信息
      * @param user 用户对象
      */
-    @Update("UPDATE user SET username = #{username}, password = #{password}, email = #{email}, update_time = NOW() WHERE id = #{id}")
+    @Update("UPDATE user SET username = #{username}, password_hash = #{password}, email = #{email} WHERE id = #{id}")
     void update(User user);
 
     /**
