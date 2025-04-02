@@ -1,7 +1,6 @@
 package org.swu.vehiclecloud.controller;
 
 import org.swu.vehiclecloud.controller.template.ApiResult;
-import org.swu.vehiclecloud.dto.UserDTO;
 import org.swu.vehiclecloud.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -35,9 +34,9 @@ public class UserController {
      * @return 包含注册结果的响应实体
      */
     @PostMapping("/public/register")  // 处理POST请求，路径为 /register
-    public ResponseEntity<User> register(@RequestBody UserDTO userDTO) {
-        User user = userServiceImpl.register(userDTO);
-        return ResponseEntity.ok(user);
+    public ResponseEntity<User> register(@RequestBody User user) {
+        User registeredUser = userServiceImpl.register(user);
+        return ResponseEntity.ok(registeredUser);
     }
 
     /**
@@ -62,7 +61,7 @@ public class UserController {
      * @return 包含用户信息的响应实体
      */
     @GetMapping("/public/{id}")
-    public ResponseEntity<User> getUser(@PathVariable Long id) {
+    public ResponseEntity<User> getUser(@PathVariable String id) {
         User user = userServiceImpl.getUserById(id);
         return ResponseEntity.ok(user);
     }
@@ -77,10 +76,10 @@ public class UserController {
      * @return 包含更新后的用户信息的响应实体
      */
     @PutMapping("/public/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody UserDTO userDTO) {
-        userDTO.setId(id);
-        User user = userServiceImpl.updateUser(userDTO);
-        return ResponseEntity.ok(user);
+    public ResponseEntity<User> updateUser(@PathVariable String id, @RequestBody User user) {
+        user.setId(null);
+        User updatedUser = userServiceImpl.updateUser(user);
+        return ResponseEntity.ok(updatedUser);
     }
 
     /**
@@ -92,7 +91,7 @@ public class UserController {
      * @return 空响应实体
      */
     @DeleteMapping("/public/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteUser(@PathVariable String id) {
         userServiceImpl.deleteUser(id);
         return ResponseEntity.ok().build();
     }

@@ -1,7 +1,6 @@
 package org.swu.vehiclecloud.service;
 
 import org.swu.vehiclecloud.controller.template.ApiResult;
-import org.swu.vehiclecloud.dto.UserDTO;
 import org.swu.vehiclecloud.entity.User;
 import java.util.Map;
 
@@ -18,27 +17,27 @@ public interface UserService {
      * @param userDTO 用户DTO对象
      * @return 注册后的用户对象
      */
-    User register(UserDTO userDTO);
+    User register(User user);
 
     /**
      * 根据用户ID获取用户
      * @param id 用户ID
      * @return 用户对象
      */
-    User getUserById(Long id);
+    User getUserById(String id);
 
     /**
      * 更新用户信息
      * @param userDTO 用户DTO对象
      * @return 更新后的用户对象
      */
-    User updateUser(UserDTO userDTO);
+    User updateUser(User user);
 
     /**
      * 删除用户
      * @param id 用户ID
      */
-    void deleteUser(Long id);
+    void deleteUser(String id);
 
     /**
      * 验证密码
