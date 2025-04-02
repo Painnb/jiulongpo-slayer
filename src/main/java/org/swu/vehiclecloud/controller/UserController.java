@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController  // Spring注解，标记这是一个REST控制器
 @RequestMapping("/api/users")  // 指定该控制器的基础URL路径
+@CrossOrigin(origins = "*")
 public class UserController {
 
     @Autowired
