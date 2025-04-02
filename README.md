@@ -52,7 +52,7 @@ cbw：前端vue、js学习
 
 ## 4.2
 
-总：确定api命名规范、确定其他命名规范
+总：确定api命名规范、确定分支命名规范
 
 yzq：重写readme、协调分工
 
@@ -68,6 +68,6 @@ sty：echarts学习
 
 lyw：echarts学习
 
-pgx：前端vue、js学习
+pgx：前端vue、js学习、完成前端初始化
 
-cbw：前端vue、js学习
+cbw：前端vue、js学习、完成前端初始化
