@@ -9,7 +9,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/user")
-@CrossOrigin(origins="true") //跨域
+@CrossOrigin(origins = "*")
 public class UserManage {
     @Autowired
     private final UserServiceImpl userService;
