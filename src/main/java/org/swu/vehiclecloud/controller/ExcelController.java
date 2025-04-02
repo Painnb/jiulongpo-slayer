@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
  * Excel导出控制器
  */
 @RestController
-@RequestMapping("/api/dataprocess")
+@RequestMapping("/api")
 @CrossOrigin(origins = "*")
 public class ExcelController {
 
@@ -22,8 +22,8 @@ public class ExcelController {
      * @param tableName 要导出的表名
      * @return 包含Excel文件的响应实体
      */
-    @PostMapping("/business/export")
-    public ResponseEntity<Resource> exportExcel(@RequestParam String tableName) {
+    @GetMapping("/tables/{tableName}/export")
+    public ResponseEntity<Resource> exportExcel(@PathVariable String tableName) {
         return excelService.exportExcel(tableName);
     }
 }
