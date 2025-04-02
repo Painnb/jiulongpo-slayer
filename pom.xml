@@ -191,7 +191,7 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>org.swu.vehiclecloud.VehicleCloudApplication</mainClass>
-                    <skip>true</skip>
+                    <!-- <skip>true</skip> -->
                 </configuration>
                 <executions>
                     <execution>
