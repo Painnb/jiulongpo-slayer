@@ -15,16 +15,22 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.swu.vehiclecloud.controller.template.ApiResult;
+import org.swu.vehiclecloud.service.impl.UserServiceImpl;
 
 @Configuration
-@EnableMethodSecurity // 启用方法级别的安全控制
+@EnableMethodSecurity(prePostEnabled = true) // 启用方法级别的安全控制
 public class UserAuthConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(UserAuthConfig.class);
+    private final UserServiceImpl userServiceImpl;
+
+    public UserAuthConfig(UserServiceImpl userServiceImpl) {
+        this.userServiceImpl = userServiceImpl;
+    }
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-                http
+        return http
                 // 禁用 HTTP Basic Authentication
                 .httpBasic().disable()
                 // 禁用csrf防护
@@ -36,16 +42,17 @@ public class UserAuthConfig {
                 // 禁用自动登出功能
                 .logout().disable()
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/admin/**").hasRole("SYS_ADMIN")   // 系统管理员（SYS_ADMIN）访问 /admin/** 路径
-                        .requestMatchers("/business/**").hasRole("BIZ_ADMIN")  // 业务管理员（BIZ_ADMIN）访问 /business/** 路径
-                        .requestMatchers("/user/**").hasAnyRole("USER", "SYS_ADMIN", "BIZ_ADMIN") // 普通用户、系统管理员和业务管理员可以访问 /user/** 路径
+                        .requestMatchers("/admin/**").hasAuthority("SYS_ADMIN")   // 系统管理员（SYS_ADMIN）访问 /admin/** 路径
+                        .requestMatchers("/business/**").hasAuthority("BIZ_ADMIN")  // 业务管理员（BIZ_ADMIN）访问 /business/** 路径
+                        .requestMatchers("/user/**").hasAnyAuthority("USER", "SYS_ADMIN", "BIZ_ADMIN") // 普通用户、系统管理员和业务管理员可以访问 /user/** 路径
                         .requestMatchers("/public/**").permitAll()   // 所有人可以访问 /public/** 路径
                         .anyRequest().permitAll()// 其他路径不需要认证
                 )
+                .userDetailsService(userServiceImpl)
                 .exceptionHandling()
-                .accessDeniedHandler(new CustomAccessDeniedHandler());  // 配置自定义的 AccessDeniedHandler
-
-        return http.build();
+                .accessDeniedHandler(new CustomAccessDeniedHandler())  // 配置自定义的 AccessDeniedHandler
+                .and()
+                .build();
     }
 
     // 自定义 AccessDeniedHandler

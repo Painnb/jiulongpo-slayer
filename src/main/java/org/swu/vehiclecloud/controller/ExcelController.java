@@ -1,5 +1,6 @@
 package org.swu.vehiclecloud.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.swu.vehiclecloud.service.ExcelService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
@@ -22,7 +23,8 @@ public class ExcelController {
      * @param tableName 要导出的表名
      * @return 包含Excel文件的响应实体
      */
-    @GetMapping("/tables/{tableName}/export")
+    @GetMapping("/user/tables/{tableName}/export")
+    @PreAuthorize("hasAuthority('USER')")
     public ResponseEntity<Resource> exportExcel(@PathVariable String tableName) {
         return excelService.exportExcel(tableName);
     }
