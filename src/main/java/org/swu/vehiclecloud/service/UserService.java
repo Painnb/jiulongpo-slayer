@@ -21,14 +21,6 @@ public interface UserService {
     User register(UserDTO userDTO);
 
     /**
-     * 用户登录
-     * @param username 用户名
-     * @param password 密码
-     * @return 登录后的用户对象
-     */
-    User login(String username, String password);
-
-    /**
      * 根据用户ID获取用户
      * @param id 用户ID
      * @return 用户对象
