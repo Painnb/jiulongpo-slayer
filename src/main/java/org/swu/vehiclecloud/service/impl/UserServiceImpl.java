@@ -2,7 +2,6 @@ package org.swu.vehiclecloud.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import org.swu.vehiclecloud.controller.template.ApiResult;
-import org.swu.vehiclecloud.dto.UserDTO;
 import org.swu.vehiclecloud.entity.User;
 import org.swu.vehiclecloud.mapper.UserMapper;
 import org.swu.vehiclecloud.service.UserService;
@@ -108,38 +107,22 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    // 随机生成8位数字userid的方法
-    @Deprecated // userid字段已删除
-    private String generateUserId(){
-        Random random = new Random();
-        StringBuilder sb = new StringBuilder();
-        // 循环生成8位数字
-        for (int i = 0; i < 8; i++) {
-            int digit = random.nextInt(10); // 生成0到9之间的随机数字
-            sb.append(digit);
-        }
-        return sb.toString();
-    }
 
     @Override
-    public User register(UserDTO userDTO) {
+    public User register(User user) {
         // 检查用户名是否已存在
-        if (userMapper.findByUsername(userDTO.getUsername()) != null) {
+        if (userMapper.findByUsername(user.getUsername()) != null) {
             throw new RuntimeException("用户名已存在");
         }
         
         // 验证密码强度
-        String passwordValidationMessage = PasswordValidator.getPasswordValidationMessage(userDTO.getPassword());
+        String passwordValidationMessage = PasswordValidator.getPasswordValidationMessage(user.getPassword());
         if (passwordValidationMessage != null) {
             throw new RuntimeException(passwordValidationMessage);
         }
         
-        // 创建用户实体
-        User user = new User();
-        user.setUsername(userDTO.getUsername());
-        user.setPassword(encryptPassword(userDTO.getPassword()));
-        user.setEmail(userDTO.getEmail());
-        user.setPhone(userDTO.getPhone());
+        // 加密密码
+        user.setPassword(encryptPassword(user.getPassword()));
         user.setStatus(1);
         user.setCreateTime(LocalDateTime.now());
         user.setUpdateTime(LocalDateTime.now());
@@ -150,38 +133,36 @@ public class UserServiceImpl implements UserService {
     }
     
     @Override
-    public User getUserById(Long id) {
+    public User getUserById(String id) {
         return userMapper.findById(id);
     }
     
     @Override
-    public User updateUser(UserDTO userDTO) {
-        User user = userMapper.findById(userDTO.getId());
-        if (user == null) {
+    public User updateUser(User user) {
+        User existingUser = userMapper.findById(user.getId());
+        if (existingUser == null) {
             throw new RuntimeException("用户不存在");
         }
         
         // 更新用户信息
-        user.setEmail(userDTO.getEmail());
-        user.setPhone(userDTO.getPhone());
-        user.setStatus(userDTO.getStatus());
-        user.setUpdateTime(LocalDateTime.now());
+        existingUser.setEmail(user.getEmail());
+        existingUser.setUpdateTime(LocalDateTime.now());
         
         // 如果密码不为空，则验证并更新密码
-        if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
-            String passwordValidationMessage = PasswordValidator.getPasswordValidationMessage(userDTO.getPassword());
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            String passwordValidationMessage = PasswordValidator.getPasswordValidationMessage(user.getPassword());
             if (passwordValidationMessage != null) {
                 throw new RuntimeException(passwordValidationMessage);
             }
-            user.setPassword(encryptPassword(userDTO.getPassword()));
+            existingUser.setPassword(encryptPassword(user.getPassword()));
         }
         
-        userMapper.update(user);
-        return user;
+        userMapper.update(existingUser);
+        return existingUser;
     }
     
     @Override
-    public void deleteUser(Long id) {
+    public void deleteUser(String id) {
         userMapper.deleteById(id);
     }
     

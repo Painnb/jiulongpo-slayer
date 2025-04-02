@@ -43,7 +43,7 @@ public interface UserMapper {
      * @return 匹配的用户对象
      */
     @Select("SELECT * FROM user WHERE id = #{id}")
-    User findById(Long id);
+    User findById(String id);
 
     /**
      * 更新用户信息
@@ -57,5 +57,5 @@ public interface UserMapper {
      * @param id 用户ID
      */
     @Delete("DELETE FROM user WHERE id = #{id}")
-    void deleteById(Long id);
+    void deleteById(String id);
 }
