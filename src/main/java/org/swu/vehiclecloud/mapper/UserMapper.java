@@ -18,7 +18,7 @@ public interface UserMapper {
      * @param password 密码
      * @return 匹配的用户对象
      */
-    @Select("SELECT * FROM user WHERE username = #{username} AND password = #{password}")
+    @Select("SELECT * FROM user WHERE username = #{username} AND password_hash = #{password}")
     User findByUsernameAndPassword(@Param("username") String username, @Param("password") String password);
 
     /**
