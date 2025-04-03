@@ -12,7 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 
-@WebFilter
+@WebFilter(asyncSupported = true)
 public class JWTAuthFilter implements Filter{
     private final JwtTokenProvider jwtTokenProvider;
 

@@ -53,7 +53,7 @@ public class JwtTokenProvider {
                     .getBody();
 
             Date expirationDate = claims.getExpiration();
-            return expirationDate.before(new Date()); // 如果当前时间在过期时间之后，返回true，即已过期
+            return !(expirationDate.before(new Date())); // 如果当前时间在过期时间之后，返回true，即已过期
         } catch (Exception e) {
             return true;  // 如果解析异常，认为 token 已经过期
         }
