@@ -8,7 +8,6 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.swu.vehiclecloud.controller.template.ApiResult;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -30,8 +29,9 @@ public class JWTAuthFilter implements Filter{
         // 获取请求路径
         String requestURI = httpRequest.getRequestURI();
 
-        // 排除登录接口，登录不需要进行JWT认证
-        if (requestURI.equals("/api/usermanage/public/login")) {
+        // 排除登录和注册接口，登录不需要进行JWT认证
+        if (requestURI.equals("/api/usermanage/public/login")
+        || requestURI.equals("/api/usermanage/public/register")) {
             // 不进行拦截，直接传递请求
             chain.doFilter(request, response);
             return;
@@ -41,7 +41,20 @@ public class JWTAuthFilter implements Filter{
         String token = httpRequest.getHeader("Authorization");
         if (token != null && token.startsWith("Bearer ")) {
             try {
-                token = token.substring(7);  // 移除 "Bearer " 部分
+                // 移除 "Bearer " 部分
+                token = token.substring(7);
+
+                // 验证 JWT是否过期
+                boolean expired = jwtTokenProvider.validateTokenExpiration(token);
+
+                // 如果已过期，则返回给前端401 Unauthorized，让其重定向到登录界面
+                if (!expired) {
+                    // 如果 token 过期，返回自定义的错误消息
+                    httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    httpResponse.setContentType("application/json");
+                    httpResponse.getWriter().write("{\"error\": \"JWT token has expired\"}");
+                    return;
+                }
 
                 // 使用自定义JwtTokenProvider的方法解析用户ID
                 String userId = jwtTokenProvider.getUserIdFromToken(token);
