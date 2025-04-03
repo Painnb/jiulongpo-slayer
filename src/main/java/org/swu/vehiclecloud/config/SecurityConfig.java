@@ -6,7 +6,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.swu.vehiclecloud.util.JWTAuthFilter;
+import org.swu.vehiclecloud.util.JwtAuthFilter;
 import org.swu.vehiclecloud.util.JwtTokenProvider;
 
 @Configuration
@@ -26,7 +26,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated());
 
         // 添加自定义的 JWT 过滤器
-        http.addFilterBefore(new JWTAuthFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(new JwtAuthFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }
