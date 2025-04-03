@@ -27,6 +27,10 @@ public class MqttServiceImpl implements MqttService {
 
     public MqttServiceImpl(MqttConfigProperties mqttConfigProperties) throws MqttException {
         this.config = mqttConfigProperties;
+        if (!config.isEnabled()) {
+            this.mqttClient = null;
+            return;
+        }
         this.mqttClient = new MqttClient(
                 config.getBrokerUrl(),
                 config.getClientId(),

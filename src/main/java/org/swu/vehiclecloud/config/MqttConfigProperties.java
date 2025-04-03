@@ -19,9 +19,13 @@ public class MqttConfigProperties {
     private String password;
     private List<String> subTopics;
     private int connectionTimeout = 30;
+    private boolean enabled = true; // 新增启用开关
 
     @Bean
     public MqttPahoClientFactory mqttClientFactory() {
+        if (!enabled) {  // 如果禁用则返回null
+            return null;
+        }
         DefaultMqttPahoClientFactory mqttPahoClientFactory = new DefaultMqttPahoClientFactory();
         MqttConnectOptions options = new MqttConnectOptions();
         options.setCleanSession(true);
