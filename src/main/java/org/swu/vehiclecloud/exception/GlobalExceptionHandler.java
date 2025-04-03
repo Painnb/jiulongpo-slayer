@@ -1,5 +1,6 @@
 package org.swu.vehiclecloud.exception;
 
+import org.swu.vehiclecloud.controller.template.ApiResult;
 import org.swu.vehiclecloud.dto.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -73,5 +75,38 @@ public class GlobalExceptionHandler {
   @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)  // 设置响应状态码为500
   public ApiResponse<Void> handleAllUncaughtException(Exception ex) {
     return ApiResponse.error(500, "服务器内部错误：" + ex.getMessage());
+  }
+
+  /**
+   * 处理所有未捕获的异常
+   * 作为最后的异常处理器
+   * @return 包含自定义的错误信息的响应对象
+   */
+  @ExceptionHandler(AccessDeniedException.class)
+  public ApiResult<Map<String, Object>> handleAccessDeniedException() {
+    return ApiResult.of(401, "Access Denied: Insufficient Permissions",
+            null);
+  }
+
+  /**
+   * 处理所有未捕获的异常
+   * 作为最后的异常处理器
+   * @return 包含自定义的错误信息的响应对象
+   */
+  @ExceptionHandler(JwtIsExpiredException.class)
+  public ApiResult<Map<String, Object>> JwtIsExpiredException() {
+    return ApiResult.of(401, "Access Denied: Jwt Token is expired",
+            null);
+  }
+
+  /**
+   * 处理所有未捕获的异常
+   * 作为最后的异常处理器
+   * @return 包含自定义的错误信息的响应对象
+   */
+  @ExceptionHandler(JwtParseFailedException.class)
+  public ApiResult<Map<String, Object>> JwtParseFailedException() {
+    return ApiResult.of(500, "Server error: Jwt parse failed",
+            null);
   }
 }

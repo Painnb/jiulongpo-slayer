@@ -8,15 +8,17 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.swu.vehiclecloud.exception.JwtIsExpiredException;
+import org.swu.vehiclecloud.exception.JwtParseFailedException;
 
 import java.io.IOException;
 import java.util.ArrayList;
 
 @WebFilter(asyncSupported = true)
-public class JWTAuthFilter implements Filter{
+public class JwtAuthFilter implements Filter{
     private final JwtTokenProvider jwtTokenProvider;
 
-    public JWTAuthFilter(JwtTokenProvider jwtTokenProvider) {
+    public JwtAuthFilter(JwtTokenProvider jwtTokenProvider) {
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
@@ -49,11 +51,7 @@ public class JWTAuthFilter implements Filter{
 
                 // 如果已过期，则返回给前端401 Unauthorized，让其重定向到登录界面
                 if (!expired) {
-                    // 如果 token 过期，返回自定义的错误消息
-                    httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    httpResponse.setContentType("application/json");
-                    httpResponse.getWriter().write("{\"error\": \"JWT token has expired\"}");
-                    return;
+                    throw new JwtIsExpiredException("Jwt Token is expired");
                 }
 
                 // 使用自定义JwtTokenProvider的方法解析用户ID
@@ -70,7 +68,7 @@ public class JWTAuthFilter implements Filter{
                 }
             } catch (Exception e) {
                 // 解析失败，返回未授权
-                httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT token");
+                throw new JwtParseFailedException("Jwt parse failed");
             }
         }
         chain.doFilter(request, response);
