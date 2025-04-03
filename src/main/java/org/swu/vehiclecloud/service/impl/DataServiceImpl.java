@@ -16,12 +16,12 @@ public class DataServiceImpl implements DataService {
      * 该方法使用SSEUtil工具类创建发射器实例
      */
     @Override
-    public SseEmitter streamData() {
-        return SSEUtil.createEmitter();
+    public SseEmitter streamData(String id) {
+        return SSEUtil.createEmitter(id);
     }
     
     @Override
-    public void setPushContent(String content) {
-        SSEUtil.setPushContent(content);
+    public void setPushContent(String id, String content) {
+        SSEUtil.setPushContent(id, content);
     }
 }

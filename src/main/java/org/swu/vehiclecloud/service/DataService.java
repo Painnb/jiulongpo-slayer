@@ -12,7 +12,7 @@ public interface DataService {
      * 该发射器会每秒发送一次数据，直到连接关闭或超时
      * 可通过setPushContent方法动态更新推送内容
      */
-    SseEmitter streamData();
+    SseEmitter streamData(String id);
     
     /**
      * 设置推送内容
@@ -20,5 +20,5 @@ public interface DataService {
      * 设置后，所有已连接的SSE客户端将收到更新后的内容
      * 内容会每秒推送一次，直到再次更新
      */
-    void setPushContent(String content);
+    void setPushContent(String id, String content);
 }
