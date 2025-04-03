@@ -7,12 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 
 @Getter
@@ -21,7 +16,7 @@ import java.util.Date;
 @NoArgsConstructor
 @TableName("user")
 
-public class User implements UserDetails {
+public class User {
 
     @TableId
     private Integer id;         // 用户 ID
@@ -46,47 +41,6 @@ public class User implements UserDetails {
         this.role = role;
         this.email = email;
         this.created_time = created_time;
-    }
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        // 创建一个 SimpleGrantedAuthority 对象，表示角色
-        Collection<? extends GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(role));
-
-        // 打印出返回的权限集合
-        authorities.forEach(authority -> System.out.println("Granted Authority: " + authority.getAuthority()));
-
-        return authorities;
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return true;
-    }
-
-    @Override
-    public String getPassword() {
-        return password;
-    }
-
-    @Override
-    public String getUsername() {
-        return username;
     }
 }
 

@@ -1,6 +1,5 @@
 package org.swu.vehiclecloud.controller;
 
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.swu.vehiclecloud.controller.template.ApiResult;
 import org.swu.vehiclecloud.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;

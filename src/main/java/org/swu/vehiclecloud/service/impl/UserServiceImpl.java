@@ -1,9 +1,6 @@
 package org.swu.vehiclecloud.service.impl;
 
 import cn.hutool.core.util.StrUtil;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.swu.vehiclecloud.controller.template.ApiResult;
 import org.swu.vehiclecloud.entity.User;
 import org.swu.vehiclecloud.mapper.UserMapper;
@@ -22,7 +19,7 @@ import java.util.Map;
  * 用户服务实现类
  */
 @Service
-public class UserServiceImpl implements UserService, UserDetailsService {
+public class UserServiceImpl implements UserService {
     @Autowired
     private UserMapper userMapper;
 
@@ -69,7 +66,6 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                 response.put("role",user.getRole());
                 response.put("email",user.getEmail());
                 response.put("created_time", user.getCreated_time());
-                loadUserByUsername(username);
                 return ApiResult.of(200,"200 OK:登陆成功", response);
             }else{
                 // 登录失败，不生成JWT token， 并返回错误结果给前端
@@ -177,19 +173,5 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     @Override
     public boolean verifyPassword(String rawPassword, String encodedPassword) {
         return encryptPassword(rawPassword).equals(encodedPassword);
-    }
-
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // 根据用户名查找用户
-        User user = userMapper.findByUsername(username);
-
-        if (StrUtil.isEmptyIfStr(user)) {
-            throw new UsernameNotFoundException("User not found with username: " + username);
-        }
-
-        // 返回包含角色信息的 CustomUserDetails
-        System.out.println(user.getRole());
-        return new User(user.getId(), user.getUsername(), user.getPassword(), user.getRole(), user.getEmail(), user.getCreated_time());
     }
 }
