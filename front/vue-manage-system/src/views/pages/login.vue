@@ -90,7 +90,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
                     password: param.password,
                 });
 
-                // 假设后端返回的数据结构为 { success: true, message: '登录成功', data: { token, permissions } }
+                // 假设后端返回的数据结构为 { success: true, message: '登录成功', data: { token, role } }
                 if (response.data.status === 200) {
                     // 登录成功，处理登录逻辑
                     console.log('登录成功', response.data);
@@ -99,9 +99,21 @@ const submitForm = async (formEl: FormInstance | undefined) => {
                     // 保存用户名到 localStorage
                     localStorage.setItem('vuems_name', param.username);
 
-                    // 保存权限信息
-                    const keys = response.data.role || [];
-                    permiss.handleSet(keys);
+                    // 获取嵌套的 data 对象
+                    const userData = response.data.data;
+                    const key = userData.role; // 从 data 中获取 role
+                    localStorage.setItem('auth', key); // 将 role 存储到 localStorage
+                    console.log("key:", key);
+
+                    // 根据后端返回的 key 设置权限
+                    if (key === 'admin') {
+                        permiss.handleSet(permiss.defaultList.admin);
+                    } else if (key === 'USER') {
+                        permiss.handleSet(permiss.defaultList.user);
+                    } else {
+                        ElMessage.error('未知的权限角色');
+                        return;
+                    }
 
                     // 跳转到首页
                     router.push('/');
