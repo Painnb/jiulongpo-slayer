@@ -1,18 +1,35 @@
 package org.swu.vehiclecloud.config;
 
+import lombok.Data;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.integration.mqtt.core.DefaultMqttPahoClientFactory;
+import org.springframework.integration.mqtt.core.MqttPahoClientFactory;
+
 import java.util.List;
 
-@Configuration
-@ConfigurationProperties(prefix = "mqtt")
+@Data
+@ConfigurationProperties(prefix = "spring.mqtt")
 public class MqttConfigProperties {
     private String brokerUrl;
     private String clientId;
     private String username;
     private String password;
-    private List<String> subscribeTopics;
-    private final int connectionTimeout = 30;
+    private List<String> subTopics;
+    private int connectionTimeout = 30;
 
-    // Getters and Setters (需 Lombok 或手动生成)
+    @Bean
+    public MqttPahoClientFactory mqttClientFactory() {
+        DefaultMqttPahoClientFactory mqttPahoClientFactory = new DefaultMqttPahoClientFactory();
+        MqttConnectOptions options = new MqttConnectOptions();
+        options.setCleanSession(true);
+        options.setUserName(username);
+        options.setPassword(password.toCharArray());
+        options.setServerURIs(new String[]{brokerUrl});
+        mqttPahoClientFactory.setConnectionOptions(options);
+
+        return mqttPahoClientFactory;
+    }
 }
