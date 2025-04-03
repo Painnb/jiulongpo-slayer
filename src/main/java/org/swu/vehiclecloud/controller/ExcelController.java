@@ -1,6 +1,6 @@
 package org.swu.vehiclecloud.controller;
 
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.swu.vehiclecloud.annotations.PreAuthorizeRole;
 import org.swu.vehiclecloud.service.ExcelService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
  * Excel导出控制器
  */
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/dataprocess")
 @CrossOrigin(origins = "*")
 public class ExcelController {
 
@@ -23,8 +23,8 @@ public class ExcelController {
      * @param tableName 要导出的表名
      * @return 包含Excel文件的响应实体
      */
-    @GetMapping("/user/tables/{tableName}/export")
-    @PreAuthorize("hasAuthority('USER')")
+    @GetMapping("/business/tables/{tableName}/export")
+    @PreAuthorizeRole(roles = {"BIZ_ADMIN"})
     public ResponseEntity<Resource> exportExcel(@PathVariable String tableName) {
         return excelService.exportExcel(tableName);
     }
