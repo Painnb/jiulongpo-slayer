@@ -76,20 +76,27 @@
                             </el-form-item>
                         </el-form>
                     </el-tab-pane>
-                    <el-tab-pane name="label4" label="赞赏作者" class="user-tabpane">
-                        <div class="plugins-tips">
-                            如果该框架
-                            <el-link href="https://github.com/lin-xin/vue-manage-system" target="_blank"
-                                >vue-manage-system</el-link
-                            >
-                            对你有帮助，那就请作者喝杯饮料吧！<el-icon>
-                                <ColdDrink />
-                            </el-icon>
-                            加微信号 linxin_20 探讨问题。
-                        </div>
-                        <div>
-                            <img src="https://lin-xin.gitee.io/images/weixin.jpg" />
-                        </div>
+                    <el-tab-pane name="label5" label="更改订阅" class="user-tabpane">
+                        <el-form class="w500" label-position="top">
+                            <el-form-item label="Broker URL：">
+                                <el-input v-model="mqttConfig.brokerUrl" placeholder="tcp://192.168.31.250:1887"></el-input>
+                            </el-form-item>
+                            <el-form-item label="用户名：">
+                                <el-input v-model="mqttConfig.username" placeholder="smqtt"></el-input>
+                            </el-form-item>
+                            <el-form-item label="密码：">
+                                <el-input type="password" v-model="mqttConfig.password" placeholder="smqtt"></el-input>
+                            </el-form-item>
+                            <el-form-item label="客户端 ID：">
+                                <el-input v-model="mqttConfig.clientId" placeholder="myclient"></el-input>
+                            </el-form-item>
+                            <el-form-item label="订阅主题：">
+                                <el-input v-model="mqttConfig.subTopics" placeholder="#"></el-input>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="saveMqttConfig">保存</el-button>
+                            </el-form-item>
+                        </el-form>
                     </el-tab-pane>
                 </el-tabs>
             </el-card>
@@ -119,6 +126,14 @@ const imgSrc = ref(avatar);
 const cropImg = ref('');
 const cropper: any = ref();
 
+const mqttConfig = reactive({
+    brokerUrl: 'tcp://192.168.31.250:1887',
+    username: 'smqtt',
+    password: 'smqtt',
+    clientId: 'myclient',
+    subTopics: '#',
+});
+
 const setImage = (e: any) => {
     const file = e.target.files[0];
     if (!file.type.includes('image/')) {
@@ -138,6 +153,17 @@ const cropImage = () => {
 
 const saveAvatar = () => {
     avatarImg.value = cropImg.value;
+};
+
+const saveMqttConfig = () => {
+    console.log('保存 MQTT 配置：', mqttConfig);
+    // TODO: 调用后端接口保存 MQTT 配置
+    // 示例：
+    // axios.post('/api/mqtt/config', mqttConfig).then(response => {
+    //     console.log('保存成功', response);
+    // }).catch(error => {
+    //     console.error('保存失败', error);
+    // });
 };
 </script>
 
@@ -219,9 +245,6 @@ const saveAvatar = () => {
     flex: 1;
 }
 
-.user-tabpane {
-    padding: 10px 20px;
-}
 
 .crop-wrap {
     width: 600px;

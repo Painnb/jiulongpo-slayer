@@ -2,7 +2,7 @@
     <div class="header">
         <!-- 折叠按钮 -->
         <div class="header-left">
-            <img class="logo" src="../assets/img/logo.svg" alt="" />
+            <img class="logo" src="../assets/img/logo.png" alt="" />
             <div class="web-title">车云数据解析系统</div>
             <div class="collapse-btn" @click="collapseChage">
                 <el-icon v-if="sidebar.collapse">
@@ -123,7 +123,7 @@ const setFullScreen = () => {
 }
 
 .logo {
-    width: 35px;
+    width:85px;
 }
 
 .web-title {
