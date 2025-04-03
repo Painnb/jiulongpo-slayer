@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.swu.vehiclecloud.service.DataService;
+import org.swu.vehiclecloud.annotations.PreAuthorizeRole;
 
 /**
  * 数据控制器，提供SSE数据流相关的REST接口。
@@ -27,6 +28,7 @@ public class DataController {
      * 可通过/set-push-content端点动态更新推送内容。
      */
     @GetMapping("/public/ssestream/{ID}")
+    @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"})
     public SseEmitter streamData(@PathVariable("ID") String id, HttpServletResponse response) {
         SseEmitter emitter = dataService.streamData(id);
         response.setHeader("ID", id);
@@ -41,6 +43,7 @@ public class DataController {
      * 内容会每秒推送一次，直到再次更新。
      */
     @PostMapping("/public/setpushcontent/{ID}")
+    @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"})
     public void setPushContent(@PathVariable("ID") String id, @RequestBody String content) {
         dataService.setPushContent(id, content);
     }
