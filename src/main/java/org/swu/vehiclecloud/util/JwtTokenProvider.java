@@ -1,5 +1,6 @@
 package org.swu.vehiclecloud.util;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +30,7 @@ public class JwtTokenProvider {
                 .compact();
     }
 
+    // 从token当中获取用户id
     public String getUserIdFromToken(String token) {
         try {
             return Jwts.parser()
@@ -42,13 +44,18 @@ public class JwtTokenProvider {
         }
     }
 
-    //验证token
-    public boolean validateToken(String token) {
+    // 验证token是否过期
+    public boolean validateTokenExpiration(String token) {
         try {
-            Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(token);
-            return true;
-        } catch (Exception ex) {
-            return false;
+            Claims claims = Jwts.parser()
+                    .setSigningKey(jwtSecret)
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            Date expirationDate = claims.getExpiration();
+            return expirationDate.before(new Date()); // 如果当前时间在过期时间之后，返回true，即已过期
+        } catch (Exception e) {
+            return true;  // 如果解析异常，认为 token 已经过期
         }
     }
 }

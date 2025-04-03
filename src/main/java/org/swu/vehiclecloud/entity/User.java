@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+
 import java.util.Date;
 
 @Getter
@@ -42,3 +43,4 @@ public class User {
         this.created_time = created_time;
     }
 }
+

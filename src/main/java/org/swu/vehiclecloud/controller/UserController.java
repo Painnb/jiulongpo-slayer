@@ -1,6 +1,5 @@
 package org.swu.vehiclecloud.controller;
 
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.swu.vehiclecloud.controller.template.ApiResult;
 import org.swu.vehiclecloud.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,7 +48,6 @@ public class UserController {
      * @return 包含登录结果的响应实体
      */
     @PostMapping("/public/login")
-    // @PreAuthorize("hasAnyRole('USER', 'SYS_ADMIN', 'BIZ_ADMIN', 'GUEST')")
     public ApiResult<Map<String, Object>> login(@RequestBody Map<String, Object> requestBody) {
         return userServiceImpl.login(requestBody);
     }
