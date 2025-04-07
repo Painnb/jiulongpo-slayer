@@ -3,7 +3,7 @@
         <div class="login-container">
             <div class="login-header">
                 <img class="logo mr10" src="../../assets/img/logo.png" alt="" />
-                <div class="login-title">后台管理系统</div>
+                <div class="login-title">车云数据解析系统</div>
             </div>
             <el-form :model="param" :rules="rules" ref="register" size="large">
                 <el-form-item prop="username">
@@ -153,14 +153,14 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 
 .login-title {
     font-size: 22px;
-    color: #333;
+    color: #C9E9FF;
     font-weight: bold;
 }
 
 .login-container {
     width: 450px;
     border-radius: 5px;
-    background: rgba(255, 255, 255, 0.8); /* 设置背景为白色并添加透明度 */
+    background: rgba(5, 23, 47, 0.8); /* 设置背景为白色并添加透明度 */
     padding: 40px 50px 50px;
     box-sizing: border-box;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* 添加阴影以增强视觉效果 */
