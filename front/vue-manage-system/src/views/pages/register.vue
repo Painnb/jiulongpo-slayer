@@ -2,7 +2,7 @@
     <div class="login-bg">
         <div class="login-container">
             <div class="login-header">
-                <img class="logo mr10" src="../../assets/img/logo.svg" alt="" />
+                <img class="logo mr10" src="../../assets/img/logo.png" alt="" />
                 <div class="login-title">后台管理系统</div>
             </div>
             <el-form :model="param" :rules="rules" ref="register" size="large">
@@ -137,7 +137,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
     justify-content: center;
     width: 100%;
     height: 100vh;
-    background: url(../../assets/img/login-bg.jpg) center/cover no-repeat;
+    background: url(../../assets/img/bg.png) center/cover no-repeat;
 }
 
 .login-header {
@@ -148,7 +148,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 }
 
 .logo {
-    width: 35px;
+    width: 70px;
 }
 
 .login-title {
@@ -160,9 +160,10 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 .login-container {
     width: 450px;
     border-radius: 5px;
-    background: #fff;
+    background: rgba(255, 255, 255, 0.8); /* 设置背景为白色并添加透明度 */
     padding: 40px 50px 50px;
     box-sizing: border-box;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* 添加阴影以增强视觉效果 */
 }
 
 .login-btn {

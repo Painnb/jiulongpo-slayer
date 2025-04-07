@@ -283,11 +283,8 @@ export const dashOpt2 = {
                 borderWidth: 2,
             },
             data: [
-                { value: 1048, name: '数码' },
-                { value: 735, name: '食品' },
-                { value: 580, name: '母婴' },
-                { value: 484, name: '家电' },
-                { value: 300, name: '运动' },
+                { value: 999, name: '在线' },
+                { value: 888, name: '离线' },
             ],
         },
     ],
