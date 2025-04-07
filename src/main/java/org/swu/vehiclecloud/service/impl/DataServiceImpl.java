@@ -50,8 +50,12 @@ public class DataServiceImpl implements DataService {
 
     /**
      * 获取指定ID的SSE数据流
-     * @param id 数据流标识符
-     * @return 包含服务器推送事件的Flux流
+     * 如果该ID的数据流不存在，则创建一个新的数据流
+     * 使用Sinks.Many作为内容发射器，支持多播和背压
+     * 
+     * @param id 数据流标识符，区分不同的SSE通道
+     * @return Flux<ServerSentEvent<String>> 包含服务器推送事件的响应式流
+     *         会自动处理订阅和取消订阅事件
      */
     @Override
     public Flux<ServerSentEvent<String>> streamData(String id) {
@@ -62,7 +66,10 @@ public class DataServiceImpl implements DataService {
 
     /**
      * 设置推送内容
-     * @param id 目标数据流标识符
+     * 立即将内容推送给所有订阅该ID的客户端
+     * 使用tryEmitNext进行高效推送，失败时自动重试
+     * 
+     * @param id 目标数据流标识符，必须与streamData中的ID一致
      * @param content 要推送的内容（不可为null）
      * @throws IllegalArgumentException 如果content为null时抛出
      */
@@ -92,8 +99,12 @@ public class DataServiceImpl implements DataService {
 
     /**
      * 创建并共享指定ID的数据流
+     * 内部使用Sinks.Many作为内容发射源
+     * 配置了1条消息的replay缓存和30秒的无订阅清理延迟
+     * 
      * @param id 数据流标识符
-     * @return 新创建的SSE数据流
+     * @return Flux<ServerSentEvent<String>> 新创建的SSE数据流
+     *         会自动转换为SSE格式并添加事件ID
      */
     private Flux<ServerSentEvent<String>> createAndShareStreamForId(String id) {
         log.info("创建新SSE数据流 ID: {}", id);
