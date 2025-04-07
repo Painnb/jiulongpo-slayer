@@ -19,4 +19,9 @@ public class MqttMessageEvent extends ApplicationEvent {
     public String getMessage() {
         return message;
     }
+
+    // 添加获取JSON格式的方法
+    public String getPayloadAsJson() {
+        return null;
+    }
 }

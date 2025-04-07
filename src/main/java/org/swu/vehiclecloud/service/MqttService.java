@@ -1,10 +1,13 @@
 package org.swu.vehiclecloud.service;
 
 import org.eclipse.paho.client.mqttv3.MqttException;
-import org.swu.vehiclecloud.config.MqttConfigProperties;
+
+import java.util.List;
 
 public interface MqttService {
+    void reinitialize(String brokerUrl, String clientId, String username, String password, List<String> topic) throws MqttException;
     void subscribeToDefaultTopics() throws MqttException;
+    void connect() throws MqttException;
     void processMessage(String topic, byte[] payload) throws MqttException;
     void close() throws Exception;
     boolean isConnected();
