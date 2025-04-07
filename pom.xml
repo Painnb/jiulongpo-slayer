@@ -155,6 +155,15 @@
             <artifactId>aspectjweaver</artifactId>
             <version>1.9.7</version>
         </dependency>
+
+        <!-- 不能使用2.17.x版本，有bug-->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.15.4</version>
+        </dependency>
+
+
     </dependencies>
     <dependencyManagement>
         <dependencies>

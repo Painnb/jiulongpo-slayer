@@ -1,6 +1,7 @@
 package org.swu.vehiclecloud.service;
 
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.swu.vehiclecloud.service.impl.DataServiceImpl;
 
 /**
  * SSE数据流服务接口

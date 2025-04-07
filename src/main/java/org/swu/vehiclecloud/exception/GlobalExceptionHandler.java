@@ -1,5 +1,6 @@
 package org.swu.vehiclecloud.exception;
 
+import jakarta.servlet.ServletException;
 import org.swu.vehiclecloud.controller.template.ApiResult;
 import org.swu.vehiclecloud.dto.ApiResponse;
 import org.springframework.http.HttpStatus;
@@ -9,6 +10,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -107,6 +110,50 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(JwtParseFailedException.class)
   public ApiResult<Map<String, Object>> JwtParseFailedException() {
     return ApiResult.of(500, "Server error: Jwt parse failed",
+            null);
+  }
+
+  /**
+   * 处理所有未捕获的异常
+   * 作为最后的异常处理器
+   * @return 包含自定义的错误信息的响应对象
+   */
+  @ExceptionHandler(IOException.class)
+  public ApiResult<Map<String, Object>> IOException() {
+    return ApiResult.of(500,"Internal server error. Please try again later.",
+            null);
+  }
+
+  /**
+   * 处理所有未捕获的异常
+   * 作为最后的异常处理器
+   * @return 包含自定义的错误信息的响应对象
+   */
+  @ExceptionHandler(NullPointerException.class)
+  public ApiResult<Map<String, Object>> NullPointerException() {
+    return ApiResult.of(400,"Bad request. Missing required fields.",
+            null);
+  }
+
+  /**
+   * 处理所有未捕获的异常
+   * 作为最后的异常处理器
+   * @return 包含自定义的错误信息的响应对象
+   */
+  @ExceptionHandler(NumberFormatException.class)
+  public ApiResult<Map<String, Object>> NumberFormatException() {
+    return ApiResult.of(400,"Bad request. Invalid number format.",
+            null);
+  }
+
+  /**
+   * 处理所有未捕获的异常
+   * 作为最后的异常处理器
+   * @return 包含自定义的错误信息的响应对象
+   */
+  @ExceptionHandler(ServletException.class)
+  public ApiResult<Map<String, Object>> ServletException() {
+    return ApiResult.of(500,"Internal server error. Please try again later.",
             null);
   }
 }
