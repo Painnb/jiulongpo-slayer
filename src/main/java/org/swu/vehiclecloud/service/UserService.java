@@ -14,7 +14,7 @@ public interface UserService {
 
     /**
      * 用户注册
-     * @param userDTO 用户DTO对象
+     * @param user 用户DTO对象
      * @return 注册后的用户对象
      */
     User register(User user);
@@ -28,7 +28,7 @@ public interface UserService {
 
     /**
      * 更新用户信息
-     * @param userDTO 用户DTO对象
+     * @param user 用户DTO对象
      * @return 更新后的用户对象
      */
     User updateUser(User user);
