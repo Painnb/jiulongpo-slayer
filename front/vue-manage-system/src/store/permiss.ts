@@ -48,7 +48,7 @@ export const usePermissStore = defineStore('permiss', {
         const Auth = localStorage.getItem('auth');
         console.log(Auth);
         return {
-            key: (Auth == 'admin' ? defaultList.admin : defaultList.user) as string[],
+            key: (Auth == 'ADMIN' ? defaultList.admin : defaultList.user) as string[],
             defaultList,
         };
     },
