@@ -27,8 +27,8 @@ import java.util.Map;
 public class SSEUtil {
     /** 定时任务调度器，单线程池处理所有客户端推送 */
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-    /** 客户端发射器缓存映射表，key: 客户端ID */
-    private static final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
+    /** 客户端发射器缓存映射表，key: 客户端ID, value: 发射器列表 */
+    private static final Map<String, List<SseEmitter>> emitters = new ConcurrentHashMap<>();
     /** 待推送内容缓存映射表，key: 客户端ID */
     private static final Map<String, String> pushContents = new ConcurrentHashMap<>();
     
@@ -44,31 +44,41 @@ public class SSEUtil {
      */
     public static SseEmitter createEmitter(String id) {
         SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
-        emitters.put(id, emitter);
+        
+        // 初始化或获取该ID对应的发射器列表
+        List<SseEmitter> emitterList = emitters.computeIfAbsent(id, k -> new CopyOnWriteArrayList<>());
+        emitterList.add(emitter);
         
         // 设置定时任务，每秒发送一次数据
         scheduler.scheduleAtFixedRate(() -> {
-            try {
-                String content = pushContents.get(id);
-                if (content != null) {
-                    emitter.send(content);
-                }
-            } catch (IOException e) {
-                // 发生IO异常时，完成发射器并从Map中移除
-                emitter.completeWithError(e);
-                emitters.remove(id);
-                pushContents.remove(id);
+            String content = pushContents.get(id);
+            if (content != null) {
+                emitterList.forEach(e -> {
+                    try {
+                        e.send(content);
+                    } catch (IOException ex) {
+                        e.completeWithError(ex);
+                        emitterList.remove(e);
+                    }
+                });
             }
         }, 0, 1, TimeUnit.SECONDS);
         
         // 设置完成和超时回调
         emitter.onCompletion(() -> {
-            emitters.remove(id);
-            pushContents.remove(id);
+            emitterList.remove(emitter);
+            if (emitterList.isEmpty()) {
+                emitters.remove(id);
+                pushContents.remove(id);
+            }
         });
+        
         emitter.onTimeout(() -> {
-            emitters.remove(id);
-            pushContents.remove(id);
+            emitterList.remove(emitter);
+            if (emitterList.isEmpty()) {
+                emitters.remove(id);
+                pushContents.remove(id);
+            }
         });
         
         return emitter;
