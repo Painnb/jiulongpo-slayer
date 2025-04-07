@@ -5,7 +5,6 @@ import org.eclipse.paho.client.mqttv3.*;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.swu.vehiclecloud.config.MqttConfigProperties;
@@ -13,37 +12,81 @@ import org.swu.vehiclecloud.service.MqttService;
 import org.swu.vehiclecloud.event.MqttMessageEvent;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @Service
 @Slf4j
 public class MqttServiceImpl implements MqttService {
     private static final Logger logger = LoggerFactory.getLogger(MqttServiceImpl.class);
     private static final int DEFAULT_QOS = 0;
-    private final MqttClient mqttClient;
+    private MqttClient mqttClient;
+    private MqttConnectOptions currentConnectOptions;
     private final MqttConfigProperties config;
+    private final ApplicationEventPublisher  mqttEventPublisher;
+    //private boolean isConnected = false;
 
-    @Autowired
-    private ApplicationEventPublisher  mqttEventPublisher;
-
-    public MqttServiceImpl(MqttConfigProperties mqttConfigProperties) throws MqttException {
+    public MqttServiceImpl(MqttConfigProperties mqttConfigProperties, ApplicationEventPublisher  mqttEventPublisher) throws MqttException {
         this.config = mqttConfigProperties;
-        this.mqttClient = new MqttClient(
-                config.getBrokerUrl(),
-                config.getClientId(),
-                new MemoryPersistence()
-        );
-        MqttConnect();
+        this.mqttEventPublisher = mqttEventPublisher;
     }
-    private void MqttConnect() throws MqttException {
-        // 创建MqttConnectOptions对象
-        MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
-        mqttConnectOptions.setUserName(config.getUsername());
-        mqttConnectOptions.setPassword(config.getPassword().toCharArray());
-        mqttConnectOptions.setCleanSession(true);
-        mqttConnectOptions.setAutomaticReconnect(true);
-        mqttConnectOptions.setConnectionTimeout(10);
 
-        // 回调函数
+    private void initClient() {
+        try {
+            if (this.mqttClient != null && this.mqttClient.isConnected()) {
+                this.mqttClient.disconnect();
+                this.mqttClient.close();
+            }
+
+            this.mqttClient = new MqttClient(
+                    config.getBrokerUrl(),
+                    config.getClientId(),
+                    new MemoryPersistence()
+            );
+
+            // 初始化默认连接选项
+            this.currentConnectOptions = createConnectOptions(
+                    config.getUsername(),
+                    config.getPassword()
+            );
+
+            // 启动连接
+            setupCallbacks();
+            connect();
+        } catch (MqttException e) {
+            logger.error("Failed to initialize MQTT client", e);
+        }
+
+    }
+
+    public void reinitialize(String brokerUrl, String clientId, String username, String password, List<String> topic) throws MqttException {
+        // 更新配置
+        config.setBrokerUrl(brokerUrl);
+        config.setClientId(clientId);
+        config.setUsername(username);
+        config.setPassword(password);
+        config.setSubTopics(topic);
+
+        // 创建新的连接选项
+        this.currentConnectOptions = createConnectOptions(username, password);
+
+        // 重新初始化客户端
+        //initClient();
+    }
+
+
+    private MqttConnectOptions createConnectOptions(String username, String password) throws MqttException {
+        MqttConnectOptions options = new MqttConnectOptions();
+        options.setUserName(username);
+        options.setPassword(password.toCharArray());
+        options.setCleanSession(true);
+        options.setAutomaticReconnect(true);
+        options.setConnectionTimeout(10);
+
+        return options;
+    }
+
+    // 回调函数
+    private void setupCallbacks() {
         mqttClient.setCallback(new MqttCallback() {
             @Override
             public void connectionLost(Throwable cause) {
@@ -66,9 +109,17 @@ public class MqttServiceImpl implements MqttService {
                 logger.debug("Message delivery complete");
             }
         });
+    }
 
-        mqttClient.connect(mqttConnectOptions);
-        log.info("MQTT connected to {}", config.getBrokerUrl());
+    // 延时初始化
+    public void connect() throws MqttException {
+        if (mqttClient == null) {
+            initClient();
+        } else if (!mqttClient.isConnected()) {
+            mqttClient.connect(currentConnectOptions);
+            logger.info("MQTT connected to {}", config.getBrokerUrl());
+            subscribeToDefaultTopics();
+        }
     }
 
     public void subscribe(String topic, int qos) throws MqttException {
@@ -87,36 +138,6 @@ public class MqttServiceImpl implements MqttService {
             }
         }
     }
-
-    /*
-    public void receiveMessage()  throws MqttException{
-        if (!mqttClient.isConnected()) {
-            throw new IllegalStateException("MQTT client is not connected");
-        }
-
-        mqttClient.setCallback(new MqttCallback() {
-            @Override
-            public void connectionLost(Throwable cause) {
-                System.out.println("Connection lost");
-            }
-
-            @Override
-            public void messageArrived(String topic, MqttMessage message) throws Exception {
-                JSONObject json = new JSONObject();
-                json.put("topic", topic);
-                json.put("message", message.toString());
-                //System.out.println("topic: " + topic);
-                //System.out.println("message: " + new String(message.getPayload()));
-                //processMessage(topic, message.getPayload()); // 传递原始字节数组
-            }
-
-            @Override
-            public void deliveryComplete(IMqttDeliveryToken token) {
-                System.out.println("deliveryComplete");
-            }
-        });
-    }
-    */
 
     public void processMessage(String topic, byte[] payload) throws MqttException {
         try {
