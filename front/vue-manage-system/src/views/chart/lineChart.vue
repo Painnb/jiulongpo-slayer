@@ -11,7 +11,15 @@
 
 <script setup lang="ts">
 import VChart from 'vue-echarts';
+import { use } from 'echarts/core';
+import { CanvasRenderer } from 'echarts/renderers'; // 导入 Canvas 渲染器
+import { LineChart } from 'echarts/charts'; // 导入折线图类型
+import { GridComponent, TooltipComponent, LegendComponent, TitleComponent  } from 'echarts/components'; // 导入组件
 import { lineOptions } from './lineOptions'; // 引入折线图配置
+
+
+// 注册 ECharts 模块
+use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent,TitleComponent ]);
 </script>
 
 <style scoped>
@@ -20,7 +28,7 @@ import { lineOptions } from './lineOptions'; // 引入折线图配置
 }
 
 .schart {
-    width: 100%;
+    width: 1500px;
     height: 400px;
 }
 

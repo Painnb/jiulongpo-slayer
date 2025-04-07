@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+
 import java.util.Date;
 
 @Getter
@@ -27,6 +28,7 @@ public class User {
     
     private String role;     // 角色
     
+    @TableField("email")
     private String email;   // 邮箱
     
     @TableField("created_at")
@@ -42,3 +44,4 @@ public class User {
         this.created_time = created_time;
     }
 }
+

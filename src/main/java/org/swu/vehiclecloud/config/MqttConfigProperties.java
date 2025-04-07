@@ -20,10 +20,12 @@ public class MqttConfigProperties {
     private String password;
     private List<String> subTopics;
     private int connectionTimeout = 30;
+    private boolean enabled = true; // 新增启用开关
 
     @Bean
     public MqttPahoClientFactory mqttClientFactory() {
         DefaultMqttPahoClientFactory mqttClientFactory = new DefaultMqttPahoClientFactory();
+      
         MqttConnectOptions options = new MqttConnectOptions();
         options.setCleanSession(true);
         options.setUserName(username);
