@@ -26,22 +26,22 @@
             <el-col :span="6">
                 <el-card shadow="hover" body-class="card-body">
                     <el-icon class="card-icon bg3">
-                        <Goods />
+                        <DataAnalysis />
                     </el-icon>
                     <div class="card-content">
-                        <countup class="card-num color3" :end="8888" />
-                        <div>商品数量</div>
+                        <countup class="card-num color3" :end="999" />
+                        <div>在线数量</div>
                     </div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" body-class="card-body">
                     <el-icon class="card-icon bg4">
-                        <ShoppingCartFull />
+                        <MostlyCloudy />
                     </el-icon>
                     <div class="card-content">
-                        <countup class="card-num color4" :end="568" />
-                        <div>今日订单量</div>
+                        <countup class="card-num color4" :end="888" />
+                        <div>离线数量</div>
                     </div>
                 </el-card>
             </el-col>
@@ -51,8 +51,8 @@
             <el-col :span="18">
                 <el-card shadow="hover">
                     <div class="card-header">
-                        <p class="card-header-title">订单动态</p>
-                        <p class="card-header-desc">最近一周订单状态，包括订单成交量和订单退货量</p>
+                        <p class="card-header-title">动态数据</p>
+                        <p class="card-header-desc">实时监测的车辆数据</p>
                     </div>
                     <v-chart class="chart" :option="dashOpt1" />
                 </el-card>
@@ -60,8 +60,8 @@
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="card-header">
-                        <p class="card-header-title">品类分布</p>
-                        <p class="card-header-desc">最近一个月销售商品的品类情况</p>
+                        <p class="card-header-title">车辆状态</p>
+                        <p class="card-header-desc">实时监测的车辆状态</p>
                     </div>
                     <v-chart class="chart" :option="dashOpt2" />
                 </el-card>
@@ -90,8 +90,8 @@
             <el-col :span="10">
                 <el-card shadow="hover" :body-style="{ height: '400px' }">
                     <div class="card-header">
-                        <p class="card-header-title">渠道统计</p>
-                        <p class="card-header-desc">最近一个月的订单来源统计</p>
+                        <p class="card-header-title">异常统计</p>
+                        <p class="card-header-desc">最近一个月全国各地异常数量统计</p>
                     </div>
                     <v-chart class="map-chart" :option="mapOptions" />
                 </el-card>
