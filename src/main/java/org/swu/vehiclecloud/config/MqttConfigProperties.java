@@ -11,7 +11,8 @@ import org.springframework.integration.mqtt.core.MqttPahoClientFactory;
 import java.util.List;
 
 @Data
-@ConfigurationProperties(prefix = "spring.mqtt")
+//@ConfigurationProperties(prefix = "spring.mqtt")
+@ConfigurationProperties(prefix = "test.mqtt")
 public class MqttConfigProperties {
     private String brokerUrl;
     private String clientId;
@@ -22,14 +23,14 @@ public class MqttConfigProperties {
 
     @Bean
     public MqttPahoClientFactory mqttClientFactory() {
-        DefaultMqttPahoClientFactory mqttPahoClientFactory = new DefaultMqttPahoClientFactory();
+        DefaultMqttPahoClientFactory mqttClientFactory = new DefaultMqttPahoClientFactory();
         MqttConnectOptions options = new MqttConnectOptions();
         options.setCleanSession(true);
         options.setUserName(username);
         options.setPassword(password.toCharArray());
         options.setServerURIs(new String[]{brokerUrl});
-        mqttPahoClientFactory.setConnectionOptions(options);
+        mqttClientFactory.setConnectionOptions(options);
 
-        return mqttPahoClientFactory;
+        return mqttClientFactory;
     }
 }
