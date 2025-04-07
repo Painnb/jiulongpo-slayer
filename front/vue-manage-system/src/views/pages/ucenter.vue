@@ -9,27 +9,13 @@
                 <div class="user-info">
                     <div class="info-name">{{ name }}</div>
                     <div class="info-desc">
-                        <span>@lin-xin</span>
                         <el-divider direction="vertical" />
-                        <el-link href="https://lin-xin.gitee.io" target="_blank">lin-xin.gitee.io</el-link>
+                        <el-link href="https://github.com/Painnb/jiulongpo-slayer" target="_blank">jiulongpo-slayer
+                            .gitee.io</el-link>
                     </div>
-                    <div class="info-desc">FE Developer</div>
                     <div class="info-icon">
-                        <a href="https://github.com/lin-xin" target="_blank"> <i class="el-icon-lx-github-fill"></i></a>
-                        <i class="el-icon-lx-qq-fill"></i>
-                        <i class="el-icon-lx-facebook-fill"></i>
-                        <i class="el-icon-lx-twitter-fill"></i>
-                    </div>
-                </div>
-                <div class="user-footer">
-                    <div class="user-footer-item">
-                        <el-statistic title="Follower" :value="1800" />
-                    </div>
-                    <div class="user-footer-item">
-                        <el-statistic title="Following" :value="666" />
-                    </div>
-                    <div class="user-footer-item">
-                        <el-statistic title="Total Post" :value="888" />
+                        <a href="https://github.com/Painnb/jiulongpo-slayer" target="_blank"> <i class="el-icon-lx-github-fill"></i></a>
+                 
                     </div>
                 </div>
             </el-card>
@@ -76,20 +62,27 @@
                             </el-form-item>
                         </el-form>
                     </el-tab-pane>
-                    <el-tab-pane name="label4" label="赞赏作者" class="user-tabpane">
-                        <div class="plugins-tips">
-                            如果该框架
-                            <el-link href="https://github.com/lin-xin/vue-manage-system" target="_blank"
-                                >vue-manage-system</el-link
-                            >
-                            对你有帮助，那就请作者喝杯饮料吧！<el-icon>
-                                <ColdDrink />
-                            </el-icon>
-                            加微信号 linxin_20 探讨问题。
-                        </div>
-                        <div>
-                            <img src="https://lin-xin.gitee.io/images/weixin.jpg" />
-                        </div>
+                    <el-tab-pane name="label5" label="更改订阅" class="user-tabpane">
+                        <el-form class="w500" label-position="top">
+                            <el-form-item label="Broker URL：">
+                                <el-input v-model="mqttConfig.brokerUrl" placeholder="tcp://192.168.31.250:1887"></el-input>
+                            </el-form-item>
+                            <el-form-item label="用户名：">
+                                <el-input v-model="mqttConfig.username" placeholder="smqtt"></el-input>
+                            </el-form-item>
+                            <el-form-item label="密码：">
+                                <el-input type="password" v-model="mqttConfig.password" placeholder="smqtt"></el-input>
+                            </el-form-item>
+                            <el-form-item label="客户端 ID：">
+                                <el-input v-model="mqttConfig.clientId" placeholder="myclient"></el-input>
+                            </el-form-item>
+                            <el-form-item label="订阅主题：">
+                                <el-input v-model="mqttConfig.subTopics" placeholder="#"></el-input>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="saveMqttConfig">保存</el-button>
+                            </el-form-item>
+                        </el-form>
                     </el-tab-pane>
                 </el-tabs>
             </el-card>
@@ -119,6 +112,14 @@ const imgSrc = ref(avatar);
 const cropImg = ref('');
 const cropper: any = ref();
 
+const mqttConfig = reactive({
+    brokerUrl: 'tcp://192.168.31.250:1887',
+    username: 'smqtt',
+    password: 'smqtt',
+    clientId: 'myclient',
+    subTopics: '#',
+});
+
 const setImage = (e: any) => {
     const file = e.target.files[0];
     if (!file.type.includes('image/')) {
@@ -139,31 +140,45 @@ const cropImage = () => {
 const saveAvatar = () => {
     avatarImg.value = cropImg.value;
 };
+
+const saveMqttConfig = () => {
+    console.log('保存 MQTT 配置：', mqttConfig);
+    // TODO: 调用后端接口保存 MQTT 配置
+    // 示例：
+    // axios.post('/api/mqtt/config', mqttConfig).then(response => {
+    //     console.log('保存成功', response);
+    // }).catch(error => {
+    //     console.error('保存失败', error);
+    // });
+};
 </script>
 
 <style scoped>
 .user-container {
     display: flex;
+    height: 80vh;
 }
 
 .user-profile {
     position: relative;
-}
-
-.user-profile-bg {
-    width: 100%;
-    height: 200px;
-    background-image: url('../../assets/img/ucenter-bg.jpg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-}
-
-.user-profile {
+    height: 80vh;
     width: 500px;
     margin-right: 20px;
     flex: 0 0 auto;
     align-self: flex-start;
+}
+
+.user-profile-bg {
+    width: 100%;
+    height: 80vh;
+    background-image: url('../../assets/img/ucenter-bg.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: 1;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 .user-avatar-wrap {
@@ -171,6 +186,7 @@ const saveAvatar = () => {
     top: 135px;
     width: 100%;
     text-align: center;
+    z-index: 2;
 }
 
 .user-avatar {
@@ -181,28 +197,34 @@ const saveAvatar = () => {
 }
 
 .user-info {
+    position: relative;
+    z-index: 2;
+    margin-top: 260px; 
     text-align: center;
-    padding: 80px 0 30px;
+    padding: 20px;
+    background-color: rgba(255, 255, 255, 0.332);
+    border-radius: 10px; /* 圆角 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 添加阴影 */
 }
 
 .info-name {
-    margin: 0 0 20px;
-    font-size: 22px;
-    font-weight: 500;
-    color: #373a3c;
+    margin: 0 0 10px;
+    font-size: 26px;
+    font-weight: 600;
+    color: #333;
 }
 
 .info-desc {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 5px;
+    margin-bottom: 10px;
 }
 
 .info-desc,
 .info-desc a {
     font-size: 18px;
-    color: #55595c;
+    color: #555;
 }
 
 .info-icon {
@@ -212,54 +234,17 @@ const saveAvatar = () => {
 .info-icon i {
     font-size: 30px;
     margin: 0 10px;
-    color: #343434;
+    color: #333; 
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.info-icon i:hover {
+    color: #0056b3; /* 鼠标悬停时的颜色 */
 }
 
 .user-content {
     flex: 1;
-}
-
-.user-tabpane {
-    padding: 10px 20px;
-}
-
-.crop-wrap {
-    width: 600px;
-    height: 350px;
-    margin-bottom: 20px;
-}
-
-.crop-demo-btn {
-    position: relative;
-}
-
-.crop-input {
-    position: absolute;
-    width: 100px;
-    height: 40px;
-    left: 0;
-    top: 0;
-    opacity: 0;
-    cursor: pointer;
-}
-
-.w500 {
-    width: 500px;
-}
-
-.user-footer {
-    display: flex;
-    border-top: 1px solid rgba(83, 70, 134, 0.1);
-}
-
-.user-footer-item {
-    padding: 20px 0;
-    width: 33.3333333333%;
-    text-align: center;
-}
-
-.user-footer > div + div {
-    border-left: 1px solid rgba(83, 70, 134, 0.1);
 }
 </style>
 

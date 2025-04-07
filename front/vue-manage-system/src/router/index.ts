@@ -28,7 +28,7 @@ const routes: RouteRecordRaw[] = [
                 name: 'line-chart',
                 meta: {
                     title: '折线图',
-                    noAuth: true,
+                    permiss: '8',
                 },
                 component: () => import(/* webpackChunkName: "dashboard" */ '../views/chart/lineChart.vue'),
             },
@@ -37,7 +37,7 @@ const routes: RouteRecordRaw[] = [
                 name: 'map',
                 meta: {
                     title: '地图',
-                    noAuth: true,
+                    permiss: '7',
                 },
                 component: () => import(/* webpackChunkName: "dashboard" */ '../views/map.vue'),
             },

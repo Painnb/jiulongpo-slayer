@@ -26,22 +26,22 @@
             <el-col :span="6">
                 <el-card shadow="hover" body-class="card-body">
                     <el-icon class="card-icon bg3">
-                        <Goods />
+                        <DataAnalysis />
                     </el-icon>
                     <div class="card-content">
-                        <countup class="card-num color3" :end="8888" />
-                        <div>商品数量</div>
+                        <countup class="card-num color3" :end="999" />
+                        <div>在线数量</div>
                     </div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" body-class="card-body">
                     <el-icon class="card-icon bg4">
-                        <ShoppingCartFull />
+                        <MostlyCloudy />
                     </el-icon>
                     <div class="card-content">
-                        <countup class="card-num color4" :end="568" />
-                        <div>今日订单量</div>
+                        <countup class="card-num color4" :end="888" />
+                        <div>离线数量</div>
                     </div>
                 </el-card>
             </el-col>
@@ -51,8 +51,8 @@
             <el-col :span="18">
                 <el-card shadow="hover">
                     <div class="card-header">
-                        <p class="card-header-title">订单动态</p>
-                        <p class="card-header-desc">最近一周订单状态，包括订单成交量和订单退货量</p>
+                        <p class="card-header-title">动态数据</p>
+                        <p class="card-header-desc">实时监测的车辆数据</p>
                     </div>
                     <v-chart class="chart" :option="dashOpt1" />
                 </el-card>
@@ -60,10 +60,34 @@
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="card-header">
-                        <p class="card-header-title">品类分布</p>
-                        <p class="card-header-desc">最近一个月销售商品的品类情况</p>
+                        <div class="card-header-left">
+                            <p class="card-header-title">车辆状态</p>
+                            <p class="card-header-desc">实时监测的车辆状态</p>
+                        </div>
+                        <!-- 添加按钮 -->
+                        <el-button size="mini" type="primary" @click="showList = true">选择车辆</el-button>
                     </div>
-                    <v-chart class="chart" :option="dashOpt2" />
+                    <!-- 图表区域 -->
+                    <div v-if="!showList">
+                        <v-chart class="chart" :option="dashOpt2" />
+                    </div>
+                    <!-- 列表区域 -->
+                    <div v-else class="list-container">
+                        <el-checkbox-group v-model="selectedOptions" class="scrollable-list">
+                            <el-checkbox
+                                v-for="(option, index) in options"
+                                :key="index"
+                                :label="option"
+                                class="checkbox-item"
+                            >
+                                {{ option }}
+                            </el-checkbox>
+                        </el-checkbox-group>
+                        <div class="list-buttons">
+                            <el-button size="mini" type="primary" @click="showList = false">返回</el-button>
+                            <el-button size="mini" type="success" @click="printSelections">打印</el-button>
+                        </div>
+                    </div>
                 </el-card>
             </el-col>
         </el-row>
@@ -72,7 +96,7 @@
                 <el-card shadow="hover" :body-style="{ height: '400px' }">
                     <div class="card-header">
                         <p class="card-header-title">时间线</p>
-                        <p class="card-header-desc">最新的销售动态和活动信息</p>
+                        <p class="card-header-desc"></p>
                     </div>
                     <el-timeline>
                         <el-timeline-item v-for="(activity, index) in activities" :key="index" :color="activity.color">
@@ -90,8 +114,8 @@
             <el-col :span="10">
                 <el-card shadow="hover" :body-style="{ height: '400px' }">
                     <div class="card-header">
-                        <p class="card-header-title">渠道统计</p>
-                        <p class="card-header-desc">最近一个月的订单来源统计</p>
+                        <p class="card-header-title">异常分布</p>
+                        <p class="card-header-desc">最近一个月全国各地的异常分布</p>
                     </div>
                     <v-chart class="map-chart" :option="mapOptions" />
                 </el-card>
@@ -99,8 +123,8 @@
             <el-col :span="7">
                 <el-card shadow="hover" :body-style="{ height: '400px' }">
                     <div class="card-header">
-                        <p class="card-header-title">排行榜</p>
-                        <p class="card-header-desc">销售商品的热门榜单Top5</p>
+                        <p class="card-header-title">异常统计</p>
+                        <p class="card-header-desc"></p>
                     </div>
                     <div>
                         <div class="rank-item" v-for="(rank, index) in ranks">
@@ -108,7 +132,7 @@
                             <div class="rank-item-content">
                                 <div class="rank-item-top">
                                     <div class="rank-item-title">{{ rank.title }}</div>
-                                    <div class="rank-item-desc">销量：{{ rank.value }}</div>
+                                    <div class="rank-item-desc">数量：{{ rank.value }}</div>
                                 </div>
                                 <el-progress
                                     :show-text="false"
@@ -139,8 +163,10 @@ import {
 } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import VChart from 'vue-echarts';
-import { dashOpt1, dashOpt2, mapOptions } from './chart/options';
+import { dashOpt1, dashOpt2, mapOptions,chongqingMapOptions } from './chart/options';
 import chinaMap from '@/utils/china';
+import { ref } from 'vue';
+
 use([
     CanvasRenderer,
     BarChart,
@@ -156,69 +182,76 @@ use([
 registerMap('china', chinaMap);
 const activities = [
     {
-        content: '收藏商品',
-        description: 'xxx收藏了你的商品，就是不买',
+        content: '车辆行驶',
+        description: 'xxx车辆正在行驶，去查看车辆状态',
         timestamp: '30分钟前',
         color: '#00bcd4',
     },
     {
-        content: '用户评价',
-        description: 'xxx给了某某商品一个差评，吐血啊',
+        content: '异常处理',
+        description: 'xxx异常已被处理',
         timestamp: '55分钟前',
         color: '#1ABC9C',
     },
     {
-        content: '订单提交',
-        description: 'xxx提交了订单，快去收钱吧',
+        content: '异常捕捉',
+        description: '捕捉到xxx异常，请处理',
         timestamp: '1小时前',
         color: '#3f51b5',
-    },
-    {
-        content: '退款申请',
-        description: 'xxx申请了仅退款，又要亏钱了',
-        timestamp: '15小时前',
-        color: '#f44336',
-    },
-    {
-        content: '商品上架',
-        description: '运营专员瞒着你上架了一辆飞机',
-        timestamp: '1天前',
-        color: '#009688',
-    },
+    }
 ];
 
 const ranks = [
     {
-        title: '手机',
+        title: '方向盘异常',
         value: 10000,
         percent: 80,
         color: '#f25e43',
     },
     {
-        title: '电脑',
+        title: '车速异常',
         value: 8000,
         percent: 70,
         color: '#00bcd4',
     },
     {
-        title: '相机',
+        title: '加速度异常',
         value: 6000,
         percent: 60,
         color: '#64d572',
     },
     {
-        title: '衣服',
+        title: '油门异常',
         value: 5000,
         percent: 55,
         color: '#e9a745',
     },
     {
-        title: '书籍',
+        title: '发动机异常',
         value: 4000,
         percent: 50,
         color: '#009688',
     },
 ];
+
+// 控制显示列表还是图表
+const showList = ref(false);
+
+// 列表选项
+const options = ref(['选项1', '选项2', '选项3', '选项4', '选项5', '选项6', '选项7', '选项8', '选项9', '选项10']);
+
+// 当前选中的选项（多选）
+const selectedOptions = ref([]);
+
+// 打印选中的选项
+const printSelections = () => {
+    if (selectedOptions.value.length > 0) {
+        console.log('选中的选项是：', selectedOptions.value);
+        alert(`选中的选项是：${selectedOptions.value.join(', ')}`);
+    } else {
+        alert('请先选择一个或多个选项！');
+    }
+};
 </script>
 
 <style>
@@ -289,8 +322,16 @@ const ranks = [
 }
 
 .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* 将标题和按钮分开对齐 */
     padding-left: 10px;
     margin-bottom: 20px;
+}
+
+.card-header-left {
+    display: flex;
+    flex-direction: column;
 }
 
 .card-header-title {
@@ -353,5 +394,50 @@ const ranks = [
 .map-chart {
     width: 100%;
     height: 350px;
+}
+
+.list-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    height: 350px; /* 与图表高度一致 */
+    padding: 10px;
+}
+
+.scrollable-list {
+    flex: 1; /* 占据剩余空间 */
+    width: 100%;
+    overflow-y: auto; /* 启用垂直滚动 */
+    padding-right: 10px; /* 防止滚动条遮挡内容 */
+    margin-bottom: 10px;
+    border: 1px solid #e0e0e0; /* 添加边框以区分列表 */
+    border-radius: 4px;
+}
+
+.checkbox-item {
+    display: block; /* 强制每个选项占据一行 */
+    margin-top: 5px; /* 添加选项之间的间距 */
+    margin-left: 10px;
+}
+
+.scrollable-list ::-webkit-scrollbar {
+    width: 6px; /* 滚动条宽度 */
+}
+
+.scrollable-list ::-webkit-scrollbar-thumb {
+    background-color: #c1c1c1; /* 滚动条颜色 */
+    border-radius: 3px;
+}
+
+.scrollable-list ::-webkit-scrollbar-track {
+    background-color: #f5f5f5; /* 滚动条轨道颜色 */
+}
+
+.list-buttons {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: 10px;
 }
 </style>

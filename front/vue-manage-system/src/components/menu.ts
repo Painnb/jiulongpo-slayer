@@ -37,7 +37,7 @@ export const menuData: Menus[] = [
         id: '7',
         title: '地图',
         index: '/map',
-        icon: 'Odometer',
+        icon: 'MapLocation',
     },
     {
         id: '8',

@@ -2,8 +2,8 @@
     <div class="login-bg">
         <div class="login-container">
             <div class="login-header">
-                <img class="logo mr10" src="../../assets/img/logo.svg" alt="" />
-                <div class="login-title">后台管理系统</div>
+                <img class="logo mr10" src="../../assets/img/logo.png" alt="" />
+                <div class="login-title">车云数据解析系统</div>
             </div>
             <el-form :model="param" :rules="rules" ref="login" size="large">
                 <el-form-item prop="username">
@@ -90,7 +90,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
                     password: param.password,
                 });
 
-                // 假设后端返回的数据结构为 { success: true, message: '登录成功', data: { token, permissions } }
+                // 假设后端返回的数据结构为 { success: true, message: '登录成功', data: { token, role } }
                 if (response.data.status === 200) {
                     // 登录成功，处理登录逻辑
                     console.log('登录成功', response.data);
@@ -99,9 +99,21 @@ const submitForm = async (formEl: FormInstance | undefined) => {
                     // 保存用户名到 localStorage
                     localStorage.setItem('vuems_name', param.username);
 
-                    // 保存权限信息
-                    const keys = response.data.role || [];
-                    permiss.handleSet(keys);
+                    // 获取嵌套的 data 对象
+                    const userData = response.data.data;
+                    const key = userData.role; // 从 data 中获取 role
+                    localStorage.setItem('auth', key); // 将 role 存储到 localStorage
+                    console.log("key:", key);
+
+                    // 根据后端返回的 key 设置权限
+                    if (key === 'ADMIN') {
+                        permiss.handleSet(permiss.defaultList.admin);
+                    } else if (key === 'USER') {
+                        permiss.handleSet(permiss.defaultList.user);
+                    } else {
+                        ElMessage.error('未知的权限角色');
+                        return;
+                    }
 
                     // 跳转到首页
                     router.push('/');
@@ -137,7 +149,7 @@ tabs.clearTabs();
     justify-content: center;
     width: 100%;
     height: 100vh;
-    background: url(../../assets/img/login-bg.jpg) center/cover no-repeat;
+    background: url(../../assets/img/bg.png) center/cover no-repeat;
 }
 
 .login-header {
@@ -148,21 +160,22 @@ tabs.clearTabs();
 }
 
 .logo {
-    width: 35px;
+    width: 70px;
 }
 
 .login-title {
     font-size: 22px;
-    color: #333;
+    color: #C9E9FF;
     font-weight: bold;
 }
 
 .login-container {
     width: 450px;
     border-radius: 5px;
-    background: #fff;
+    background: rgba(5, 23, 47, 0.8); /* 设置背景为白色并添加透明度 */
     padding: 40px 50px 50px;
     box-sizing: border-box;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* 添加阴影以增强视觉效果 */
 }
 
 .pwd-tips {
@@ -181,6 +194,7 @@ tabs.clearTabs();
 .login-btn {
     display: block;
     width: 100%;
+    
 }
 
 .login-tips {

@@ -1,11 +1,13 @@
 package org.swu.vehiclecloud.util;
 
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
+@EnableAspectJAutoProxy // 启用AOP切面支持
 public class CorsConfig implements WebMvcConfigurer {
 
     @Override
