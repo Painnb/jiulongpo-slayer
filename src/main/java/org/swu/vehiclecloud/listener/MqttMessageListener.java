@@ -91,7 +91,7 @@ public class MqttMessageListener {
             vehicleExpMapper.insert(vehicleExp);
 
             // 推送异常信息给前端
-            dataService.setPushContent("1","加速度异常");
+            dataService.setPushContent("1",vehicleId + "号车辆加速度异常");
         }
     }
 
@@ -108,7 +108,7 @@ public class MqttMessageListener {
             vehicleExpMapper.insert(speedExp);
 
             // 推送异常信息给前端
-            dataService.setPushContent("1","速度异常");
+            dataService.setPushContent("1",vehicleId + "号车辆加速度异常");
         }
     }
 
@@ -125,7 +125,7 @@ public class MqttMessageListener {
             vehicleExpMapper.insert(engineExp);
 
             // 推送异常信息给前端
-            dataService.setPushContent("1","发动机异常");
+            dataService.setPushContent("1",vehicleId + "号车辆加速度异常");
         }
     }
 
