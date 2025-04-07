@@ -28,6 +28,7 @@ public class User {
     
     private String role;     // 角色
     
+    @TableField("email")
     private String email;   // 邮箱
     
     @TableField("created_at")
