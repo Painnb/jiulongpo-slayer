@@ -28,7 +28,7 @@ use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent
 }
 
 .schart {
-    width: 100%;
+    width: 1500px;
     height: 400px;
 }
 

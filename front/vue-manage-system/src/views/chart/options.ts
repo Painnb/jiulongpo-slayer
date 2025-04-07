@@ -248,6 +248,7 @@ export const dashOpt1 = {
                     {
                         offset: 0,
                         color: 'rgba(0, 150, 136,0.8)',
+                        
                     },
                     {
                         offset: 1,
@@ -304,13 +305,13 @@ export const mapOptions = {
         },
     },
     visualMap: {
-        show: false,
+        show: true, // 显示视觉映射
         min: 0,
-        max: 100,
-        realtime: false,
-        calculable: false,
+        max: 200,
+        realtime: true,
+        calculable: true,
         inRange: {
-            color: ['#d2e0f5', '#71A9FF'],
+            color: ['#d2e0f5', '#71A9FF', '#FF0000'], // 颜色范围：浅蓝 -> 深蓝 -> 红色
         },
     },
     series: [
@@ -320,23 +321,25 @@ export const mapOptions = {
             type: 'map',
             coordinateSystem: 'geo',
             map: 'china',
-            data: [
-                { name: '北京', value: 100 },
-                { name: '上海', value: 100 },
-                { name: '广东', value: 100 },
-                { name: '浙江', value: 90 },
-                { name: '江西', value: 80 },
-                { name: '山东', value: 70 },
-                { name: '广西', value: 60 },
-                { name: '河南', value: 50 },
-                { name: '河南', value: 40 },
-                { name: '青海', value: 70 },
-                { name: '河南', value: 30 },
-                { name: '黑龙江', value: 20 },
-                { name: '新疆', value: 20 },
-                { name: '云南', value: 20 },
-                { name: '甘肃', value: 20 },
-            ],
+            data: generateRandomProvinceData(), // 调用生成随机数据的函数
         },
     ],
 };
+
+
+// 生成随机省份数据的函数
+function generateRandomProvinceData() {
+    const provinces = [
+        '北京', '上海', '广东', '浙江', '江西', '山东', '广西', '河南', '青海', '黑龙江',
+        '新疆', '云南', '甘肃', '山西', '陕西', '吉林', '福建', '湖南', '湖北', '辽宁',
+        '四川', '贵州', '海南', '重庆', '内蒙古', '西藏', '宁夏', '台湾', '香港', '澳门',
+        '河北', '安徽', '江苏', '天津'
+    ];
+
+    return provinces.map((province) => {
+        return {
+            name: province,
+            value: Math.floor(Math.random() * 201), // 随机生成 0~200 的值
+        };
+    });
+}
