@@ -2,13 +2,21 @@
     <div class="container">
         <!-- 地图区域 -->
         <div class="map-container">
+            <!-- 输入框和按钮 -->
+            <div class="input-panel">
+                <input v-model="lng" type="text" placeholder="输入经度" />
+                <input v-model="lat" type="text" placeholder="输入纬度" />
+                <button @click="setMarker">查询</button>
+            </div>
+
             <baidu-map 
               class="map" 
-              :center="{ lng: 106.552, lat: 29.562 }" 
+              :center="{ lng: center.lng, lat: center.lat }" 
               :zoom="15"
               @ready="handleMapReady"
             >
               <bm-navigation anchor="BMAP_ANCHOR_TOP_RIGHT"></bm-navigation>
+              <bm-marker :position="{ lng: marker.lng, lat: marker.lat }" />
             </baidu-map>
 
             <!-- 左侧按钮区域 -->
@@ -41,6 +49,35 @@ import { ref } from 'vue';
 const visibleCharts = ref([]); // 当前显示的图表列表
 const expandedChart = ref(null); // 当前放大的图表
 const chartInstances = ref({}); // 存储图表实例
+
+// 地图中心点和标点
+const center = ref({ lng: 106.552, lat: 29.562 }); // 默认地图中心
+const marker = ref({ lng: 106.552, lat: 29.562 }); // 默认标点位置
+
+// 输入框绑定的经纬度
+const lng = ref('');
+const lat = ref('');
+
+// 设置标点并更新地图中心
+const setMarker = () => {
+    const longitude = parseFloat(lng.value);
+    const latitude = parseFloat(lat.value);
+
+    if (isNaN(longitude) || isNaN(latitude)) {
+        alert('请输入有效的经纬度！');
+        return;
+    }
+
+    marker.value = { lng: longitude, lat: latitude };
+    center.value = { lng: longitude, lat: latitude };
+};
+
+// 地图加载完成的回调
+const handleMapReady = ({ BMap, map }) => {
+    console.log("地图已加载", map);
+    map.setMapStyleV2({ styleId: '65d44bc71123817a008a3285df684c69' });
+    map.enableScrollWheelZoom(true);   
+};
 
 // 切换图表显示/隐藏
 const toggleChart = (chartType) => {
@@ -133,15 +170,9 @@ const shrinkChart = (chartType) => {
         }
     }
 };
-
-const handleMapReady = ({ BMap, map }) => {
-    console.log("地图已加载", map);
-    map.setMapStyleV2({ styleId: '65d44bc71123817a008a3285df684c69' });
-    map.enableScrollWheelZoom(true);   
-};
 </script>
 
-<style>
+<style scoped>
 html, body {
     margin: 0;
     padding: 0;
@@ -168,9 +199,43 @@ html, body {
     position: relative;
 }
 
-.button-panel {
+.input-panel {
     position: absolute;
     top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+    display: flex;
+    gap: 10px;
+}
+
+.input-panel input {
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    width: 120px;
+}
+
+.input-panel button {
+    padding: 5px 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.input-panel button:hover {
+    background-color: #0056b3;
+}
+
+.button-panel {
+    position: absolute;
+    top: 60px;
     left: 10px;
     background-color: rgba(255, 255, 255, 0.9);
     padding: 10px;
