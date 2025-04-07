@@ -1,27 +1,31 @@
 package org.swu.vehiclecloud.service;
 
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.http.codec.ServerSentEvent;
+import reactor.core.publisher.Flux;
 
 /**
- * SSE数据流服务接口
- * <p>定义服务器发送事件(Server-Sent Events)的核心操作，通过实现类提供具体实现</p>
- * @see DataServiceImpl 默认实现类
+ * 使用WebFlux处理服务器发送事件(SSE)数据流的服务接口。
  */
 public interface DataService {
+
     /**
-     * 创建并返回一个SSE数据流
-     * @return SseEmitter 返回配置好的SSE发射器实例
-     * 该发射器会每秒发送一次数据，直到连接关闭或超时
-     * 可通过setPushContent方法动态更新推送内容
+     * 为给定ID创建或获取共享的SSE数据流。
+     * 使用相同ID连接的多个客户端将接收到相同的事件流。
+     * 该流每秒根据当前为该ID设置的内容发送数据。
+     *
+     * @param id SSE流的唯一标识符。
+     * @return 发射包含数据的ServerSentEvent对象的Flux流。
      */
-    SseEmitter streamData(String id);
-    
+    Flux<ServerSentEvent<String>> streamData(String id);
+
     /**
-     * 设置指定客户端的推送内容
-     * @param id 通过streamData方法获取的客户端标识符
-     * @param content 需要推送的字符串内容
-     * @throws IllegalArgumentException 当id对应的发射器不存在时抛出
-     * @apiNote 内容设置后会在下次定时任务执行时自动推送，更新内容会覆盖之前的值
+     * 设置或更新特定SSE流ID要推送的内容。
+     * 此内容将用于后续对该ID所有已连接客户端的推送。
+     * 如果未设置内容，将使用默认值("test")。
+     * 即使当前没有客户端连接该ID，也可以调用此方法。
+     *
+     * @param id      SSE流的唯一标识符。
+     * @param content 要推送的新内容。
      */
     void setPushContent(String id, String content);
 }
