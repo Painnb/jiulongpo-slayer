@@ -9,27 +9,13 @@
                 <div class="user-info">
                     <div class="info-name">{{ name }}</div>
                     <div class="info-desc">
-                        <span>@lin-xin</span>
                         <el-divider direction="vertical" />
-                        <el-link href="https://lin-xin.gitee.io" target="_blank">lin-xin.gitee.io</el-link>
+                        <el-link href="https://github.com/Painnb/jiulongpo-slayer" target="_blank">jiulongpo-slayer
+                            .gitee.io</el-link>
                     </div>
-                    <div class="info-desc">FE Developer</div>
                     <div class="info-icon">
-                        <a href="https://github.com/lin-xin" target="_blank"> <i class="el-icon-lx-github-fill"></i></a>
-                        <i class="el-icon-lx-qq-fill"></i>
-                        <i class="el-icon-lx-facebook-fill"></i>
-                        <i class="el-icon-lx-twitter-fill"></i>
-                    </div>
-                </div>
-                <div class="user-footer">
-                    <div class="user-footer-item">
-                        <el-statistic title="Follower" :value="1800" />
-                    </div>
-                    <div class="user-footer-item">
-                        <el-statistic title="Following" :value="666" />
-                    </div>
-                    <div class="user-footer-item">
-                        <el-statistic title="Total Post" :value="888" />
+                        <a href="https://github.com/Painnb/jiulongpo-slayer" target="_blank"> <i class="el-icon-lx-github-fill"></i></a>
+                 
                     </div>
                 </div>
             </el-card>
@@ -170,26 +156,29 @@ const saveMqttConfig = () => {
 <style scoped>
 .user-container {
     display: flex;
+    height: 80vh;
 }
 
 .user-profile {
     position: relative;
-}
-
-.user-profile-bg {
-    width: 100%;
-    height: 200px;
-    background-image: url('../../assets/img/ucenter-bg.jpg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-}
-
-.user-profile {
+    height: 80vh;
     width: 500px;
     margin-right: 20px;
     flex: 0 0 auto;
     align-self: flex-start;
+}
+
+.user-profile-bg {
+    width: 100%;
+    height: 80vh;
+    background-image: url('../../assets/img/ucenter-bg.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: 1;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 .user-avatar-wrap {
@@ -197,6 +186,7 @@ const saveMqttConfig = () => {
     top: 135px;
     width: 100%;
     text-align: center;
+    z-index: 2;
 }
 
 .user-avatar {
@@ -207,28 +197,34 @@ const saveMqttConfig = () => {
 }
 
 .user-info {
+    position: relative;
+    z-index: 2;
+    margin-top: 260px; 
     text-align: center;
-    padding: 80px 0 30px;
+    padding: 20px;
+    background-color: rgba(255, 255, 255, 0.332);
+    border-radius: 10px; /* 圆角 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 添加阴影 */
 }
 
 .info-name {
-    margin: 0 0 20px;
-    font-size: 22px;
-    font-weight: 500;
-    color: #373a3c;
+    margin: 0 0 10px;
+    font-size: 26px;
+    font-weight: 600;
+    color: #333;
 }
 
 .info-desc {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 5px;
+    margin-bottom: 10px;
 }
 
 .info-desc,
 .info-desc a {
     font-size: 18px;
-    color: #55595c;
+    color: #555;
 }
 
 .info-icon {
@@ -238,51 +234,17 @@ const saveMqttConfig = () => {
 .info-icon i {
     font-size: 30px;
     margin: 0 10px;
-    color: #343434;
+    color: #333; 
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.info-icon i:hover {
+    color: #0056b3; /* 鼠标悬停时的颜色 */
 }
 
 .user-content {
     flex: 1;
-}
-
-
-.crop-wrap {
-    width: 600px;
-    height: 350px;
-    margin-bottom: 20px;
-}
-
-.crop-demo-btn {
-    position: relative;
-}
-
-.crop-input {
-    position: absolute;
-    width: 100px;
-    height: 40px;
-    left: 0;
-    top: 0;
-    opacity: 0;
-    cursor: pointer;
-}
-
-.w500 {
-    width: 500px;
-}
-
-.user-footer {
-    display: flex;
-    border-top: 1px solid rgba(83, 70, 134, 0.1);
-}
-
-.user-footer-item {
-    padding: 20px 0;
-    width: 33.3333333333%;
-    text-align: center;
-}
-
-.user-footer > div + div {
-    border-left: 1px solid rgba(83, 70, 134, 0.1);
 }
 </style>
 
