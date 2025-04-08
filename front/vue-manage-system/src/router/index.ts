@@ -39,7 +39,16 @@ const routes: RouteRecordRaw[] = [
                     title: '地图',
                     permiss: '7',
                 },
-                component: () => import(/* webpackChunkName: "dashboard" */ '../views/map.vue'),
+                component: () => import(/* webpackChunkName: "map" */ '../views/map.vue'),
+            },
+            {
+                path: '/dataScreen',
+                name: 'dataScreen',
+                meta: {
+                    title: '数据大屏',
+                    permiss: '7',
+                },
+                component: () => import(/* webpackChunkName: "dataScreen" */ '../views/pages/dataScreen.vue'),
             },
             {
                 path: '/system-user',

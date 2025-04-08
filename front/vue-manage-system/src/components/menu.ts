@@ -40,6 +40,12 @@ export const menuData: Menus[] = [
         icon: 'MapLocation',
     },
     {
+        id: '7',
+        title: '数据大屏',
+        index: '/dataScreen',
+        icon: 'MapLocation',
+    },
+    {
         id: '8',
         title: '折线图',
         index: '/line-chart',
