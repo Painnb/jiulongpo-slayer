@@ -17,5 +17,5 @@ public interface ExcelMapper {
      * @return 包含表数据的Map列表
      */
     @Select("SELECT * FROM ${tableName}")
-    List<Map<String, Object>> selectAllFromTable(String tableName);
+    List<Map<String, Object>> selectAllFromTable(@Param("tableName") String tableName);
 }
