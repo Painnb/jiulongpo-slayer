@@ -43,7 +43,7 @@ export const usePermissStore = defineStore('permiss', {
                 '65',
                 '66',
             ],
-            user: ['0', '1', '11', '12', '13','7','8'],
+            user: ['0', '11', '12', '13','7','8'],
         };
         const Auth = localStorage.getItem('auth');
         console.log(Auth);
