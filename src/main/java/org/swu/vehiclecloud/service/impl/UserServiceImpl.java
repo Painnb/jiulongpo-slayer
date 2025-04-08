@@ -9,6 +9,8 @@ import org.swu.vehiclecloud.util.JwtTokenProvider;
 import org.swu.vehiclecloud.util.PasswordValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.swu.vehiclecloud.util.SQLInjectionProtector;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
@@ -43,8 +45,8 @@ public class UserServiceImpl implements UserService {
             }
 
             // 解析参数
-            String username = requestBody.get("username").toString();
-            String password = requestBody.get("password").toString();
+            String username = SQLInjectionProtector.filterParameter(requestBody.get("username").toString());
+            String password = SQLInjectionProtector.filterParameter(requestBody.get("password").toString());
 
             // 用户名或密码不能空
             if(StrUtil.isEmptyIfStr(username) || StrUtil.isEmptyIfStr(password)){

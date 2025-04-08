@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.swu.vehiclecloud.mapper.ExcelMapper;
 import org.swu.vehiclecloud.service.ExcelService;
+import org.swu.vehiclecloud.util.SQLInjectionProtector;
 
 import java.io.ByteArrayOutputStream;
 import java.util.List;
@@ -54,6 +55,11 @@ public class ExcelServiceImpl implements ExcelService {
     @Override
     public ResponseEntity<Resource> exportExcel(String tableName) {
         List<Map<String, Object>> data = excelMapper.selectAllFromTable(tableName);
+
+        // 添加SQL注入校验
+        if (!SQLInjectionProtector.validateTableName(tableName)) {
+            throw new IllegalArgumentException("非法的表名: " + tableName);
+        }
         
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet(tableName);
