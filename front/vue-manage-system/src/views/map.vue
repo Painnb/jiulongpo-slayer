@@ -40,7 +40,7 @@
             </baidu-map>
 
             <!-- 车辆信息面板 -->
-            <div v-if="infoPanelVisible" class="info-panel" :style="infoPanelStyle">
+            <div v-if="infoPanelVisible" class="info-panel" :style="infoPanelStyle" @mousedown="startDrag">
                 <div class="info-header">
                     <h3>车辆监控信息</h3>
                     <span class="current-time">{{ currentTime }}</span>
@@ -452,6 +452,33 @@ onMounted(() => {
 onUnmounted(() => {
     clearInterval(timeInterval);
 });
+
+// 拖动相关
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+
+const startDrag = (event) => {
+    isDragging = true;
+    dragStartX = event.clientX - parseInt(infoPanelStyle.value.left || 0, 10);
+    dragStartY = event.clientY - parseInt(infoPanelStyle.value.top || 0, 10);
+
+    document.addEventListener('mousemove', handleDrag);
+    document.addEventListener('mouseup', stopDrag);
+};
+
+const handleDrag = (event) => {
+    if (isDragging) {
+        infoPanelStyle.value.left = `${event.clientX - dragStartX}px`;
+        infoPanelStyle.value.top = `${event.clientY - dragStartY}px`;
+    }
+};
+
+const stopDrag = () => {
+    isDragging = false;
+    document.removeEventListener('mousemove', handleDrag);
+    document.removeEventListener('mouseup', stopDrag);
+};
 </script>
 
 <style scoped>
@@ -567,6 +594,11 @@ html, body, .container, .map-container, .map {
     width: 300px;
     overflow: hidden;
     border: 1px solid #e0e0e0;
+    cursor: grab;
+}
+
+.info-panel:active {
+    cursor: grabbing;
 }
 
 .info-header {
