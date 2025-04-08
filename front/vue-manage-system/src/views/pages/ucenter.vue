@@ -25,6 +25,29 @@
                 :body-style="{ padding: '20px 50px', height: '100%', boxSizing: 'border-box' }"
             >
                 <el-tabs tab-position="left" v-model="activeName">
+                    <el-tab-pane name="label5" label="更改订阅" class="user-tabpane">
+                        <el-form class="w500" label-position="top">
+                            <el-form-item label="Broker URL：">
+                                <el-input v-model="mqttConfig.brokerUrl" placeholder="tcp://192.168.31.250:1887"></el-input>
+                            </el-form-item>
+                            <el-form-item label="用户名：">
+                                <el-input v-model="mqttConfig.username" placeholder="smqtt"></el-input>
+                            </el-form-item>
+                            <el-form-item label="密码：">
+                                <el-input type="password" v-model="mqttConfig.password" placeholder="smqtt"></el-input>
+                            </el-form-item> 
+                            <el-form-item label="客户端 ID：">
+                                <el-input v-model="mqttConfig.clientId" placeholder="myclient"></el-input>
+                            </el-form-item>
+                            <el-form-item label="订阅主题：">
+                                <el-input v-model="mqttConfig.subTopics" placeholder="#"></el-input>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="saveMqttConfig">保存</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </el-tab-pane>
+                    
                     <el-tab-pane name="label1" label="消息通知" class="user-tabpane">
                         <TabsComp />
                     </el-tab-pane>
@@ -60,28 +83,7 @@
                             </el-form-item>
                         </el-form>
                     </el-tab-pane>
-                    <el-tab-pane name="label5" label="更改订阅" class="user-tabpane">
-                        <el-form class="w500" label-position="top">
-                            <el-form-item label="Broker URL：">
-                                <el-input v-model="mqttConfig.brokerUrl" placeholder="tcp://192.168.31.250:1887"></el-input>
-                            </el-form-item>
-                            <el-form-item label="用户名：">
-                                <el-input v-model="mqttConfig.username" placeholder="smqtt"></el-input>
-                            </el-form-item>
-                            <el-form-item label="密码：">
-                                <el-input type="password" v-model="mqttConfig.password" placeholder="smqtt"></el-input>
-                            </el-form-item> 
-                            <el-form-item label="客户端 ID：">
-                                <el-input v-model="mqttConfig.clientId" placeholder="myclient"></el-input>
-                            </el-form-item>
-                            <el-form-item label="订阅主题：">
-                                <el-input v-model="mqttConfig.subTopics" placeholder="#"></el-input>
-                            </el-form-item>
-                            <el-form-item>
-                                <el-button type="primary" @click="saveMqttConfig">保存</el-button>
-                            </el-form-item>
-                        </el-form>
-                    </el-tab-pane>
+                    
                 </el-tabs>
             </el-card>
         </div>
