@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.swu.vehiclecloud.config.MqttConfigProperties;
 import org.swu.vehiclecloud.service.MqttService;
 import org.swu.vehiclecloud.event.MqttMessageEvent;
-
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -50,12 +49,11 @@ public class MqttServiceImpl implements MqttService {
             );
 
             // 启动连接
-            setupCallbacks();
+            setupCallbacks(); //回调函数执行先于连接
             connect();
         } catch (MqttException e) {
             logger.error("Failed to initialize MQTT client", e);
         }
-
     }
 
     public void reinitialize(String brokerUrl, String clientId, String username, String password, List<String> topic) throws MqttException {
@@ -70,22 +68,42 @@ public class MqttServiceImpl implements MqttService {
         this.currentConnectOptions = createConnectOptions(username, password);
 
         // 重新初始化客户端
-        //initClient();
+        try {
+            if (this.mqttClient != null && this.mqttClient.isConnected()) {
+                this.mqttClient.disconnect();
+                this.mqttClient.close();
+            }
+
+            this.mqttClient = new MqttClient(
+                    config.getBrokerUrl(),
+                    config.getClientId(),
+                    new MemoryPersistence()
+            );
+
+            this.currentConnectOptions = createConnectOptions(
+                    config.getUsername(),
+                    config.getPassword()
+            );
+
+            setupCallbacks();
+        } catch (MqttException e) {
+            logger.error("Failed to initialize MQTT client", e);
+        }
     }
 
-
+    // 创建连接配置
     private MqttConnectOptions createConnectOptions(String username, String password) throws MqttException {
         MqttConnectOptions options = new MqttConnectOptions();
         options.setUserName(username);
         options.setPassword(password.toCharArray());
         options.setCleanSession(true);
-        options.setAutomaticReconnect(true);
-        options.setConnectionTimeout(10);
+        options.setAutomaticReconnect(true); // 启用重连机制
+        options.setConnectionTimeout(10); // 设置连接超时时间为10秒
 
         return options;
     }
 
-    // 回调函数
+    // 自定义回调函数
     private void setupCallbacks() {
         mqttClient.setCallback(new MqttCallback() {
             @Override
@@ -95,6 +113,7 @@ public class MqttServiceImpl implements MqttService {
 
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
+                //System.out.println("message: " + message.toString());
                 String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
                 logger.info("Received MQTT message - Topic: {}, Payload: {}", topic, payload);
 
@@ -115,10 +134,18 @@ public class MqttServiceImpl implements MqttService {
     public void connect() throws MqttException {
         if (mqttClient == null) {
             initClient();
-        } else if (!mqttClient.isConnected()) {
-            mqttClient.connect(currentConnectOptions);
-            logger.info("MQTT connected to {}", config.getBrokerUrl());
-            subscribeToDefaultTopics();
+            return;
+        }
+
+        try {
+            if (!mqttClient.isConnected()) {
+                mqttClient.connect(currentConnectOptions);
+                logger.info("MQTT connected to {}", config.getBrokerUrl());
+                subscribeToDefaultTopics();
+            }
+        } catch (MqttException e) {
+            logger.error("连接失败: {}", e.getMessage());
+            throw e; // 抛出异常让调用方处理
         }
     }
 
@@ -130,26 +157,13 @@ public class MqttServiceImpl implements MqttService {
         log.info("Subscribed to topic: {}", topic);
     }
 
+    // 订阅默认的主题列表
     public void subscribeToDefaultTopics() throws MqttException {
         if (config.getSubTopics() != null) {
             for (String topic : config.getSubTopics()) {
                 subscribe(topic, DEFAULT_QOS);
                 logger.info("Subscribed to topic: {}", topic);
             }
-        }
-    }
-
-    public void processMessage(String topic, byte[] payload) throws MqttException {
-        try {
-            String jsonString = new String(payload, StandardCharsets.UTF_8);
-            // 使用 Jackson 解析 JSON
-            //ObjectMapper mapper = new ObjectMapper();
-            //DataModel data = mapper.readValue(jsonString, DataModel.class);
-
-            //logger.info("Received from {}: {}", topic, data);
-            // 这里添加业务逻辑（如存储到数据库）
-        } catch (Exception e) {
-            logger.error("Message parsing failed", e);
         }
     }
 
