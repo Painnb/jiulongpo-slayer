@@ -28,6 +28,7 @@
                 v-for="(point, index) in markers" 
                 :key="index" 
                 :position="point"
+                :icon="customIcon"
                 @click="showVehicleInfo(point, index)"
               >
                 <bm-label
@@ -47,7 +48,7 @@
                 </div>
                 <div class="info-content">
                     <div class="vehicle-image">
-                        <img src="@/assets/img/car.png" alt="车辆图片" />
+                        <img :src="selectedCarImage" alt="车辆图片" />
                     </div>
                     <div class="info-row">
                         <span class="info-label">坐标：</span>
@@ -136,8 +137,8 @@ const currentTime = ref('');
 const contextMenuVisible = ref(false);
 const contextMenuPosition = ref({ x: 0, y: 0, lng: 0, lat: 0 });
 const contextMenuStyle = computed(() => ({
-    left: `${contextMenuPosition.value.x + 10}px`,
-    top: `${contextMenuPosition.value.y + 10}px`
+    left: `${contextMenuPosition.value.x }px`,
+    top: `${contextMenuPosition.value.y }px`
 }));
 
 // 图表相关
@@ -153,6 +154,31 @@ const statuses = ref({
     tire: true,
 });
 
+const carImages = ref([
+    '../assets/img/car1.png',
+    '../assets/img/car2.png',
+    '../assets/img/car3.png',
+    '../assets/img/car4.png',
+    '../assets/img/car5.png'
+]);
+
+const selectedCarImage = ref('');
+
+const getRandomCarImage = () => {
+    const randomIndex = Math.floor(Math.random() * carImages.value.length);
+    selectedCarImage.value = new URL(carImages.value[randomIndex], import.meta.url).href;
+};
+
+
+// 自定义图标
+const customIcon = ref({
+    url: new URL('@/assets/img/car_icon.png', import.meta.url).href, // 使用 new URL 替代 require
+    size: { width: 72, height: 32 }, // 图标的大小
+    opts: {
+        imageOffset: { width: 0, height: 0 }, // 图标在图片中的位置
+        imageSize: { width: 48, height: 32 } // 图标的大小
+    }
+});
 // 更新时间
 const updateTime = () => {
     const now = new Date();
@@ -202,8 +228,8 @@ const handleMapRightClick = (event) => {
     
     hoveredMarkerIndex.value = index !== -1 ? index : null;
     contextMenuPosition.value = {
-        x: event.domEvent.clientX,
-        y: event.domEvent.clientY,
+        x: event.domEvent.clientX-250,
+        y: event.domEvent.clientY-170,
         lng: point.lng,
         lat: point.lat
     };
@@ -258,8 +284,10 @@ const showVehicleInfo = (point, index) => {
     // 更新当前时间
     updateTime();
     showMarkerList.value = false;
+    
+    // 更新车辆图片
+    getRandomCarImage();
 };
-
 // 关闭信息面板
 const closeInfoPanel = () => {
     infoPanelVisible.value = false;
@@ -417,7 +445,7 @@ onMounted(() => {
     timeInterval = setInterval(updateTime, 1000);
     
     // 初始化时加载一个默认图表
-    visibleCharts.value.push('chart1');
+    // visibleCharts.value.push('chart1');
     setTimeout(initCharts, 100);
 });
 
@@ -491,7 +519,7 @@ html, body, .container, .map-container, .map {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     z-index: 11;
     padding: 10px;
-    margin-top: 5px;
+    margin-top: 0;
     border: 1px solid #e0e0e0;
 }
 
