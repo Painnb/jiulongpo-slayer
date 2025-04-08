@@ -1,5 +1,6 @@
 package org.swu.vehiclecloud.listener;
 
+import cn.hutool.core.util.StrUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -17,6 +18,10 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @Component
 public class MqttMessageListener {
@@ -25,6 +30,9 @@ public class MqttMessageListener {
 
     @Autowired
     private DataService dataService;
+
+    // 用于存储每个车辆的上一次数据，线程安全的 Map
+    private final ConcurrentMap<String, Map<String, Object>> vehicleDataCache = new ConcurrentHashMap<>();
 
     private static final Logger logger = LoggerFactory.getLogger(MqttMessageListener.class);
 
@@ -81,7 +89,35 @@ public class MqttMessageListener {
 
             // 将经纬度推给前端，不论是否异常
             dataService.setPushContent("1", "编号为" + vehicleId
-                                        + "的车辆的经纬度为" + "(" + longitude + "," + latitude + ")");
+                    + "的车辆的经纬度为" + "(" + longitude + "," + latitude + ")");
+
+            // 上一个时间片某辆车的数据
+            Map<String, Object> previousVehicleData = vehicleDataCache.get(vehicleId);
+
+            // 当前时间片某辆车的数据
+            Map<String, Object> currentVehicleData = new HashMap<>();
+
+            if (StrUtil.isEmptyIfStr(previousVehicleData)) {
+                // 如果是第一次接受该车辆的数据，则存储车辆数据到缓存当中, 用来判断转向异常和经纬度异常
+                currentVehicleData.put("timestamp", timestamp);
+                currentVehicleData.put("steeringAngle", steeringAngle);
+                currentVehicleData.put("yawRate", yawRate);
+                currentVehicleData.put("longitude", longitude);
+                currentVehicleData.put("latitude", latitude);
+                vehicleDataCache.put(vehicleId, currentVehicleData);
+            }else{
+                if(Math.abs(timestamp - (Long)previousVehicleData.get("timestamp")) > Math.pow(10, 4) ){
+                    // 经纬度异常检测
+                    detectGeoLocationExp(vehicleId, longitude,
+                                         latitude, (double)previousVehicleData.get("longitude"),
+                                         (double)previousVehicleData.get("latitude"), datestamp);
+                    // 检测横摆角速度与方向盘转角变化趋势是否匹配
+                    detectSwivelAngleExp(vehicleId, steeringAngle,
+                                        yawRate, (int)previousVehicleData.get("steeringAngle"),
+                                        (int)previousVehicleData.get("yawRate"), datestamp);
+                    vehicleDataCache.replace(vehicleId, previousVehicleData, currentVehicleData);
+                }
+            }
 
             // 加速度异常检测
             detectAccelerationExp(vehicleId, accelerationLon,accelerationLat,
@@ -198,6 +234,22 @@ public class MqttMessageListener {
 
     }
 
+    private void detectSwivelAngleExp(String vehicleId, int steeringAngle,
+                                      int yawRate, int previousSteeringAngle,
+                                      int previousYawRate, Date timestamp) {
+        if(isSwivelAngleExp(steeringAngle, previousSteeringAngle, yawRate, previousYawRate)){
+            // 创建转向异常对象
+            SteeringExp steeringExp = new SteeringExp(vehicleId, steeringAngle,
+                    yawRate, timestamp);
+
+            // 插入转向异常对象
+            vehicleExpMapper.insert(steeringExp);
+
+            // 推送异常信息给前端
+            dataService.setPushContent("1","编号为" + vehicleId + "的车辆转向异常");
+        }
+    }
+
     private void detectTimestampExp(String vehicleId, long timestampGNSS,
                                     long timestamp3, long timestamp4, Date timestamp) {
         if(isTimeStampExp(timestampGNSS, timestamp3, timestamp4)){
@@ -220,6 +272,21 @@ public class MqttMessageListener {
 
             // 推送异常信息给前端
             dataService.setPushContent("1","编号为" + vehicleId + "的车辆时间戳异常");
+        }
+    }
+
+    private void detectGeoLocationExp(String vehicleId, double longitude,
+                                      double latitude, double previousLongitude,
+                                      double previousLatitude, Date datestamp) {
+        if(isGeoLocationExp(longitude, latitude, previousLongitude, previousLatitude)){
+            // 创建地理位置异常对象
+            GeoLocationExp geoLocationExp = new GeoLocationExp(vehicleId, longitude, latitude, datestamp);
+
+            // 插入地理位置异常对象
+            vehicleExpMapper.insert(geoLocationExp);
+
+            // 推送异常信息给前端
+            dataService.setPushContent("1","编号为" + vehicleId + "的车辆地理位置异常");
         }
     }
 
@@ -248,12 +315,36 @@ public class MqttMessageListener {
                || yawRate > Math.pow(10, 4) || yawRate <  -(Math.pow(10, 4));
     }
 
+    private boolean isSwivelAngleExp(int steeringAngle, int previousSteeringAngle,
+                                     int yawRate, int previousYawRate) {
+        return (Math.abs(steeringAngle - previousSteeringAngle) <= 5 * Math.pow(10, 4)
+                && Math.abs(yawRate - previousYawRate) >= 15 * Math.pow(10, 2)) ||
+                (Math.abs(steeringAngle - previousSteeringAngle) >= 30 * Math.pow(10, 4)
+                        && Math.abs(yawRate - previousYawRate) <= 5 * Math.pow(10, 2));
+    }
+
     private boolean isTimeStampExp(long timestampGNSS, long timestamp3, long timestamp4) {
         return Math.abs(timestampGNSS - timestamp3) > 100 ||
                Math.abs(timestampGNSS - timestamp4) > 100 ||
                Math.abs(timestamp4 - timestampGNSS) > 100;
     }
 
+    private boolean isGeoLocationExp(double longitude, double latitude,
+                                     double previousLongitude, double previousLatitude) {
+        if(Math.abs(longitude - previousLongitude) > 1.8 * Math.pow(10, 9)){
+            return 3.6 * Math.pow(10, 9) - Math.abs(longitude - previousLongitude) > 5 * Math.pow(10, 4) ||
+                    Math.abs(latitude - previousLatitude) > 4 * Math.pow(10, 4);
+        }else{
+            return Math.abs(longitude - previousLongitude) > 5 * Math.pow(10, 4) ||
+                    Math.abs(latitude - previousLatitude) > 4 * Math.pow(10, 4);
+        }
+    }
+
+    /**
+     * 将 UTC 时间戳转换为东八区 Date 对象
+     * @param timestamp UTC 时间戳（单位：秒）
+     * @return Date 对象（东八区时间）
+     */
     private Date UtcToCst(long timestamp) {
         // 创建内部变量，避免修改参数的值
         long datestamp = timestamp / 1000;

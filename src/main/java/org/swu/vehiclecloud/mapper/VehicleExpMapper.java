@@ -60,4 +60,13 @@ public interface VehicleExpMapper {
             "VALUES (#{vehicleId}, #{timestampGNSS}, #{timestamp3}, #{timestamp4}, #{timestamp})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     void insert(TimestampExp timestampExp);
+
+    /**
+     * 插入经纬度异常对象
+     * @param geoLocationExp 经纬度异常对象
+     */
+    @Insert("INSERT INTO geo_location_exp (vehicleId, longitude, latitude, timestamp) " +
+            "VALUES (#{vehicleId}, #{longitude}, #{latitude}, #{timestamp})")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    void insert(GeoLocationExp geoLocationExp);
 }
