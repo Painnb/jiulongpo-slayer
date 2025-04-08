@@ -53,10 +53,13 @@ public class ExcelServiceImpl implements ExcelService {
                 int rowNum = 1;
                 for (Map<String, Object> rowData : data) {
                     Row row = sheet.createRow(rowNum++);
+                    // 每行重新初始化列索引
+                    int cellNumInRow = 0; 
                     for (Object value : rowData.values()) {
-                        Cell cell = row.createCell(cellNum++);
+                        Cell cell = row.createCell(cellNumInRow++);
                         if (value != null) {
                             cell.setCellValue(value.toString());
+
                         }
                     }
                 }
