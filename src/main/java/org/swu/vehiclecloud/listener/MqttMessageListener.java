@@ -16,15 +16,12 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class MqttMessageListener {
     private static final Logger logger = LoggerFactory.getLogger(MqttMessageListener.class);
-    private static final int EXPECTED_VEHICLES = 50;
     private static final int CHECK_INTERVAL = 10; // 10秒
     private static final double LOW_SPEED_THRESHOLD = 1.0;
 
@@ -38,9 +35,7 @@ public class MqttMessageListener {
     private final Map<String, Long> lastUpdateTime = new ConcurrentHashMap<>();
     private final Map<String, Double> lastVelocityGNSS = new ConcurrentHashMap<>();
     private final Map<String, Double> lastVelocityCAN = new ConcurrentHashMap<>();
-    private final Map<String, Boolean> lastNoDataAlert = new ConcurrentHashMap<>();
-    private final Map<String, Boolean> lastLowSpeedAlert = new ConcurrentHashMap<>();
-    private final Set<String> abnormalVehicles = new HashSet<>(); // 存储当前异常车辆ID
+    private final Map<String, Boolean> isActive = new ConcurrentHashMap<>();
 
     /**
      * 将 UTC 时间戳转换为东八区 Date 对象
@@ -78,68 +73,42 @@ public class MqttMessageListener {
             lastVelocityGNSS.put(vehicleId, velocityGNSS);
             lastVelocityCAN.put(vehicleId, velocityCAN);
 
-            // 检查低速异常
-            boolean isLowSpeed = velocityGNSS < LOW_SPEED_THRESHOLD && velocityCAN < LOW_SPEED_THRESHOLD;
-            if (isLowSpeed != lastLowSpeedAlert.getOrDefault(vehicleId, false)) {
-                handleSpeedAlert(vehicleId, isLowSpeed, timestamp);
-                lastLowSpeedAlert.put(vehicleId, isLowSpeed);
-                updateAbnormalVehicles(vehicleId, isLowSpeed, lastNoDataAlert.getOrDefault(vehicleId, false));
-            }
+            // 更新活跃状态
+            boolean isVehicleActive = velocityGNSS >= LOW_SPEED_THRESHOLD && velocityCAN >= LOW_SPEED_THRESHOLD;
+            isActive.put(vehicleId, isVehicleActive);
 
-            // 定期检查数据更新异常
-            checkDataUpdate();
+            // 推送统计数据
+            pushStatistics();
 
         } catch (Exception e) {
             logger.error("Error processing MQTT message", e);
         }
     }
 
-    private void checkDataUpdate() {
+    private void pushStatistics() {
+        // 计算在线车辆数量（10秒内有数据的车辆）
         long currentTime = System.currentTimeMillis();
+        int onlineCount = 0;
+        int activeCount = 0;
+
         for (Map.Entry<String, Long> entry : lastUpdateTime.entrySet()) {
             String vehicleId = entry.getKey();
             long lastUpdate = entry.getValue();
             
-            boolean isNoData = currentTime - lastUpdate > CHECK_INTERVAL * 1000;
-            if (isNoData != lastNoDataAlert.getOrDefault(vehicleId, false)) {
-                handleNoDataAlert(vehicleId, isNoData, lastUpdate);
-                lastNoDataAlert.put(vehicleId, isNoData);
-                updateAbnormalVehicles(vehicleId, lastLowSpeedAlert.getOrDefault(vehicleId, false), isNoData);
+            // 检查是否在线（10秒内有数据）
+            if (currentTime - lastUpdate <= CHECK_INTERVAL * 1000) {
+                onlineCount++;
+                
+                // 检查是否活跃
+                if (isActive.getOrDefault(vehicleId, false)) {
+                    activeCount++;
+                }
             }
         }
-    }
 
-    private void updateAbnormalVehicles(String vehicleId, boolean isLowSpeed, boolean isNoData) {
-        boolean isAbnormal = isLowSpeed || isNoData;
-        if (isAbnormal) {
-            abnormalVehicles.add(vehicleId);
-        } else {
-            abnormalVehicles.remove(vehicleId);
-        }
-        
-        // 推送异常车辆数量
-        String alertMessage = String.format("{\"abnormalCount\":%d,\"timestamp\":\"%s\"}",
-                abnormalVehicles.size(), new Date());
-        dataService.setPushContent("activity_alerts", alertMessage);
-    }
-
-    private void handleSpeedAlert(String vehicleId, boolean isLowSpeed, long timestamp) {
-        ActivityAlert alert = new ActivityAlert();
-        alert.setVehicleId(vehicleId);
-        alert.setLowSpeedAlert(isLowSpeed);
-        alert.setNoDataAlert(lastNoDataAlert.getOrDefault(vehicleId, false));
-        alert.setTimestamp(UtcToCst(timestamp));
-        
-        activityAlertMapper.insert(alert);
-    }
-
-    private void handleNoDataAlert(String vehicleId, boolean isNoData, long timestamp) {
-        ActivityAlert alert = new ActivityAlert();
-        alert.setVehicleId(vehicleId);
-        alert.setNoDataAlert(isNoData);
-        alert.setLowSpeedAlert(lastLowSpeedAlert.getOrDefault(vehicleId, false));
-        alert.setTimestamp(UtcToCst(timestamp));
-        
-        activityAlertMapper.insert(alert);
+        // 推送统计数据
+        String statsMessage = String.format("{\"onlineCount\":%d,\"activeCount\":%d,\"timestamp\":\"%s\"}",
+                onlineCount, activeCount, new Date());
+        dataService.setPushContent("activity_alerts", statsMessage);
     }
 }
