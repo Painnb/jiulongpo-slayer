@@ -173,21 +173,25 @@ public class ExcelServiceImpl implements ExcelService {
             
             
             // 获取数据
-            List<Map<String, Object>> baseData;
-            if (hasTimeRange) {
-                // 有时间范围的情况：从第一个表获取时间戳
-                baseData = excelMapper.selectFromTableWithFilter(
-                    selectedTables.get(0),
-                    vehicleId,
-                    startTime,
-                    endTime
-                );
-            } else {
-                // 无时间范围的情况：从第一个表获取所有记录
-                baseData = excelMapper.selectByVehicleId(
-                    selectedTables.get(0),
-                    vehicleId
-                );
+            List<Map<String, Object>> baseData = new ArrayList<>();
+            for (String table : selectedTables) {
+                List<Map<String, Object>> tableData;
+                if (hasTimeRange) {
+                    // 有时间范围的情况：从每个表获取时间戳
+                    tableData = excelMapper.selectFromTableWithFilter(
+                        table,
+                        vehicleId,
+                        startTime,
+                        endTime
+                    );
+                } else {
+                    // 无时间范围的情况：从每个表获取所有记录
+                    tableData = excelMapper.selectByVehicleId(
+                        table,
+                        vehicleId
+                    );
+                }
+                baseData.addAll(tableData);
             }
             
             // 创建数据行
