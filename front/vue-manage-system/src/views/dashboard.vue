@@ -48,7 +48,7 @@
 
         <el-row :gutter="20" class="mgb20">
             <el-col :span="18">
-                <el-card shadow="hover">
+                <el-card shadow="hover" :body-style="{backgroundColor:'#eef5ff'}">
                     <div class="card-header">
                         <p class="card-header-title">动态数据</p>
                         <p class="card-header-desc">实时监测的车辆数据</p>
@@ -57,7 +57,7 @@
                 </el-card>
             </el-col>
             <el-col :span="6">
-                <el-card shadow="hover">
+                <el-card shadow="hover" :body-style="{backgroundColor:'#c0dbf8'}">
                     <div class="card-header">
                         <div class="card-header-left">
                             <p class="card-header-title">车辆状态</p>
@@ -92,15 +92,31 @@
         </el-row>
         <el-row :gutter="20">
             <el-col :span="7">
-                <el-card shadow="hover" :body-style="{ height: '400px' }">
+                <el-card shadow="hover" :body-style="{ height: '400px',backgroundColor: '#76A9F7'
+                 }">
                     <div class="card-header">
                         <p class="card-header-title">时间线</p>
                         <p class="card-header-desc"></p>
                     </div>
+                    <div class="notification-input">
+                        <el-input 
+                            v-model="newNotification" 
+                            placeholder="输入通知内容" 
+                            size="small" 
+                            class="notification-textbox" 
+                        />
+                        <el-button 
+                            type="primary" 
+                            size="small" 
+                            @click="addNotification" 
+                            class="notification-button">
+                            发布通知
+                        </el-button>
+                    </div>
                     <el-timeline>
-                        <el-timeline-item v-for="(activity, index) in activities" :key="index" :color="activity.color">
-                            <div class="timeline-item">
-                                <div>
+                            <el-timeline-item v-for="(activity, index) in activities" :key="index" :color="activity.color">
+                                <div class="timeline-item">
+                                    <div>
                                     <p>{{ activity.content }}</p>
                                     <p class="timeline-desc">{{ activity.description }}</p>
                                 </div>
@@ -111,7 +127,8 @@
                 </el-card>
             </el-col>
             <el-col :span="10">
-                <el-card shadow="hover" :body-style="{ height: '400px' }">
+                <el-card shadow="hover" :body-style="{ height: '400px' ,backgroundColor: '#B1CFFF'
+                }">
                     <div class="card-header">
                         <p class="card-header-title">异常分布</p>
                         <p class="card-header-desc">最近一个月全国各地的异常分布</p>
@@ -120,7 +137,7 @@
                 </el-card>
             </el-col>
             <el-col :span="7">
-                <el-card shadow="hover" :body-style="{ height: '400px' }">
+                <el-card shadow="hover" :body-style="{ height: '400px' ,backgroundColor:'#BFD5F8'}">
                     <div class="card-header">
                         <p class="card-header-title">异常统计</p>
                         <p class="card-header-desc"></p>
@@ -195,7 +212,7 @@ setInterval(() => {
         second: '2-digit',
     });
 }, 1000);
-const activities = [
+const activities = ref([
     {
         content: '车辆行驶',
         description: 'xxx车辆正在行驶，去查看车辆状态',
@@ -214,7 +231,23 @@ const activities = [
         timestamp: '1小时前',
         color: '#3f51b5',
     }
-];
+]);
+
+// 新增通知相关状态
+const newNotification = ref('');
+const addNotification = () => {
+    if (newNotification.value.trim()) {
+        activities.value.unshift({
+            content: '通知',
+            description: newNotification.value,
+            timestamp: '刚刚',
+            color: '#f39c12',
+        });
+        newNotification.value = ''; // 清空输入框
+    } else {
+        alert('请输入通知内容！');
+    }
+};
 
 const ranks = [
     {
@@ -271,7 +304,7 @@ const printSelections = () => {
 
 <style>
 .dashboard{
-    background-color:#4575BD;
+    background-color:#4575BD    ;
 }
 
 .card-body {
@@ -286,7 +319,7 @@ const printSelections = () => {
     flex: 1;
     text-align: center;
     font-size: 14px;
-    color: #999;
+    color: #362f2f;
     padding: 0 20px;
 }
 
@@ -320,7 +353,7 @@ const printSelections = () => {
 }
 
 .color1 {
-    color: #2d8cf0;
+    color: #b2d2f5;
 }
 
 .color2 {
@@ -346,6 +379,7 @@ const printSelections = () => {
     justify-content: space-between; /* 将标题和按钮分开对齐 */
     padding-left: 10px;
     margin-bottom: 20px;
+    
 }
 
 .card-header-left {
@@ -368,14 +402,13 @@ const printSelections = () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 16px;
-    color: #000;
+    font-size: 18px;
+    color: #fbffeacb; 
 }
 
-.timeline-time,
-.timeline-desc {
+.tiline-time, .timeline-desc {
     font-size: 12px;
-    color: #787878;
+    color: #dcdcdc; 
 }
 
 .rank-item {
@@ -458,5 +491,24 @@ const printSelections = () => {
     justify-content: space-between;
     width: 100%;
     margin-top: 10px;
+}
+
+.notification-input {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.notification-textbox {
+    flex: 1;
+    margin-right: 10px;
+    height: 30px; /* 调高输入框高度 */
+    font-size: 16px; /* 放大字体 */
+}
+
+.notification-button {
+    flex-shrink: 0;
+    height: 30px; /* 调高按钮高度 */
+    font-size: 16px; /* 放大字体 */
 }
 </style>
