@@ -19,6 +19,7 @@
 <script>
 import * as echarts from 'echarts';
 import chinaJson from '@/utils/china'; // 引入中国地图数据
+import { color } from 'echarts/core';
 
 export default {
   name: 'DataVisualization',
@@ -95,10 +96,16 @@ export default {
       pieChart1.setOption({
         title: {
           text: '饼图1',
-          left: 'center'
+          left: 'center',
+          textStyle: {
+            color: '#E4E1E1'
+          }
         },
         tooltip: {
           trigger: 'item'
+        },
+        textStyle: {
+          color: '#E4E1E1'
         },
         series: [
           {
@@ -120,10 +127,16 @@ export default {
       // 饼图2
       pieChart2.setOption({
   title: {
-    text: '雷达图'
+    text: '雷达图',
+    textStyle: {
+            color: '#E4E1E1'
+          }
   },
   legend: {
-    data: ['Allocated Budget', 'Actual Spending']
+    data: ['Allocated Budget', 'Actual Spending'],
+    textStyle: {
+            color: '#E4E1E1'
+          }
   },
   radar: {
     // shape: 'circle',
@@ -156,47 +169,66 @@ export default {
 
       // 环形图
       ringChart.setOption({
-        title: {
-          text: '环形图',
-          left: 'center'
-        },
-        tooltip: {
-          trigger: 'item'
-        },
-        series: [
-          {
-            name: '访问来源',
-            type: 'pie',
-            radius: ['40%', '70%'],
-            avoidLabelOverlap: false,
-            label: {
-              show: false,
-              position: 'center'
-            },
-            emphasis: {
-              label: {
-                show: true,
-                fontSize: '30',
-                fontWeight: 'bold'
-              }
-            },
-            labelLine: {
-              show: false
-            },
-            data: ringData
+  tooltip: {
+    trigger: 'item'
+  },
+  legend: {
+    top: '5%',
+    left: 'center',
+    textStyle: {
+            color: '#E4E1E1'
           }
-        ]
-      });
+  },
+  series: [
+    {
+      name: 'Access From',
+      type: 'pie',
+      radius: ['40%', '70%'],
+      avoidLabelOverlap: false,
+      itemStyle: {
+        borderRadius: 10,
+        // borderColor: '#fff',
+        borderWidth: 2
+      },
+      label: {
+        show: false,
+        position: 'center'
+      },
+      emphasis: {
+        label: {
+          show: true,
+          fontSize: 40,
+          fontWeight: 'bold',
+          // color: '#fff'
+        }
+      },
+      labelLine: {
+        show: false
+      },
+      data: [
+        { value: 1048, name: 'Search Engine' },
+        { value: 735, name: 'Direct' },
+        { value: 580, name: 'Email' },
+        { value: 484, name: 'Union Ads' },
+        { value: 300, name: 'Video Ads' }
+      ]
+    }
+  ]
+});
 
       // 中国地图
       mapChart.setOption({
         title: {
           text: '中国地图',
-          left: 'center'
+          left: 'center',
+          textStyle: {
+            color: '#E4E1E1'
+          }
         },
         tooltip: {
           trigger: 'item'
         },
+        
         series: [
           {
             name: '中国',
@@ -215,7 +247,10 @@ export default {
       lineChart.setOption({
         title: {
           text: '折线图',
-          left: 'center'
+          left: 'center',
+          textStyle: {
+            color: '#E4E1E1'
+          }
         },
         tooltip: {
           trigger: 'axis'
@@ -239,7 +274,10 @@ export default {
       barChartHorizontal.setOption({
   title: [
     {
-      text: '环形条形图'
+      text: '环形条形图',
+      textStyle: {
+            color: '#E4E1E1'
+          }
     }
   ],
   polar: {
@@ -270,7 +308,10 @@ export default {
       barChartVertical.setOption({
         title: {
           text: '竖向条形图',
-          left: 'center'
+          left: 'center',
+          textStyle: {
+            color: '#E4E1E1'
+          }
         },
         tooltip: {
           trigger: 'axis',
