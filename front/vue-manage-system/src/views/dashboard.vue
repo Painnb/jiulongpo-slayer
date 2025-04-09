@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="dashboard">
         <el-row :gutter="20" class="mgb20">
             <el-col :span="6">
                 <el-card shadow="hover" body-class="card-body">
@@ -7,8 +7,8 @@
                         <User />
                     </el-icon>
                     <div class="card-content">
-                        <countup class="card-num color1" :end="6666" />
-                        <div>用户访问量</div>
+                        <div class="card-num color1"  >6666</div>
+                        <div>在线数量</div>
                     </div>
                 </el-card>
             </el-col>
@@ -18,8 +18,8 @@
                         <ChatDotRound />
                     </el-icon>
                     <div class="card-content">
-                        <countup class="card-num color2" :end="168" />
-                        <div>系统消息</div>
+                        <div class="card-num color2"  >6666</div>
+                        <div>活跃数量</div>
                     </div>
                 </el-card>
             </el-col>
@@ -29,8 +29,8 @@
                         <DataAnalysis />
                     </el-icon>
                     <div class="card-content">
-                        <countup class="card-num color3" :end="999" />
-                        <div>在线数量</div>
+                        <div class="card-num color3"  >6666</div>
+                        <div>异常数量</div>
                     </div>
                 </el-card>
             </el-col>
@@ -40,8 +40,7 @@
                         <MostlyCloudy />
                     </el-icon>
                     <div class="card-content">
-                        <countup class="card-num color4" :end="888" />
-                        <div>离线数量</div>
+                        <div class="card-num color4"  >{{ currentTime }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -180,6 +179,22 @@ use([
     MapChart,
 ]);
 registerMap('china', chinaMap);
+// 当前时间
+const currentTime = ref('');
+
+// 定时更新当前时间
+setInterval(() => {
+    const now = new Date();
+    currentTime.value = now.toLocaleString('zh-CN', {
+        hour12: false,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+    });
+}, 1000);
 const activities = [
     {
         content: '车辆行驶',
@@ -255,6 +270,10 @@ const printSelections = () => {
 </script>
 
 <style>
+.dashboard{
+    background-color:#4575BD;
+}
+
 .card-body {
     display: flex;
     align-items: center;
