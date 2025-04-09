@@ -12,7 +12,7 @@ public class MqttMessageListener {
 
     @EventListener
     public void handleMqttMessage(MqttMessageEvent event) {
-
+        String json = event.getMessage();
         logger.info("Event received - Topic: {}, Message: {}",
                 event.getTopic(), event.getMessage());
     }

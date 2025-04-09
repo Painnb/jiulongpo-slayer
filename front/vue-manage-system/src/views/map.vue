@@ -3,7 +3,7 @@
         <!-- 地图区域 -->
         <div class="map-container">
             <!-- 查询按钮 -->
-            <div class="query-panel">
+            <!-- <div class="query-panel">
                 <button @mouseenter="showMarkerList = true" @mouseleave="showMarkerList = false">查询车辆</button>
                 <div class="marker-list" v-show="showMarkerList" @mouseenter="showMarkerList = true" @mouseleave="showMarkerList = false">
                     <h3>车辆列表</h3>
@@ -13,7 +13,7 @@
                         </li>
                     </ul>
                 </div>
-            </div>
+            </div> -->
 
             <baidu-map 
               class="map" 
@@ -40,7 +40,7 @@
             </baidu-map>
 
             <!-- 车辆信息面板 -->
-            <div v-if="infoPanelVisible" class="info-panel" :style="infoPanelStyle">
+            <div v-if="infoPanelVisible" class="info-panel" :style="infoPanelStyle" @mousedown="startDrag">
                 <div class="info-header">
                     <h3>车辆监控信息</h3>
                     <span class="current-time">{{ currentTime }}</span>
@@ -95,14 +95,14 @@
             </div>
 
             <!-- 左侧按钮区域 -->
-            <div class="button-panel">
+            <!-- <div class="button-panel">
                 <button @click="toggleChart('chart1')">图表1</button>
                 <button @click="toggleChart('chart2')">图表2</button>
                 <button @click="toggleChart('chart3')">图表3</button>
-            </div>
+            </div> -->
 
             <!-- 右侧图表区域 -->
-            <div class="chart-panel">
+            <!-- <div class="chart-panel">
                 <div 
                   v-for="chart in visibleCharts" 
                   :key="chart" 
@@ -112,7 +112,7 @@
                   @mouseenter="expandChart(chart)"
                   @mouseleave="shrinkChart(chart)"
                 ></div>
-            </div>
+            </div> -->
         </div>
     </div>
 </template>
@@ -452,6 +452,33 @@ onMounted(() => {
 onUnmounted(() => {
     clearInterval(timeInterval);
 });
+
+// 拖动相关
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+
+const startDrag = (event) => {
+    isDragging = true;
+    dragStartX = event.clientX - parseInt(infoPanelStyle.value.left || 0, 10);
+    dragStartY = event.clientY - parseInt(infoPanelStyle.value.top || 0, 10);
+
+    document.addEventListener('mousemove', handleDrag);
+    document.addEventListener('mouseup', stopDrag);
+};
+
+const handleDrag = (event) => {
+    if (isDragging) {
+        infoPanelStyle.value.left = `${event.clientX - dragStartX}px`;
+        infoPanelStyle.value.top = `${event.clientY - dragStartY}px`;
+    }
+};
+
+const stopDrag = () => {
+    isDragging = false;
+    document.removeEventListener('mousemove', handleDrag);
+    document.removeEventListener('mouseup', stopDrag);
+};
 </script>
 
 <style scoped>
@@ -567,6 +594,11 @@ html, body, .container, .map-container, .map {
     width: 300px;
     overflow: hidden;
     border: 1px solid #e0e0e0;
+    cursor: grab;
+}
+
+.info-panel:active {
+    cursor: grabbing;
 }
 
 .info-header {
