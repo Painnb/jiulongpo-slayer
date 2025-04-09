@@ -3,7 +3,7 @@
         <!-- 地图区域 -->
         <div class="map-container">
             <!-- 查询按钮 -->
-            <div class="query-panel">
+            <!-- <div class="query-panel">
                 <button @mouseenter="showMarkerList = true" @mouseleave="showMarkerList = false">查询车辆</button>
                 <div class="marker-list" v-show="showMarkerList" @mouseenter="showMarkerList = true" @mouseleave="showMarkerList = false">
                     <h3>车辆列表</h3>
@@ -13,7 +13,7 @@
                         </li>
                     </ul>
                 </div>
-            </div>
+            </div> -->
 
             <baidu-map 
               class="map" 
@@ -95,14 +95,14 @@
             </div>
 
             <!-- 左侧按钮区域 -->
-            <div class="button-panel">
+            <!-- <div class="button-panel">
                 <button @click="toggleChart('chart1')">图表1</button>
                 <button @click="toggleChart('chart2')">图表2</button>
                 <button @click="toggleChart('chart3')">图表3</button>
-            </div>
+            </div> -->
 
             <!-- 右侧图表区域 -->
-            <div class="chart-panel">
+            <!-- <div class="chart-panel">
                 <div 
                   v-for="chart in visibleCharts" 
                   :key="chart" 
@@ -112,7 +112,7 @@
                   @mouseenter="expandChart(chart)"
                   @mouseleave="shrinkChart(chart)"
                 ></div>
-            </div>
+            </div> -->
         </div>
     </div>
 </template>
