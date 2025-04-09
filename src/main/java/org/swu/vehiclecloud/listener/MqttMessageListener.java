@@ -16,7 +16,9 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
@@ -38,6 +40,7 @@ public class MqttMessageListener {
     private final Map<String, Double> lastVelocityCAN = new ConcurrentHashMap<>();
     private final Map<String, Boolean> lastNoDataAlert = new ConcurrentHashMap<>();
     private final Map<String, Boolean> lastLowSpeedAlert = new ConcurrentHashMap<>();
+    private final Set<String> abnormalVehicles = new HashSet<>(); // 存储当前异常车辆ID
 
     /**
      * 将 UTC 时间戳转换为东八区 Date 对象
@@ -80,6 +83,7 @@ public class MqttMessageListener {
             if (isLowSpeed != lastLowSpeedAlert.getOrDefault(vehicleId, false)) {
                 handleSpeedAlert(vehicleId, isLowSpeed, timestamp);
                 lastLowSpeedAlert.put(vehicleId, isLowSpeed);
+                updateAbnormalVehicles(vehicleId, isLowSpeed, lastNoDataAlert.getOrDefault(vehicleId, false));
             }
 
             // 定期检查数据更新异常
@@ -100,8 +104,23 @@ public class MqttMessageListener {
             if (isNoData != lastNoDataAlert.getOrDefault(vehicleId, false)) {
                 handleNoDataAlert(vehicleId, isNoData, lastUpdate);
                 lastNoDataAlert.put(vehicleId, isNoData);
+                updateAbnormalVehicles(vehicleId, lastLowSpeedAlert.getOrDefault(vehicleId, false), isNoData);
             }
         }
+    }
+
+    private void updateAbnormalVehicles(String vehicleId, boolean isLowSpeed, boolean isNoData) {
+        boolean isAbnormal = isLowSpeed || isNoData;
+        if (isAbnormal) {
+            abnormalVehicles.add(vehicleId);
+        } else {
+            abnormalVehicles.remove(vehicleId);
+        }
+        
+        // 推送异常车辆数量
+        String alertMessage = String.format("{\"abnormalCount\":%d,\"timestamp\":\"%s\"}",
+                abnormalVehicles.size(), new Date());
+        dataService.setPushContent("activity_alerts", alertMessage);
     }
 
     private void handleSpeedAlert(String vehicleId, boolean isLowSpeed, long timestamp) {
@@ -112,11 +131,6 @@ public class MqttMessageListener {
         alert.setTimestamp(UtcToCst(timestamp));
         
         activityAlertMapper.insert(alert);
-        
-        // 通过SSE推送异常信息
-        String alertMessage = String.format("{\"vehicleId\":\"%s\",\"lowSpeedAlert\":%d,\"noDataAlert\":%d,\"timestamp\":\"%s\"}",
-                vehicleId, isLowSpeed ? 1 : 0, lastNoDataAlert.getOrDefault(vehicleId, false) ? 1 : 0, UtcToCst(timestamp));
-        dataService.setPushContent("activity_alerts", alertMessage);
     }
 
     private void handleNoDataAlert(String vehicleId, boolean isNoData, long timestamp) {
@@ -127,10 +141,5 @@ public class MqttMessageListener {
         alert.setTimestamp(UtcToCst(timestamp));
         
         activityAlertMapper.insert(alert);
-        
-        // 通过SSE推送异常信息
-        String alertMessage = String.format("{\"vehicleId\":\"%s\",\"lowSpeedAlert\":%d,\"noDataAlert\":%d,\"timestamp\":\"%s\"}",
-                vehicleId, lastLowSpeedAlert.getOrDefault(vehicleId, false) ? 1 : 0, isNoData ? 1 : 0, UtcToCst(timestamp));
-        dataService.setPushContent("activity_alerts", alertMessage);
     }
 }
