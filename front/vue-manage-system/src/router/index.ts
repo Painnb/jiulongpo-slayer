@@ -51,6 +51,15 @@ const routes: RouteRecordRaw[] = [
                 component: () => import(/* webpackChunkName: "dataScreen" */ '../views/pages/dataScreen.vue'),
             },
             {
+                path: '/history',
+                name: 'history',
+                meta: {
+                    title: '历史记录',
+                    permiss: '7',
+                },
+                component: () => import(/* webpackChunkName: "history" */ '../views/pages/history.vue'),
+            },
+            {
                 path: '/system-user',
                 name: 'system-user',
                 meta: {
