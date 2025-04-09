@@ -1,6 +1,7 @@
 package org.swu.vehiclecloud.listener;
 
 import cn.hutool.core.util.StrUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -108,8 +109,11 @@ public class MqttMessageListener {
             }
 
             // 将经纬度推给前端，不论是否异常
-            dataService.setPushContent("1", "编号为" + vehicleId
-                    + "的车辆的经纬度为" + "(" + longitude + "," + latitude + ")");
+            Map<String, Object> pushLocationData = new HashMap<>();
+            pushLocationData.put("vehicleId", vehicleId);
+            pushLocationData.put("longitude", longitude);
+            pushLocationData.put("latitude", latitude);
+            dataService.setPushContent("4", objectMapper.writeValueAsString(pushLocationData));
 
             // 上一个时间片某辆车的数据
             Map<String, Object> previousVehicleData = vehicleDataCache.get(vehicleId);
@@ -177,7 +181,7 @@ public class MqttMessageListener {
 
     private void detectAccelerationExp(String vehicleId, double accelerationLon,
                                        double accelerationLat, double accelerationVer,
-                                       Date timestamp, int numOfExp) {
+                                       Date timestamp, int numOfExp) throws JsonProcessingException {
         // 判断加速度是否异常
         if(isAccelerationExp(accelerationLon,accelerationLat,
                 accelerationVer)){
@@ -193,13 +197,16 @@ public class MqttMessageListener {
             vehicleExpMapper.insert(vehicleExp);
 
             // 推送异常信息给前端
-            dataService.setPushContent("1","编号为" + vehicleId + "的车辆加速度异常");
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("vehicleId", vehicleId);
+            pushData.put("accelerationExp", true);
+            dataService.setPushContent("5", objectMapper.writeValueAsString(pushData));
         }
     }
 
     private void detectSpeedExp(String vehicleId, double velocityGNSS,
                                 double velocityCAN, Date timestamp,
-                                int numOfExp) {
+                                int numOfExp) throws JsonProcessingException {
         // 判断速度是否异常
         if(isSpeedExp(velocityGNSS, velocityCAN)){
             // 车辆有异常
@@ -213,13 +220,16 @@ public class MqttMessageListener {
             vehicleExpMapper.insert(speedExp);
 
             // 推送异常信息给前端
-            dataService.setPushContent("1","编号为" + vehicleId + "的车辆速度异常");
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("vehicleId", vehicleId);
+            pushData.put("speedExp", true);
+            dataService.setPushContent("6", objectMapper.writeValueAsString(pushData));
         }
     }
 
     private void detectEngineExp(String vehicleId, int engineSpeed,
                                  int engineTorque, Date timestamp,
-                                 int numOfExp) {
+                                 int numOfExp) throws JsonProcessingException {
         // 判断发动机是否异常
         if(isEngineExp(engineSpeed, engineTorque)){
             // 车辆有异常
@@ -233,13 +243,16 @@ public class MqttMessageListener {
             vehicleExpMapper.insert(engineExp);
 
             // 推送异常信息给前端
-            dataService.setPushContent("1","编号为" + vehicleId + "的车辆发动机异常");
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("vehicleId", vehicleId);
+            pushData.put("engineExp", true);
+            dataService.setPushContent("7", objectMapper.writeValueAsString(pushData));
         }
     }
 
     private void detectBrakeExp(String vehicleId, int brakeFlag,
                                 int brakePos, int brakePressure,
-                                Date timestamp, int numOfExp) {
+                                Date timestamp, int numOfExp) throws JsonProcessingException {
         if(isBrakeExp(brakeFlag, brakePos, brakePressure)){
             // 车辆有异常
             numOfExp = 1;
@@ -256,13 +269,16 @@ public class MqttMessageListener {
             vehicleExpMapper.insert(brakeExp);
 
             // 推送异常信息给前端
-            dataService.setPushContent("1","编号为" + vehicleId + "的车辆制动异常");
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("vehicleId", vehicleId);
+            pushData.put("brakeExp", true);
+            dataService.setPushContent("7", objectMapper.writeValueAsString(pushData));
         }
     }
 
     private void detectSteeringExp(String vehicleId, int steeringAngle,
                                    int yawRate, Date timestamp,
-                                   int numOfExp) {
+                                   int numOfExp) throws JsonProcessingException {
         if(isSteeringExp(steeringAngle, yawRate)){
             // 车辆有异常
             numOfExp = 1;
@@ -275,7 +291,10 @@ public class MqttMessageListener {
             vehicleExpMapper.insert(steeringExp);
 
             // 推送异常信息给前端
-            dataService.setPushContent("1","编号为" + vehicleId + "的车辆转向异常");
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("vehicleId", vehicleId);
+            pushData.put("steeringExp", true);
+            dataService.setPushContent("8", objectMapper.writeValueAsString(pushData));
         }
 
     }
@@ -283,7 +302,7 @@ public class MqttMessageListener {
     private void detectSwivelAngleExp(String vehicleId, int steeringAngle,
                                       int yawRate, int previousSteeringAngle,
                                       int previousYawRate, Date timestamp,
-                                      int numOfExp) {
+                                      int numOfExp) throws JsonProcessingException {
         if(isSwivelAngleExp(steeringAngle, previousSteeringAngle, yawRate, previousYawRate)){
             // 车辆有异常
             numOfExp = 1;
@@ -296,13 +315,16 @@ public class MqttMessageListener {
             vehicleExpMapper.insert(steeringExp);
 
             // 推送异常信息给前端
-            dataService.setPushContent("1","编号为" + vehicleId + "的车辆转向异常");
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("vehicleId", vehicleId);
+            pushData.put("steeringExp", true);
+            dataService.setPushContent("8", objectMapper.writeValueAsString(pushData));
         }
     }
 
     private void detectTimestampExp(String vehicleId, long timestampGNSS,
                                     long timestamp3, long timestamp4,
-                                    Date timestamp, int numOfExp) {
+                                    Date timestamp, int numOfExp) throws JsonProcessingException {
         if(isTimeStampExp(timestampGNSS, timestamp3, timestamp4)){
             // 车辆有异常
             numOfExp = 1;
@@ -325,14 +347,17 @@ public class MqttMessageListener {
             vehicleExpMapper.insert(timestampExp);
 
             // 推送异常信息给前端
-            dataService.setPushContent("1","编号为" + vehicleId + "的车辆时间戳异常");
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("vehicleId", vehicleId);
+            pushData.put("timestampExp", true);
+            dataService.setPushContent("9", objectMapper.writeValueAsString(pushData));
         }
     }
 
     private void detectGeoLocationExp(String vehicleId, double longitude,
                                       double latitude, double previousLongitude,
                                       double previousLatitude, Date datestamp,
-                                      int numOfExp) {
+                                      int numOfExp) throws JsonProcessingException {
         if(isGeoLocationExp(longitude, latitude, previousLongitude, previousLatitude)){
             // 车辆有异常
             numOfExp = 1;
@@ -344,7 +369,10 @@ public class MqttMessageListener {
             vehicleExpMapper.insert(geoLocationExp);
 
             // 推送异常信息给前端
-            dataService.setPushContent("1","编号为" + vehicleId + "的车辆地理位置异常");
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("vehicleId", vehicleId);
+            pushData.put("geoLocationExp", true);
+            dataService.setPushContent("10", objectMapper.writeValueAsString(pushData));
         }
     }
 
@@ -421,9 +449,19 @@ public class MqttMessageListener {
     }
 
     private void pushNumOfExpData() {
-        int numOfExp = numOfExpCar.get(previousTimestamp);
-        dataService.setPushContent("3", String.valueOf(numOfExp));
-        numOfExpCar.clear();
+        try {
+            int numOfExp = numOfExpCar.get(previousTimestamp);
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("numOfExp", numOfExp);
+            // Convert the map to JSON and push the content to the frontend
+            dataService.setPushContent("3", objectMapper.writeValueAsString(pushData));
+
+            // Clear the map after sending the data
+            numOfExpCar.clear();
+        } catch (JsonProcessingException e) {
+            // Log the exception or handle it in another way
+            logger.error("Error while processing JSON for push data: {}", e.getMessage());
+        }
     }
 
     private void handleTemperatureMessage(MqttMessageEvent event) {
