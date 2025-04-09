@@ -43,7 +43,13 @@ export const menuData: Menus[] = [
         id: '7',
         title: '数据大屏',
         index: '/dataScreen',
-        icon: 'MapLocation',
+        icon: 'DataAnalysis',
+    },
+    {
+        id: '7',
+        title: '历史记录',
+        index: '/history',
+        icon: 'List',
     },
     {
         id: '8',
