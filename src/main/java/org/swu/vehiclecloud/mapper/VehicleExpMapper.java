@@ -69,13 +69,4 @@ public interface VehicleExpMapper {
             "VALUES (#{vehicleId}, #{longitude}, #{latitude}, #{timestamp})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     void insert(GeoLocationExp geoLocationExp);
-
-    /**
-     * 插入mqtt数据对象
-     * @param mqttData mqtt数据对象
-     */
-    @Insert("INSERT INTO mqtt_data (mqttData) " +
-            "VALUES (#{mqttData})")
-    @Options(useGeneratedKeys = true, keyProperty = "id")
-    void insert(MqttData mqttData);
 }

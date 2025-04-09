@@ -20,8 +20,7 @@ import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.*;
 
 @Component
 public class MqttMessageListener {
@@ -31,16 +30,29 @@ public class MqttMessageListener {
     @Autowired
     private DataService dataService;
 
-    // 用于存储每个车辆的上一次数据，线程安全的 Map
+    private static long previousTimestamp = 0;
+
+    // 存储每个车辆的上一次数据，线程安全的Map
     private final ConcurrentMap<String, Map<String, Object>> vehicleDataCache = new ConcurrentHashMap<>();
 
+    // 存储某个时间片异常车的数量，线程安全的Map
+    private final ConcurrentMap<Long, Integer> numOfExpCar = new ConcurrentHashMap<>();
+
+    // 线程池调度器
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+
+    // 日志记录的类
     private static final Logger logger = LoggerFactory.getLogger(MqttMessageListener.class);
 
+    // 处理json数据的类
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @EventListener
     public void handleMqttMessage(MqttMessageEvent event) throws IOException {
         try{
+            // 初始化异常数量
+            int numOfExp = 0;
+
             logger.info("Event received - Topic: {}, Message: {}",
                     event.getTopic(), event.getMessage());
 
@@ -87,6 +99,14 @@ public class MqttMessageListener {
             // 将UTC时间戳转换为东八区(CST)时间戳
             Date datestamp = UtcToCst(timestamp);
 
+            if(numOfExpCar.isEmpty()){
+                // 初始化当前时间片异常车辆数量为0
+                previousTimestamp = timestamp;
+                numOfExpCar.put(timestamp, 0);
+                // 启动一个任务，每10秒将这10秒内的异常车数量推送给前端
+                scheduler.scheduleAtFixedRate(this::pushNumOfExpData, 0, 10, TimeUnit.SECONDS);
+            }
+
             // 将经纬度推给前端，不论是否异常
             dataService.setPushContent("1", "编号为" + vehicleId
                     + "的车辆的经纬度为" + "(" + longitude + "," + latitude + ")");
@@ -110,33 +130,41 @@ public class MqttMessageListener {
                     // 经纬度异常检测
                     detectGeoLocationExp(vehicleId, longitude,
                                          latitude, (double)previousVehicleData.get("longitude"),
-                                         (double)previousVehicleData.get("latitude"), datestamp);
+                                         (double)previousVehicleData.get("latitude"), datestamp,
+                                         numOfExp);
                     // 检测横摆角速度与方向盘转角变化趋势是否匹配
                     detectSwivelAngleExp(vehicleId, steeringAngle,
                                         yawRate, (int)previousVehicleData.get("steeringAngle"),
-                                        (int)previousVehicleData.get("yawRate"), datestamp);
+                                        (int)previousVehicleData.get("yawRate"), datestamp,
+                                        numOfExp);
                     vehicleDataCache.replace(vehicleId, previousVehicleData, currentVehicleData);
                 }
             }
 
             // 加速度异常检测
             detectAccelerationExp(vehicleId, accelerationLon,accelerationLat,
-                                    accelerationVer, datestamp);
+                                    accelerationVer, datestamp, numOfExp);
 
             // 速度异常检测
-            detectSpeedExp(vehicleId, velocityGNSS, velocityCAN, datestamp);
+            detectSpeedExp(vehicleId, velocityGNSS, velocityCAN, datestamp, numOfExp);
 
             // 发动机异常检测
-            detectEngineExp(vehicleId, engineSpeed, engineTorque, datestamp);
+            detectEngineExp(vehicleId, engineSpeed, engineTorque, datestamp, numOfExp);
 
             // 制动异常检测
-            detectBrakeExp(vehicleId, brakeFlag, brakePos, brakePressure, datestamp);
+            detectBrakeExp(vehicleId, brakeFlag, brakePos, brakePressure, datestamp, numOfExp);
 
             // 转向异常检测
-            detectSteeringExp(vehicleId, steeringAngle, yawRate, datestamp);
+            detectSteeringExp(vehicleId, steeringAngle, yawRate, datestamp, numOfExp);
 
             // 时间戳异常检测
-            detectTimestampExp(vehicleId, timestampGNSS, timestamp3, timestamp4, datestamp);
+            detectTimestampExp(vehicleId, timestampGNSS, timestamp3, timestamp4, datestamp, numOfExp);
+
+            // 将对应时间片的异常车数量存入缓存
+            // 使用 compute 来更新值
+            numOfExpCar.compute(previousTimestamp, (key, currentValue) ->
+                    (currentValue == null ? 0 : currentValue) + numOfExp
+            );
 
         }catch(IOException e){
             throw new IOException("Internal server error. Please try again later.");
@@ -149,10 +177,13 @@ public class MqttMessageListener {
 
     private void detectAccelerationExp(String vehicleId, double accelerationLon,
                                        double accelerationLat, double accelerationVer,
-                                       Date timestamp) {
+                                       Date timestamp, int numOfExp) {
         // 判断加速度是否异常
         if(isAccelerationExp(accelerationLon,accelerationLat,
                 accelerationVer)){
+            // 车辆有异常
+            numOfExp = 1;
+
             // 创建加速度异常对象
             AccelerationExp vehicleExp = new AccelerationExp(vehicleId, accelerationLon,
                                                             accelerationLat, accelerationVer,
@@ -167,9 +198,13 @@ public class MqttMessageListener {
     }
 
     private void detectSpeedExp(String vehicleId, double velocityGNSS,
-                                double velocityCAN, Date timestamp) {
+                                double velocityCAN, Date timestamp,
+                                int numOfExp) {
         // 判断速度是否异常
         if(isSpeedExp(velocityGNSS, velocityCAN)){
+            // 车辆有异常
+            numOfExp = 1;
+
             // 创建速度异常对象
             SpeedExp speedExp = new SpeedExp(vehicleId, velocityGNSS,
                                             velocityCAN, timestamp);
@@ -183,9 +218,13 @@ public class MqttMessageListener {
     }
 
     private void detectEngineExp(String vehicleId, int engineSpeed,
-                                 int engineTorque, Date timestamp) {
+                                 int engineTorque, Date timestamp,
+                                 int numOfExp) {
         // 判断发动机是否异常
         if(isEngineExp(engineSpeed, engineTorque)){
+            // 车辆有异常
+            numOfExp = 1;
+
             // 创建发动机异常对象
             EngineExp engineExp = new EngineExp(vehicleId, engineSpeed,
                                                 engineTorque, timestamp);
@@ -200,8 +239,11 @@ public class MqttMessageListener {
 
     private void detectBrakeExp(String vehicleId, int brakeFlag,
                                 int brakePos, int brakePressure,
-                                Date timestamp) {
+                                Date timestamp, int numOfExp) {
         if(isBrakeExp(brakeFlag, brakePos, brakePressure)){
+            // 车辆有异常
+            numOfExp = 1;
+
             // 将brakeFlag转换为boolean
             boolean flag = brakeFlag != 0;
 
@@ -219,8 +261,12 @@ public class MqttMessageListener {
     }
 
     private void detectSteeringExp(String vehicleId, int steeringAngle,
-                                   int yawRate, Date timestamp) {
+                                   int yawRate, Date timestamp,
+                                   int numOfExp) {
         if(isSteeringExp(steeringAngle, yawRate)){
+            // 车辆有异常
+            numOfExp = 1;
+
             // 创建转向异常对象
             SteeringExp steeringExp = new SteeringExp(vehicleId, steeringAngle,
                                                         yawRate, timestamp);
@@ -236,8 +282,12 @@ public class MqttMessageListener {
 
     private void detectSwivelAngleExp(String vehicleId, int steeringAngle,
                                       int yawRate, int previousSteeringAngle,
-                                      int previousYawRate, Date timestamp) {
+                                      int previousYawRate, Date timestamp,
+                                      int numOfExp) {
         if(isSwivelAngleExp(steeringAngle, previousSteeringAngle, yawRate, previousYawRate)){
+            // 车辆有异常
+            numOfExp = 1;
+
             // 创建转向异常对象
             SteeringExp steeringExp = new SteeringExp(vehicleId, steeringAngle,
                     yawRate, timestamp);
@@ -251,8 +301,12 @@ public class MqttMessageListener {
     }
 
     private void detectTimestampExp(String vehicleId, long timestampGNSS,
-                                    long timestamp3, long timestamp4, Date timestamp) {
+                                    long timestamp3, long timestamp4,
+                                    Date timestamp, int numOfExp) {
         if(isTimeStampExp(timestampGNSS, timestamp3, timestamp4)){
+            // 车辆有异常
+            numOfExp = 1;
+
             // 将UTC时间戳转换为东八区(CST)时间戳
             Date datestampGNSS = UtcToCst(timestampGNSS);
 
@@ -277,8 +331,12 @@ public class MqttMessageListener {
 
     private void detectGeoLocationExp(String vehicleId, double longitude,
                                       double latitude, double previousLongitude,
-                                      double previousLatitude, Date datestamp) {
+                                      double previousLatitude, Date datestamp,
+                                      int numOfExp) {
         if(isGeoLocationExp(longitude, latitude, previousLongitude, previousLatitude)){
+            // 车辆有异常
+            numOfExp = 1;
+
             // 创建地理位置异常对象
             GeoLocationExp geoLocationExp = new GeoLocationExp(vehicleId, longitude, latitude, datestamp);
 
@@ -360,6 +418,12 @@ public class MqttMessageListener {
 
         // 将 ZonedDateTime 转换为 java.util.Date 并返回
         return Date.from(beijingTime.toInstant());
+    }
+
+    private void pushNumOfExpData() {
+        int numOfExp = numOfExpCar.get(previousTimestamp);
+        dataService.setPushContent("3", String.valueOf(numOfExp));
+        numOfExpCar.clear();
     }
 
     private void handleTemperatureMessage(MqttMessageEvent event) {
