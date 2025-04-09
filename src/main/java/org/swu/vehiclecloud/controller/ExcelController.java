@@ -6,10 +6,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.swu.vehiclecloud.dto.ExcelExportRequest;
 
-/**
- * Excel导出控制器
- */
+import java.util.List;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/dataprocess")
 @CrossOrigin(origins = "*")
@@ -18,14 +19,22 @@ public class ExcelController {
     @Autowired
     private ExcelService excelService;
 
-    /**
-     * 导出Excel文件
-     * @param tableName 要导出的表名
-     * @return 包含Excel文件的响应实体
-     */
     @GetMapping("/business/tables/{tableName}/export")
     @PreAuthorizeRole(roles = {"BIZ_ADMIN"})
     public ResponseEntity<Resource> exportExcel(@PathVariable String tableName) {
         return excelService.exportExcel(tableName);
+    }
+
+    @PostMapping("/business/tables/combined-export")
+    @PreAuthorizeRole(roles = {"BIZ_ADMIN"})
+    public ResponseEntity<Resource> exportCombinedExcel(
+            @RequestBody ExcelExportRequest request) {
+        return excelService.exportCombinedExcel(
+            request.getVehicleId(), 
+            request.getStartTime(), 
+            request.getEndTime(), 
+            request.getSelectedTables(), 
+            request.getSelectedColumns()
+        );
     }
 }
