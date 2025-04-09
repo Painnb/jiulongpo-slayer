@@ -109,17 +109,20 @@ watch(
 .tabs-container {
     position: relative;
     overflow: hidden;
-    background: #fff;
+    background: #AFC0D9;
     padding: 2px 120px 0 0;
 }
 
 .tabs {
+
     .el-tabs__header {
         margin-bottom: 0;
     }
 
+
     .el-tabs__nav {
         height: 28px;
+        
     }
 
     .el-tabs__nav-next,
@@ -131,7 +134,13 @@ watch(
         --el-tabs-header-height: 28px;
     }
 }
+.el-tabs__item {
+    color: #4575BD !important; /* 设置标签文字颜色为白色 */
+}
 
+.el-tabs__item.is-active {
+    color: #2D8CF0 !important; /* 设置激活标签的文字颜色为亮蓝色 */
+}
 .Tabs-close-box {
     position: absolute;
     right: 0;
@@ -141,8 +150,7 @@ watch(
     text-align: center;
     width: 110px;
     height: 30px;
-    background: #fff;
-    box-shadow: -3px 0 15px 3px rgba(0, 0, 0, 0.1);
+    background: #AFC0D9;
     z-index: 10;
 }
 </style>
