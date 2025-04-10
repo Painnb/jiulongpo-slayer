@@ -3,9 +3,7 @@
         <el-row :gutter="20" class="mgb20" >
             <el-col :span="6">
                 <el-card shadow="hover" body-class="card-body">
-                    <el-icon class="card-icon bg1">
-                        <User />
-                    </el-icon>
+                    <img src="@/assets/img/card1.png" alt="在线数量" class="card-icon bg-blue" />
                     <div class="card-content">
                         <div class="card-num color1"  >6666</div>
                         <div>在线数量</div>
@@ -14,9 +12,7 @@
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" body-class="card-body">
-                    <el-icon class="card-icon bg2">
-                        <ChatDotRound />
-                    </el-icon>
+                    <img src="@/assets/img/card2.png" alt="活跃数量" class="card-icon bg-green" />
                     <div class="card-content">
                         <div class="card-num color2"  >6666</div>
                         <div>活跃数量</div>
@@ -25,9 +21,7 @@
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" body-class="card-body">
-                    <el-icon class="card-icon bg3">
-                        <DataAnalysis />
-                    </el-icon>
+                    <img src="@/assets/img/card3.png" alt="异常数量" class="card-icon bg-red" />
                     <div class="card-content">
                         <div class="card-num color3"  >6666</div>
                         <div>异常数量</div>
@@ -36,9 +30,7 @@
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" body-class="card-body">
-                    <el-icon class="card-icon bg4">
-                        <MostlyCloudy />
-                    </el-icon>
+                    <img src="@/assets/img/card4.png" alt="时间" class="card-icon bg-orange" />
                     <div class="card-content">
                         <div class="card-num color4"  >{{ currentTime }}</div>
                     </div>
@@ -328,29 +320,29 @@ const printSelections = () => {
 }
 
 .card-icon {
-    font-size: 50px;
-    width: 100px;
-    height: 100px;
-    text-align: center;
-    line-height: 100px;
-    color: #fff;
+    width: 80px;
+    height: 80px;
+    object-fit: contain; /* 确保图片适应容器 */
+    padding: 10px; /* 内边距 */
 }
 
-.bg1 {
-    background: #2A6E40;
+.bg-blue {
+    background-color: #007bff; /* 蓝色 */
 }
 
-.bg2 {
-    background: #003C76;
+.bg-green {
+    background-color: #28a745; /* 绿色 */
 }
 
-.bg3 {
-    background: #CB5D20;
+.bg-red {
+    background-color: #dc3545; /* 红色 */
 }
 
-.bg4 {
-    background: #AD1E24;
+.bg-orange {
+    background-color: #fd7e14; /* 橙色 */
 }
+
+
 
 .color1 {
     color: #b2d2f5;
