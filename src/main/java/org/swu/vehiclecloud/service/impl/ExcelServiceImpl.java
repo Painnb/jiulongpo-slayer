@@ -304,4 +304,140 @@ public class ExcelServiceImpl implements ExcelService {
             throw new RuntimeException("导出组合Excel失败: " + e.getMessage(), e);
         }
     }
+    
+    @Override
+    public ResponseEntity<Resource> exportAllVehiclesExceptions(
+            LocalDateTime startTime,
+            LocalDateTime endTime,
+            List<String> selectedTables,
+            Map<String, List<String>> selectedColumns) {
+    
+        // 验证表名
+        for (String table : selectedTables) {
+            if (!SQLInjectionProtector.validateTableName(table)) {
+                throw new IllegalArgumentException("非法的表名: " + table);
+            }
+        }
+    
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("AllVehiclesExceptions");
+            
+            // 创建表头
+            Row headerRow = sheet.createRow(0);
+            int cellNum = 0;
+            
+            // 固定包含vehicleId和timestamp列
+            headerRow.createCell(cellNum++).setCellValue("vehicleId");
+            headerRow.createCell(cellNum++).setCellValue("timestamp");
+            
+            // 添加选择的列到表头
+            Map<String, Integer> columnIndexMap = new HashMap<>();
+            columnIndexMap.put("vehicleId", 0);
+            columnIndexMap.put("timestamp", 1);
+            
+            for (String table : selectedTables) {
+                List<String> columns = selectedColumns.getOrDefault(table, Collections.emptyList());
+                for (String column : columns) {
+                    headerRow.createCell(cellNum).setCellValue(table + "_" + column);
+                    columnIndexMap.put(table + "_" + column, cellNum);
+                    cellNum++;
+                }
+            }
+            
+            // 添加异常表作为二进制标记
+            for (String table : selectedTables) {
+                if (selectedColumns.getOrDefault(table, Collections.emptyList()).isEmpty()) {
+                    headerRow.createCell(cellNum).setCellValue(table);
+                    columnIndexMap.put(table, cellNum);
+                    cellNum++;
+                }
+            }
+            
+            // 1. 获取所有车辆和时间戳的组合
+            List<Map<String, Object>> timeSlots = excelMapper.selectDistinctVehicleTimeSlots(
+                selectedTables,
+                startTime,
+                endTime
+            );
+            
+            // 2. 获取各表数据
+            Map<String, List<Map<String, Object>>> tableDataMap = new HashMap<>();
+            for (String table : selectedTables) {
+                List<Map<String, Object>> tableData = excelMapper.selectTableDataWithTimeRange(
+                    table,
+                    startTime,
+                    endTime
+                );
+                tableDataMap.put(table, tableData);
+            }
+            
+            // 3. 创建数据行
+            int rowNum = 1;
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            
+            for (Map<String, Object> timeSlot : timeSlots) {
+                String vehicleId = timeSlot.get("vehicleId").toString();
+                LocalDateTime timestamp = (LocalDateTime) timeSlot.get("timestamp");
+                
+                Row excelRow = sheet.createRow(rowNum++);
+                
+                // 设置vehicleId和timestamp
+                excelRow.createCell(0).setCellValue(vehicleId);
+                excelRow.createCell(1).setCellValue(timestamp.format(formatter));
+                
+                // 处理每个表的数据
+                for (String table : selectedTables) {
+                    List<String> columns = selectedColumns.getOrDefault(table, Collections.emptyList());
+                    
+                    if (!columns.isEmpty()) {
+                        // 查找该表在该时间点的数据
+                        Optional<Map<String, Object>> tableRow = tableDataMap.get(table).stream()
+                            .filter(row -> row.get("vehicleId").toString().equals(vehicleId) &&
+                                         ((LocalDateTime) row.get("timestamp")).equals(timestamp))
+                            .findFirst();
+                        
+                        // 填充选定的列
+                        if (tableRow.isPresent()) {
+                            Map<String, Object> dataRow = tableRow.get();
+                            for (String column : columns) {
+                                Object value = dataRow.get(column);
+                                Integer colIndex = columnIndexMap.get(table + "_" + column);
+                                if (colIndex != null && value != null) {
+                                    excelRow.createCell(colIndex).setCellValue(value.toString());
+                                }
+                            }
+                        }
+                    } else {
+                        // 异常表标记 - 检查该表在该时间点是否有数据
+                        boolean exists = tableDataMap.get(table).stream()
+                            .anyMatch(row -> row.get("vehicleId").toString().equals(vehicleId) &&
+                                         ((LocalDateTime) row.get("timestamp")).equals(timestamp));
+                        
+                        Integer colIndex = columnIndexMap.get(table);
+                        if (colIndex != null) {
+                            excelRow.createCell(colIndex).setCellValue(exists ? 1 : 0);
+                        }
+                    }
+                }
+            }
+            
+            // 自动调整列宽
+            for (int i = 0; i < columnIndexMap.size(); i++) {
+                sheet.autoSizeColumn(i);
+            }
+            
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.setContentDispositionFormData("attachment", "all_vehicles_exceptions.xlsx");
+            
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(new ByteArrayResource(outputStream.toByteArray()));
+        } catch (Exception e) {
+            throw new RuntimeException("导出所有车辆异常数据失败: " + e.getMessage(), e);
+        }
+    }
 }
