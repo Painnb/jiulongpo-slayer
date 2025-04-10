@@ -25,7 +25,7 @@ public class User {
      * 用户ID
      */
     @TableId
-    private Integer id;
+    private Integer id;// 用户 ID
     
     /**
      * 用户名
