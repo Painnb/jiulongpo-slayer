@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -154,6 +155,17 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(ServletException.class)
   public ApiResult<Map<String, Object>> ServletException() {
     return ApiResult.of(500,"Internal server error. Please try again later.",
+            null);
+  }
+
+  /**
+   * 处理所有未捕获的异常
+   * 作为最后的异常处理器
+   * @return 包含自定义的错误信息的响应对象
+   */
+  @ExceptionHandler(ParseException.class)
+  public ApiResult<Map<String, Object>> ParseException() {
+    return ApiResult.of(500,"Server error, timestamp parse failed.",
             null);
   }
 }

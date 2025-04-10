@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.sql.Timestamp;
 import java.util.Date;
 
 @Getter
@@ -20,13 +21,13 @@ public class EngineExp {
 
     private String vehicleId; // 车辆id
 
-    private int engineSpeed; // 发动机转速
+    private double engineSpeed; // 发动机转速
 
-    private int engineTorque; // 发动机扭矩
+    private double engineTorque; // 发动机扭矩
 
-    private Date timestamp; // 时间戳
+    private Timestamp timestamp; // 时间戳
 
-    public EngineExp(String vehicleId, int engineSpeed, int engineTorque, Date timestamp) {
+    public EngineExp(String vehicleId, double engineSpeed, double engineTorque, Timestamp timestamp) {
         this.vehicleId = vehicleId;
         this.engineSpeed = engineSpeed;
         this.engineTorque = engineTorque;

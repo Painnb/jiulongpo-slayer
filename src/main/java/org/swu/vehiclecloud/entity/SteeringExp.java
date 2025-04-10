@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.sql.Timestamp;
 import java.util.Date;
 
 @Getter
@@ -20,14 +21,14 @@ public class SteeringExp {
 
     private String vehicleId; // 车辆id
 
-    private int steeringAngle; // 方向盘转角
+    private double steeringAngle; // 方向盘转角
 
-    private int yawRate; // 横摆角速度
+    private double yawRate; // 横摆角速度
 
-    private Date timestamp; // 时间戳
+    private Timestamp timestamp; // 时间戳
 
-    public SteeringExp(String vehicleId, int steeringAngle,
-                       int yawRate, Date timestamp) {
+    public SteeringExp(String vehicleId, double steeringAngle,
+                       double yawRate, Timestamp timestamp) {
         this.vehicleId = vehicleId;
         this.steeringAngle = steeringAngle;
         this.yawRate = yawRate;
