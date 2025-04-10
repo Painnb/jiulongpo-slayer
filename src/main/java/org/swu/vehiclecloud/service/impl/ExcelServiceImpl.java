@@ -57,33 +57,46 @@ public class ExcelServiceImpl implements ExcelService {
      */
     @Override
     public ResponseEntity<Resource> exportExcel(String tableName) {
+        // 步骤1: 从数据库查询指定表的所有数据
+        // 使用excelMapper查询指定表的所有数据，返回结果为List<Map>结构
+        // 每个Map代表一行数据，key为列名，value为对应的值
         List<Map<String, Object>> data = excelMapper.selectAllFromTable(tableName);
 
-        // 添加SQL注入校验
+        // 步骤2: SQL注入防护 - 验证表名合法性
+        // 使用SQLInjectionProtector工具验证表名，防止恶意输入
+        // 如果验证失败，抛出IllegalArgumentException异常
         if (!SQLInjectionProtector.validateTableName(tableName)) {
             throw new IllegalArgumentException("非法的表名: " + tableName);
         }
         
+        // 步骤3: 创建Excel工作簿并填充数据
+        // 使用try-with-resources确保工作簿资源正确释放
         try (Workbook workbook = new XSSFWorkbook()) {
+            // 创建工作表，使用表名作为工作表名称
             Sheet sheet = workbook.createSheet(tableName);
             
-            // 创建表头 - 使用查询结果的第一行数据的键作为表头列名
+            // 步骤3.1: 创建表头行
+            // 使用查询结果的第一行数据的键作为表头列名
             Row headerRow = sheet.createRow(0);
             if (!data.isEmpty()) {
                 int cellNum = 0;
+                // 遍历第一行数据的key集合，创建表头单元格
                 for (String key : data.get(0).keySet()) {
                     Cell cell = headerRow.createCell(cellNum++);
                     cell.setCellValue(key);
                 }
                 
-                // 填充数据 - 遍历查询结果，将每行数据写入Excel工作表
+                // 步骤3.2: 填充数据行
+                // 从第二行开始(索引1)填充实际数据
                 int rowNum = 1;
                 for (Map<String, Object> rowData : data) {
                     Row row = sheet.createRow(rowNum++);
-                    // 每行重新初始化列索引 - 确保每行数据从第一列开始写入
+                    // 每行重新初始化列索引，确保数据从第一列开始写入
                     int cellNumInRow = 0; 
+                    // 遍历每行数据的value集合，填充单元格
                     for (Object value : rowData.values()) {
                         Cell cell = row.createCell(cellNumInRow++);
+                        // 处理null值情况，空字符串代替null
                         if (value != null) {
                             cell.setCellValue(value.toString());
                         } else {
@@ -93,18 +106,25 @@ public class ExcelServiceImpl implements ExcelService {
                 }
             }
             
+            // 步骤4: 将工作簿写入字节输出流
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             workbook.write(outputStream);
             
+            // 步骤5: 构建HTTP响应
+            // 设置响应头: Content-Type为二进制流
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            // 设置Content-Disposition为附件下载，文件名为表名.xlsx
             headers.setContentDispositionFormData("attachment", tableName + ".xlsx");
             
+            // 返回包含Excel文件字节数组的响应实体
             return ResponseEntity.ok()
                     .headers(headers)
                     .body(new ByteArrayResource(outputStream.toByteArray()));
         } catch (Exception e) {
-            throw new RuntimeException("导出Excel失败: " + e.getMessage(), e); // 抛出运行时异常，包含原始异常信息
+            // 异常处理: 捕获所有异常并包装为RuntimeException抛出
+            // 包含原始异常信息以便排查问题
+            throw new RuntimeException("导出Excel失败: " + e.getMessage(), e);
         }
     }
 
@@ -117,10 +137,11 @@ public class ExcelServiceImpl implements ExcelService {
             List<String> selectedTables,
             Map<String, List<String>> selectedColumns) {
         
-        // 修改时间格式化部分
+        // 时间格式化器 - 用于将时间戳格式化为字符串
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         
-        // 修改后的方法可以处理无时间范围的情况
+        // 判断是否有有效的时间范围
+        // 当startTime和endTime都不为null且startTime早于endTime时，hasTimeRange为true
         boolean hasTimeRange = startTime != null && endTime != null && startTime.isBefore(endTime);
 
         // 验证表名
@@ -312,7 +333,8 @@ public class ExcelServiceImpl implements ExcelService {
             List<String> selectedTables,
             Map<String, List<String>> selectedColumns) {
     
-        // 验证表名
+        // 验证表名 - 防止SQL注入攻击
+        // 遍历所有选定的表名，确保每个表名都通过安全验证
         for (String table : selectedTables) {
             if (!SQLInjectionProtector.validateTableName(table)) {
                 throw new IllegalArgumentException("非法的表名: " + table);
