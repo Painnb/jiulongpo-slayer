@@ -40,6 +40,18 @@ export const menuData: Menus[] = [
         icon: 'MapLocation',
     },
     {
+        id: '7',
+        title: '数据大屏',
+        index: '/dataScreen',
+        icon: 'DataAnalysis',
+    },
+    {
+        id: '7',
+        title: '历史记录',
+        index: '/history',
+        icon: 'List',
+    },
+    {
         id: '8',
         title: '折线图',
         index: '/line-chart',
