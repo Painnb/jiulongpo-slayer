@@ -96,6 +96,7 @@ import { VueCropper } from 'vue-cropper';
 import 'vue-cropper/dist/index.css';
 import avatar from '@/assets/img/img.jpg';
 import TabsComp from '../element/tabs.vue';
+import axios from 'axios';
 
 const name = localStorage.getItem('vuems_name');
 const form = reactive({
@@ -160,13 +161,26 @@ const saveAvatar = () => {
 
 const saveMqttConfig = () => {
     console.log('保存 MQTT 配置：', mqttConfig);
-    // TODO: 调用后端接口保存 MQTT 配置
-    // 示例：
-    // axios.post('/api/mqtt/config', mqttConfig).then(response => {
-    //     console.log('保存成功', response);
-    // }).catch(error => {
-    //     console.error('保存失败', error);
-    // });
+    const token = localStorage.getItem('token');
+    if (token) {
+        axios.post('/abc/mqtt/config',  mqttConfig, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+
+        })
+        .then(response => {
+            console.log('保存成功', response);
+            // 可以在这里添加保存成功的提示信息
+        })
+        .catch(error => {
+            console.error('保存失败', error);
+            // 可以在这里添加保存失败的提示信息
+        });
+    } else {
+        console.error('Token 未找到');
+        // 可以在这里添加 Token 未找到的提示信息
+    }
 };
 </script>
 
