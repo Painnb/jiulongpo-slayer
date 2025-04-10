@@ -136,6 +136,13 @@ public class MqttMessageListener {
                     currentVehicleData.put("longitude", longitude);
                     currentVehicleData.put("latitude", latitude);
                     vehicleDataCache.put(vehicleId, currentVehicleData);
+
+                    // 启动一个任务，如果10秒之内没有收到该车辆的新数据，则从缓存中删除该车辆数据
+                    scheduler.schedule(() -> {
+                        Map<String, Object> cachedData = vehicleDataCache.get(vehicleId);
+                        if (cachedData == null)
+                            vehicleDataCache.remove(vehicleId);
+                    }, 10, TimeUnit.SECONDS);
                 }else{
                     if(Math.abs(timestamp - (Long)previousVehicleData.get("timestamp")) > Math.pow(10, 4) ){
                         // 经纬度异常检测
