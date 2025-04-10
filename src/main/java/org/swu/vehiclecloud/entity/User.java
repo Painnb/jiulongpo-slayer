@@ -10,31 +10,60 @@ import lombok.ToString;
 
 import java.util.Date;
 
+/**
+ * 用户实体类
+ * 对应数据库中的user表
+ */
 @Getter
 @Setter
 @ToString
 @NoArgsConstructor
 @TableName("user")
-
 public class User {
 
+    /**
+     * 用户ID
+     */
     @TableId
-    private Integer id;         // 用户 ID
+    private Integer id;// 用户 ID
     
-    private String username; // 用户名
+    /**
+     * 用户名
+     */
+    private String username;
     
+    /**
+     * 密码哈希值
+     */
     @TableField("password_hash")
-    private String password; // 密码哈希
+    private String password;
     
-    private String role;     // 角色
+    /**
+     * 用户角色
+     */
+    private String role;
     
+    /**
+     * 用户邮箱
+     */
     @TableField("email")
-    private String email;   // 邮箱
+    private String email;
     
+    /**
+     * 用户创建时间
+     */
     @TableField("created_at")
-    private Date created_time; // 创建时间
+    private Date created_time;
 
-    // 带参数的构造函数
+    /**
+     * 带参数的构造函数
+     * @param id 用户ID
+     * @param username 用户名
+     * @param password 密码
+     * @param role 角色
+     * @param email 邮箱
+     * @param created_time 创建时间
+     */
     public User(Integer id, String username, String password, String role, String email, Date created_time) {
         this.id = id;
         this.username = username;
