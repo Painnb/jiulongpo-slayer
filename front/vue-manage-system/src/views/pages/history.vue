@@ -34,7 +34,7 @@
 
     <!-- 中间列表区域 -->
     <div class="list-container">
-      <el-table :data="paginatedData" border style="width: 100%">
+      <el-table :data="paginatedData" border >
         <el-table-column prop="vehicleId" label="车辆ID" width="150" />
         <el-table-column prop="time" label="时间" />
         <el-table-column prop="exceptionType" label="异常类型" />
@@ -137,6 +137,16 @@ const handlePageChange = (page) => {
   height: 80vh;
   padding: 20px;
   background-color: #f5f5f5;
+  background-image: url('@/assets/img/his_bg.jpg');
+  background-size: cover
+}
+
+.el-table {
+  background-color: rgba(255, 255, 255, 0.5); /* 设置表格背景为半透明白色 */
+  background-image: url('@/assets/img/his_bg1.jpg'); /* 设置表格背景图片 */
+  background-size: cover; /* 让图片覆盖整个表格 */
+  background-repeat: no-repeat; /* 防止图片重复 */
+  background-position: center; /* 居中显示图片 */
 }
 
 .filter-container {
@@ -147,9 +157,11 @@ const handlePageChange = (page) => {
   flex: 1;
   overflow-y: auto;
   margin-bottom: 20px;
+  
 }
 
 .pagination-container {
   text-align: center;
 }
+
 </style>
