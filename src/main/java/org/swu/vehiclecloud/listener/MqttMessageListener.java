@@ -194,7 +194,7 @@ public class MqttMessageListener {
                                                             timestamp);
 
             // 插入加速度异常对象
-            vehicleExpMapper.insert(accelerationExp);
+            vehicleExpMapper.insertAccelerationExp(accelerationExp);
 
             // 推送异常信息给前端
             Map<String, Object> pushData = new HashMap<>();
@@ -217,7 +217,7 @@ public class MqttMessageListener {
                                             velocityCAN, timestamp);
 
             // 插入速度异常对象
-            vehicleExpMapper.insert(speedExp);
+            vehicleExpMapper.insertSpeedExp(speedExp);
 
             // 推送异常信息给前端
             Map<String, Object> pushData = new HashMap<>();
@@ -240,7 +240,7 @@ public class MqttMessageListener {
                                                 engineTorque, timestamp);
 
             // 插入发动机异常对象
-            vehicleExpMapper.insert(engineExp);
+            vehicleExpMapper.insertEngineExp(engineExp);
 
             // 推送异常信息给前端
             Map<String, Object> pushData = new HashMap<>();
@@ -266,7 +266,7 @@ public class MqttMessageListener {
                                             timestamp);
 
             // 插入制动异常对象
-            vehicleExpMapper.insert(brakeExp);
+            vehicleExpMapper.insertBrakeExp(brakeExp);
 
             // 推送异常信息给前端
             Map<String, Object> pushData = new HashMap<>();
@@ -288,7 +288,7 @@ public class MqttMessageListener {
                                                         yawRate, timestamp);
 
             // 插入转向异常对象
-            vehicleExpMapper.insert(steeringExp);
+            vehicleExpMapper.insertSteeringExp(steeringExp);
 
             // 推送异常信息给前端
             Map<String, Object> pushData = new HashMap<>();
@@ -312,7 +312,7 @@ public class MqttMessageListener {
                     yawRate, timestamp);
 
             // 插入转向异常对象
-            vehicleExpMapper.insert(steeringExp);
+            vehicleExpMapper.insertSteeringExp(steeringExp);
 
             // 推送异常信息给前端
             Map<String, Object> pushData = new HashMap<>();
@@ -344,7 +344,7 @@ public class MqttMessageListener {
                                                         timestamp);
 
             // 插入时间戳异常对象
-            vehicleExpMapper.insert(timestampExp);
+            vehicleExpMapper.insertTimestampExp(timestampExp);
 
             // 推送异常信息给前端
             Map<String, Object> pushData = new HashMap<>();
@@ -366,7 +366,7 @@ public class MqttMessageListener {
             GeoLocationExp geoLocationExp = new GeoLocationExp(vehicleId, longitude, latitude, datestamp);
 
             // 插入地理位置异常对象
-            vehicleExpMapper.insert(geoLocationExp);
+            vehicleExpMapper.insertGeoLocationExp(geoLocationExp);
 
             // 推送异常信息给前端
             Map<String, Object> pushData = new HashMap<>();
