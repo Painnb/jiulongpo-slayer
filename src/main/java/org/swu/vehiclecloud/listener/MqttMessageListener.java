@@ -189,12 +189,12 @@ public class MqttMessageListener {
             numOfExp = 1;
 
             // 创建加速度异常对象
-            AccelerationExp vehicleExp = new AccelerationExp(vehicleId, accelerationLon,
+            AccelerationExp accelerationExp = new AccelerationExp(vehicleId, accelerationLon,
                                                             accelerationLat, accelerationVer,
                                                             timestamp);
 
             // 插入加速度异常对象
-            vehicleExpMapper.insert(vehicleExp);
+            vehicleExpMapper.insert(accelerationExp);
 
             // 推送异常信息给前端
             Map<String, Object> pushData = new HashMap<>();
