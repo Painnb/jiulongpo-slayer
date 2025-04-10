@@ -13,13 +13,18 @@ public class CorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                //暂时不允许发送Cookie
-                .allowCredentials(false)
-                //放行哪些原始域
-                .allowedOrigins("*")
-                .allowedMethods(new String[]{"GET", "POST", "PUT", "DELETE"})
+                // 允许所有来源
+                .allowedOriginPatterns("*")
+                // 允许所有方法
+                .allowedMethods("*")
+                // 允许所有头
                 .allowedHeaders("*")
-                .exposedHeaders("*");
+                // 暴露所有头
+                .exposedHeaders("*")
+                // 不允许凭证
+                .allowCredentials(false)
+                // 预检请求缓存时间
+                .maxAge(3600);
     }
 
     @Override
