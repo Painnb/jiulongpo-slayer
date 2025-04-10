@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.sql.Timestamp;
 import java.util.Date;
 
 @Getter
@@ -24,9 +25,9 @@ public class GeoLocationExp {
 
     private double latitude; // 纬度
 
-    private Date timestamp; // 时间戳
+    private Timestamp timestamp; // 时间戳
 
-    public GeoLocationExp(String vehicleId, double longitude, double latitude, Date timestamp) {
+    public GeoLocationExp(String vehicleId, double longitude, double latitude, Timestamp timestamp) {
         this.vehicleId = vehicleId;
         this.longitude = longitude;
         this.latitude = latitude;

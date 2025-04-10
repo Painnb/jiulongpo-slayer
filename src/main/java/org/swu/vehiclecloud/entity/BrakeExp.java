@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.sql.Timestamp;
 import java.util.Date;
 
 @Getter
@@ -22,15 +23,15 @@ public class BrakeExp {
 
     private boolean brakeFlag; // 制动踏板开关
 
-    private int brakePos; // 制动踏板开度
+    private double brakePos; // 制动踏板开度
 
-    private int brakePressure; // 制动主缸压力
+    private double brakePressure; // 制动主缸压力
 
-    private Date timestamp; // 时间戳
+    private Timestamp timestamp; // 时间戳
 
     public BrakeExp(String vehicleId, boolean brakeFlag,
-                    int brakePos, int brakePressure,
-                    Date timestamp) {
+                    double brakePos, double brakePressure,
+                    Timestamp timestamp) {
         this.vehicleId = vehicleId;
         this.brakeFlag = brakeFlag;
         this.brakePos = brakePos;

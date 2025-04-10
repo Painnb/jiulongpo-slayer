@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.sql.Timestamp;
 import java.util.Date;
 
 @Getter
@@ -20,17 +21,17 @@ public class TimestampExp {
 
     private String vehicleId; // 车辆id
 
-    private Date timestampGNSS; // GNSS时间戳
+    private Timestamp timestampGNSS; // GNSS时间戳
 
-    private Date timestamp3; // 文档没写这是什么
+    private Timestamp timestamp3; // 文档没写这是什么
 
-    private Date timestamp4; // 文档没写这是什么
+    private Timestamp timestamp4; // 文档没写这是什么
 
-    private Date timestamp; // 时间戳
+    private Timestamp timestamp; // 时间戳
 
-    public TimestampExp(String vehicleId, Date timestampGNSS,
-                        Date timestamp3, Date timestamp4,
-                        Date timestamp) {
+    public TimestampExp(String vehicleId, Timestamp timestampGNSS,
+                        Timestamp timestamp3, Timestamp timestamp4,
+                        Timestamp timestamp) {
         this.vehicleId = vehicleId;
         this.timestampGNSS = timestampGNSS;
         this.timestamp3 = timestamp3;

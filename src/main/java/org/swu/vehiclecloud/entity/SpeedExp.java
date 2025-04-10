@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.sql.Timestamp;
 import java.util.Date;
 
 @Getter
@@ -24,10 +25,10 @@ public class SpeedExp {
 
     private double velocityCAN; // 当前车速
 
-    private Date timestamp; // 时间戳
+    private Timestamp timestamp; // 时间戳
 
     public SpeedExp(String vehicleId, double velocityGNSS,
-                           double velocityCAN, Date timestamp) {
+                           double velocityCAN, Timestamp timestamp) {
         this.vehicleId = vehicleId;
         this.velocityGNSS = velocityGNSS;
         this.velocityCAN = velocityCAN;

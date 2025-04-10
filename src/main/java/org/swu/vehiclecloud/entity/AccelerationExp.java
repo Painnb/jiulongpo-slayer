@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.sql.Timestamp;
 import java.util.Date;
 
 @Getter
@@ -26,11 +27,11 @@ public class AccelerationExp {
 
     private double accelerationVer; // 垂向加速度
 
-    private Date timestamp; // 时间戳
+    private Timestamp timestamp; // 时间戳
 
     public AccelerationExp(String vehicleId, double accelerationLon,
                            double accelerationLat, double accelerationVer,
-                           Date timestamp) {
+                           Timestamp timestamp) {
         this.vehicleId = vehicleId;
         this.accelerationLon = accelerationLon;
         this.accelerationLat = accelerationLat;
