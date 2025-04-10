@@ -19,7 +19,7 @@ import java.util.Date;
 public class User {
 
     @TableId
-    private Integer id;         // 用户 ID
+    private Integer id;// 用户 ID
     
     private String username; // 用户名
     

@@ -10,7 +10,7 @@ import org.swu.vehiclecloud.dto.MqttRequest;
 import org.swu.vehiclecloud.service.MqttService;
 
 @RestController
-@RequestMapping("/mqtt")
+@RequestMapping("/api/mqtt")
 @CrossOrigin(origins = "*")
 public class MqttController {
     private static final Logger logger = LoggerFactory.getLogger(MqttController.class);
