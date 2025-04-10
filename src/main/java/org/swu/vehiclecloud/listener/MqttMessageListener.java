@@ -33,6 +33,9 @@ public class MqttMessageListener {
 
     private static long previousTimestamp = 0;
 
+    // 间隔执行监听方法
+    private static int eventCount = 0;
+
     // 存储每个车辆的上一次数据，线程安全的Map
     private final ConcurrentMap<String, Map<String, Object>> vehicleDataCache = new ConcurrentHashMap<>();
 
@@ -50,132 +53,137 @@ public class MqttMessageListener {
 
     @EventListener
     public void handleMqttMessage(MqttMessageEvent event) throws IOException {
-        try{
-            // 初始化异常数量
-            int numOfExp = 0;
+        eventCount++;
 
-            logger.info("Event received - Topic: {}, Message: {}",
-                    event.getTopic(), event.getMessage());
+        // 每监听五条数据检测一次
+        if(eventCount % 5 == 0) {
+            try{
+                // 初始化异常数量
+                int numOfExp = 0;
 
-            // 根据不同的topic进行不同的处理
-            if (event.getTopic().contains("temperature")) {
-                handleTemperatureMessage(event);
-            } else if (event.getTopic().contains("alert")) {
-                handleAlertMessage(event);
-            }
+                logger.info("Event received - Topic: {}, Message: {}",
+                        event.getTopic(), event.getMessage());
 
-            // 提取车辆数据
-            JsonNode messageNode = objectMapper.readTree(event.getMessage());
-
-            JsonNode headerNode = messageNode.get("header");
-            JsonNode bodyNode = messageNode.get("body");
-
-            long timestamp = headerNode.get("timestamp").asLong();
-
-            String vehicleId = bodyNode.get("vehicleId").asText();
-            double accelerationLon = bodyNode.get("accelerationLon").asDouble();
-            double accelerationLat = bodyNode.get("accelerationLat").asDouble();
-            double accelerationVer = bodyNode.get("accelerationVer").asDouble();
-
-            double velocityGNSS = bodyNode.get("velocityGNSS").asDouble();
-            double velocityCAN = bodyNode.get("velocityCAN").asDouble();
-
-            int engineSpeed = bodyNode.get("engineSpeed").asInt();
-            int engineTorque = bodyNode.get("engineTorque").asInt();
-
-            int brakeFlag = bodyNode.get("brakeFlag").asInt();
-            int brakePos = bodyNode.get("brakePos").asInt();
-            int brakePressure = bodyNode.get("brakePressure").asInt();
-
-            int steeringAngle = bodyNode.get("steeringAngle").asInt();
-            int yawRate = bodyNode.get("yawRate").asInt();
-
-            long timestampGNSS = bodyNode.get("timestampGNSS").asLong();
-            long timestamp3 = bodyNode.get("timestamp3").asLong();
-            long timestamp4 = bodyNode.get("timestamp4").asLong();
-
-            double longitude = bodyNode.get("longitude").asDouble();
-            double latitude = bodyNode.get("latitude").asDouble();
-
-            // 将UTC时间戳转换为东八区(CST)时间戳
-            Date datestamp = UtcToCst(timestamp);
-
-            if(numOfExpCar.isEmpty()){
-                // 初始化当前时间片异常车辆数量为0
-                previousTimestamp = timestamp;
-                numOfExpCar.put(timestamp, 0);
-                // 启动一个任务，每10秒将这10秒内的异常车数量推送给前端
-                scheduler.scheduleAtFixedRate(this::pushNumOfExpData, 0, 10, TimeUnit.SECONDS);
-            }
-
-            // 将经纬度推给前端，不论是否异常
-            Map<String, Object> pushLocationData = new HashMap<>();
-            pushLocationData.put("vehicleId", vehicleId);
-            pushLocationData.put("longitude", longitude);
-            pushLocationData.put("latitude", latitude);
-            dataService.setPushContent("4", objectMapper.writeValueAsString(pushLocationData));
-
-            // 上一个时间片某辆车的数据
-            Map<String, Object> previousVehicleData = vehicleDataCache.get(vehicleId);
-
-            // 当前时间片某辆车的数据
-            Map<String, Object> currentVehicleData = new HashMap<>();
-
-            if (StrUtil.isEmptyIfStr(previousVehicleData)) {
-                // 如果是第一次接受该车辆的数据，则存储车辆数据到缓存当中, 用来判断转向异常和经纬度异常
-                currentVehicleData.put("timestamp", timestamp);
-                currentVehicleData.put("steeringAngle", steeringAngle);
-                currentVehicleData.put("yawRate", yawRate);
-                currentVehicleData.put("longitude", longitude);
-                currentVehicleData.put("latitude", latitude);
-                vehicleDataCache.put(vehicleId, currentVehicleData);
-            }else{
-                if(Math.abs(timestamp - (Long)previousVehicleData.get("timestamp")) > Math.pow(10, 4) ){
-                    // 经纬度异常检测
-                    detectGeoLocationExp(vehicleId, longitude,
-                                         latitude, (double)previousVehicleData.get("longitude"),
-                                         (double)previousVehicleData.get("latitude"), datestamp,
-                                         numOfExp);
-                    // 检测横摆角速度与方向盘转角变化趋势是否匹配
-                    detectSwivelAngleExp(vehicleId, steeringAngle,
-                                        yawRate, (int)previousVehicleData.get("steeringAngle"),
-                                        (int)previousVehicleData.get("yawRate"), datestamp,
-                                        numOfExp);
-                    vehicleDataCache.replace(vehicleId, previousVehicleData, currentVehicleData);
+                // 根据不同的topic进行不同的处理
+                if (event.getTopic().contains("temperature")) {
+                    handleTemperatureMessage(event);
+                } else if (event.getTopic().contains("alert")) {
+                    handleAlertMessage(event);
                 }
+
+                // 提取车辆数据
+                JsonNode messageNode = objectMapper.readTree(event.getMessage());
+
+                JsonNode headerNode = messageNode.get("header");
+                JsonNode bodyNode = messageNode.get("body");
+
+                long timestamp = headerNode.get("timestamp").asLong();
+
+                String vehicleId = bodyNode.get("vehicleId").asText();
+                double accelerationLon = bodyNode.get("accelerationLon").asDouble();
+                double accelerationLat = bodyNode.get("accelerationLat").asDouble();
+                double accelerationVer = bodyNode.get("accelerationVer").asDouble();
+
+                double velocityGNSS = bodyNode.get("velocityGNSS").asDouble();
+                double velocityCAN = bodyNode.get("velocityCAN").asDouble();
+
+                int engineSpeed = bodyNode.get("engineSpeed").asInt();
+                int engineTorque = bodyNode.get("engineTorque").asInt();
+
+                int brakeFlag = bodyNode.get("brakeFlag").asInt();
+                int brakePos = bodyNode.get("brakePos").asInt();
+                int brakePressure = bodyNode.get("brakePressure").asInt();
+
+                int steeringAngle = bodyNode.get("steeringAngle").asInt();
+                int yawRate = bodyNode.get("yawRate").asInt();
+
+                long timestampGNSS = bodyNode.get("timestampGNSS").asLong();
+                long timestamp3 = bodyNode.get("timestamp3").asLong();
+                long timestamp4 = bodyNode.get("timestamp4").asLong();
+
+                double longitude = bodyNode.get("longitude").asDouble();
+                double latitude = bodyNode.get("latitude").asDouble();
+
+                // 将UTC时间戳转换为东八区(CST)时间戳
+                Date datestamp = UtcToCst(timestamp);
+
+                if(numOfExpCar.isEmpty()){
+                    // 初始化当前时间片异常车辆数量为0
+                    previousTimestamp = timestamp;
+                    numOfExpCar.put(timestamp, 0);
+                    // 启动一个任务，每10秒将这10秒内的异常车数量推送给前端
+                    scheduler.scheduleAtFixedRate(this::pushNumOfExpData, 0, 10, TimeUnit.SECONDS);
+                }
+
+                // 将经纬度推给前端，不论是否异常
+                Map<String, Object> pushLocationData = new HashMap<>();
+                pushLocationData.put("vehicleId", vehicleId);
+                pushLocationData.put("longitude", longitude);
+                pushLocationData.put("latitude", latitude);
+                dataService.setPushContent("4", objectMapper.writeValueAsString(pushLocationData));
+
+                // 上一个时间片某辆车的数据
+                Map<String, Object> previousVehicleData = vehicleDataCache.get(vehicleId);
+
+                // 当前时间片某辆车的数据
+                Map<String, Object> currentVehicleData = new HashMap<>();
+
+                if (StrUtil.isEmptyIfStr(previousVehicleData)) {
+                    // 如果是第一次接受该车辆的数据，则存储车辆数据到缓存当中, 用来判断转向异常和经纬度异常
+                    currentVehicleData.put("timestamp", timestamp);
+                    currentVehicleData.put("steeringAngle", steeringAngle);
+                    currentVehicleData.put("yawRate", yawRate);
+                    currentVehicleData.put("longitude", longitude);
+                    currentVehicleData.put("latitude", latitude);
+                    vehicleDataCache.put(vehicleId, currentVehicleData);
+                }else{
+                    if(Math.abs(timestamp - (Long)previousVehicleData.get("timestamp")) > Math.pow(10, 4) ){
+                        // 经纬度异常检测
+                        detectGeoLocationExp(vehicleId, longitude,
+                                latitude, (double)previousVehicleData.get("longitude"),
+                                (double)previousVehicleData.get("latitude"), datestamp,
+                                numOfExp);
+                        // 检测横摆角速度与方向盘转角变化趋势是否匹配
+                        detectSwivelAngleExp(vehicleId, steeringAngle,
+                                yawRate, (int)previousVehicleData.get("steeringAngle"),
+                                (int)previousVehicleData.get("yawRate"), datestamp,
+                                numOfExp);
+                        vehicleDataCache.replace(vehicleId, previousVehicleData, currentVehicleData);
+                    }
+                }
+
+                // 加速度异常检测
+                detectAccelerationExp(vehicleId, accelerationLon,accelerationLat,
+                        accelerationVer, datestamp, numOfExp);
+
+                // 速度异常检测
+                detectSpeedExp(vehicleId, velocityGNSS, velocityCAN, datestamp, numOfExp);
+
+                // 发动机异常检测
+                detectEngineExp(vehicleId, engineSpeed, engineTorque, datestamp, numOfExp);
+
+                // 制动异常检测
+                detectBrakeExp(vehicleId, brakeFlag, brakePos, brakePressure, datestamp, numOfExp);
+
+                // 转向异常检测
+                detectSteeringExp(vehicleId, steeringAngle, yawRate, datestamp, numOfExp);
+
+                // 时间戳异常检测
+                detectTimestampExp(vehicleId, timestampGNSS, timestamp3, timestamp4, datestamp, numOfExp);
+
+                // 将对应时间片的异常车数量存入缓存
+                // 使用 compute 来更新值
+                numOfExpCar.compute(previousTimestamp, (key, currentValue) ->
+                        (currentValue == null ? 0 : currentValue) + numOfExp
+                );
+
+            }catch(IOException e){
+                throw new IOException("Internal server error. Please try again later.");
+            }catch(NullPointerException e){
+                throw new NullPointerException("Bad request. Missing required fields.");
+            }catch(NumberFormatException e){
+                throw new NumberFormatException("Bad request. Invalid number format.");
             }
-
-            // 加速度异常检测
-            detectAccelerationExp(vehicleId, accelerationLon,accelerationLat,
-                                    accelerationVer, datestamp, numOfExp);
-
-            // 速度异常检测
-            detectSpeedExp(vehicleId, velocityGNSS, velocityCAN, datestamp, numOfExp);
-
-            // 发动机异常检测
-            detectEngineExp(vehicleId, engineSpeed, engineTorque, datestamp, numOfExp);
-
-            // 制动异常检测
-            detectBrakeExp(vehicleId, brakeFlag, brakePos, brakePressure, datestamp, numOfExp);
-
-            // 转向异常检测
-            detectSteeringExp(vehicleId, steeringAngle, yawRate, datestamp, numOfExp);
-
-            // 时间戳异常检测
-            detectTimestampExp(vehicleId, timestampGNSS, timestamp3, timestamp4, datestamp, numOfExp);
-
-            // 将对应时间片的异常车数量存入缓存
-            // 使用 compute 来更新值
-            numOfExpCar.compute(previousTimestamp, (key, currentValue) ->
-                    (currentValue == null ? 0 : currentValue) + numOfExp
-            );
-
-        }catch(IOException e){
-            throw new IOException("Internal server error. Please try again later.");
-        }catch(NullPointerException e){
-            throw new NullPointerException("Bad request. Missing required fields.");
-        }catch(NumberFormatException e){
-            throw new NumberFormatException("Bad request. Invalid number format.");
         }
     }
 
