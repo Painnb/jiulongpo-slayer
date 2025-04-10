@@ -23,7 +23,7 @@
                 <el-card shadow="hover" body-class="card-body">
                     <img src="@/assets/img/card3.png" alt="异常数量" class="card-icon bg-red" />
                     <div class="card-content">
-                        <div class="card-num color3"  >6666</div>
+                        <div class="card-num color3"  >{{ message }}</div>
                         <div>异常数量</div>
                     </div>
                 </el-card>
@@ -173,7 +173,32 @@ import { CanvasRenderer } from 'echarts/renderers';
 import VChart from 'vue-echarts';
 import { dashOpt1, dashOpt2, mapOptions } from './chart/options';
 import chinaMap from '@/utils/china';
-import { ref } from 'vue';
+import { ref ,onMounted,onUnmounted} from 'vue';
+import { createSSEConnection } from '../utils/sse'; // 假设封装的工具函数放在 utils/sse.ts
+
+const message = ref<string>('');
+let sseConnection: { close: () => void } | null = null;
+
+const token = localStorage.getItem('token') || ''; // 假设 token 存储在 localStorage 中
+
+onMounted(() => {
+  sseConnection = createSSEConnection('/abc/api/datacontroller/public/ssestream/activity_alerts', token, {
+    onOpen: () => {
+      console.log('SSE连接已建立');
+    },
+    onMessage: (data) => {
+      message.value = data;
+    },
+    onError: (error) => {
+      console.error('SSE连接错误:', error);
+    }
+  });
+});
+
+onUnmounted(() => {
+  sseConnection?.close();
+});
+
 
 use([
     CanvasRenderer,
