@@ -47,10 +47,7 @@
                             </el-form-item>
                         </el-form>
                     </el-tab-pane>
-                    
-                    <el-tab-pane name="label1" label="消息通知" class="user-tabpane">
-                        <TabsComp />
-                    </el-tab-pane>
+                        
                     <el-tab-pane name="label2" label="个人信息" class="user-tabpane">
                         <el-form class="w500" label-position="top">
                             <el-form-item label="用户名：">
@@ -105,7 +102,7 @@ const form = reactive({
 });
 const onSubmit = () => {};
 
-const activeName = ref('label1');
+const activeName = ref('label5');
 
 const avatarImg = ref(avatar);
 const imgSrc = ref(avatar);
@@ -188,7 +185,7 @@ const saveMqttConfig = () => {
 .user-profile-bg {
     width: 100%;
     height: 80vh;
-    background-image: url('../../assets/img/ucenter-bg.png');
+    background-image: url('../../assets/img/ucenter-bg.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -219,7 +216,7 @@ const saveMqttConfig = () => {
     margin-top: 260px; 
     text-align: center;
     padding: 20px;
-    background-color: rgba(255, 255, 255, 0.332);
+    background-color: rgba(255, 255, 255, 0.675);
     border-radius: 10px; /* 圆角 */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 添加阴影 */
 }
@@ -262,6 +259,7 @@ const saveMqttConfig = () => {
 
 .user-content {
     flex: 1;
+    background-image: url('../../assets/img/ucenter-bg1.jpg');
 }
 </style>
 
