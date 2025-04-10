@@ -1,289 +1,830 @@
 <template>
-    <div class="container">
-        <!-- 地图区域 -->
-        <div class="map-container">
-            <!-- 输入框和按钮 -->
-            <div class="input-panel">
-                <input v-model="lng" type="text" placeholder="输入经度" />
-                <input v-model="lat" type="text" placeholder="输入纬度" />
-                <button @click="setMarker">查询</button>
-            </div>
-
-            <baidu-map 
-              class="map" 
-              :center="{ lng: center.lng, lat: center.lat }" 
-              :zoom="15"
-              @ready="handleMapReady"
-            >
-              <bm-navigation anchor="BMAP_ANCHOR_TOP_RIGHT"></bm-navigation>
-              <bm-marker :position="{ lng: marker.lng, lat: marker.lat }" />
-            </baidu-map>
-
-            <!-- 左侧按钮区域 -->
-            <div class="button-panel">
-                <button @click="toggleChart('chart1')">图表1</button>
-                <button @click="toggleChart('chart2')">图表2</button>
-                <button @click="toggleChart('chart3')">图表3</button>
-            </div>
-
-            <!-- 右侧图表区域 -->
-            <div class="chart-panel">
-                <div 
-                  v-for="chart in visibleCharts" 
-                  :key="chart" 
-                  :id="chart" 
-                  class="chart-item"
-                  :class="{ 'chart-expanded': expandedChart === chart }"
-                  @mouseenter="expandChart(chart)"
-                  @mouseleave="shrinkChart(chart)"
-                ></div>
-            </div>
+  <div class="container">
+    <!-- 地图区域 -->
+    <div class="map-container">
+      <baidu-map
+        class="map"
+        :center="center"
+        :zoom="15"
+        @ready="handleMapReady"
+        @click="handleMapClick"
+        @rightclick="handleMapRightClick"
+      >
+        <bm-navigation anchor="BMAP_ANCHOR_TOP_RIGHT"></bm-navigation>
+        <bm-marker
+          v-for="(point, index) in markers"
+          :key="index"
+          :position="point"
+          :icon="customIcon"
+          @click="showVehicleInfo(point, index)"
+        >
+          <bm-label
+            :content="`车辆${index + 1}`"
+            :labelStyle="{
+              color: '#fff',
+              fontSize: '12px',
+              backgroundColor: '#81c784',
+              padding: '2px 6px',
+              borderRadius: '10px',
+            }"
+            :offset="{ width: 0, height: 20 }"
+          />
+        </bm-marker>
+      </baidu-map>
+      <!-- 右键菜单 -->
+      <div
+        v-if="contextMenuVisible"
+        class="context-menu"
+        :style="contextMenuStyle"
+      >
+        <div class="menu-item" @click="addMarkerAtContextMenu">
+          <span class="menu-icon">➕</span> 添加车辆
         </div>
+        <div
+          v-if="hoveredMarkerIndex !== null"
+          class="menu-item delete-item"
+          @click="removeMarkerAtContextMenu"
+        >
+          <span class="menu-icon">❌</span> 删除车辆
+        </div>
+      </div>
     </div>
+
+    <!-- 车辆列表区域 -->
+    <div class="list-container">
+      <h3 class="list-title">车辆列表</h3>
+      <el-table
+        :data="paginatedMarkers"
+        border
+        style="width: 100%"
+        @row-click="handleRowClick"
+      >
+        <el-table-column prop="index" label="编号" width="80">
+          <template #default="scope"> 车辆{{ scope.row.index + 1 }} </template>
+        </el-table-column>
+        <el-table-column prop="lng" label="经度">
+          <template #default="scope">
+            {{ scope.row.lng.toFixed(4) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="lat" label="纬度">
+          <template #default="scope">
+            {{ scope.row.lat.toFixed(4) }}
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :total="markers.length"
+        :page-size="pageSize"
+        v-model:current-page="currentPage"
+        @current-change="handlePageChange"
+      />
+    </div>
+    <!-- 车辆信息面板 -->
+    <div
+      v-if="infoPanelVisible"
+      class="info-panel"
+      :style="infoPanelStyle"
+      @mousedown="startDrag"
+    >
+      <div class="info-header">
+        <h3>车辆监控信息</h3>
+        <span class="current-time">{{ currentTime }}</span>
+        <button @click="closeInfoPanel" class="close-btn">×</button>
+      </div>
+      <div class="info-content">
+        <div class="vehicle-image">
+          <img :src="selectedCarImage" alt="车辆图片" />
+        </div>
+        <div class="info-row">
+          <span class="info-label">坐标：</span>
+          <span class="info-value"
+            >{{ selectedPoint.lng.toFixed(6) }},
+            {{ selectedPoint.lat.toFixed(6) }}</span
+          >
+        </div>
+        <div class="info-row">
+          <span class="info-label">编号：</span>
+          <span class="info-value">V-{{ hoveredMarkerIndex + 1 }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">状态：</span>
+          <span :class="['status-badge', vehicleStatus.class]">{{
+            vehicleStatus.text
+          }}</span>
+        </div>
+        <div class="info-divider"></div>
+        <div class="status-grid">
+          <div class="status-item">
+            <span class="status-icon" :class="getStatusClass('steering')">{{
+              getStatusIcon("steering")
+            }}</span>
+            <span class="status-name">方向盘</span>
+          </div>
+          <div class="status-item">
+            <span class="status-icon" :class="getStatusClass('acceleration')">{{
+              getStatusIcon("acceleration")
+            }}</span>
+            <span class="status-name">加速度</span>
+          </div>
+          <div class="status-item">
+            <span class="status-icon" :class="getStatusClass('brake')">{{
+              getStatusIcon("brake")
+            }}</span>
+            <span class="status-name">制动</span>
+          </div>
+          <div class="status-item">
+            <span class="status-icon" :class="getStatusClass('tire')">{{
+              getStatusIcon("tire")
+            }}</span>
+            <span class="status-name">轮胎</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import * as echarts from 'echarts';
-import { ref } from 'vue';
-
-const visibleCharts = ref([]); // 当前显示的图表列表
-const expandedChart = ref(null); // 当前放大的图表
-const chartInstances = ref({}); // 存储图表实例
+import * as echarts from "echarts";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 
 // 地图中心点和标点
-const center = ref({ lng: 106.552, lat: 29.562 }); // 默认地图中心
-const marker = ref({ lng: 106.552, lat: 29.562 }); // 默认标点位置
+const center = ref({ lng: 106.552, lat: 29.562 });
+const markers = ref([
+  { lng: 106.552, lat: 29.562 },
+  { lng: 106.553, lat: 29.563 },
+  { lng: 106.554, lat: 29.564 },
+  // 添加更多车辆数据
+]);
+const showMarkerList = ref(false);
 
-// 输入框绑定的经纬度
-const lng = ref('');
-const lat = ref('');
+// 信息面板相关
+const infoPanelVisible = ref(false);
+const selectedPoint = ref({});
+const infoPanelStyle = ref({});
+const hoveredMarkerIndex = ref(null);
+const currentTime = ref("");
 
-// 设置标点并更新地图中心
-const setMarker = () => {
-    const longitude = parseFloat(lng.value);
-    const latitude = parseFloat(lat.value);
+// 右键菜单相关
+const contextMenuVisible = ref(false);
+const contextMenuPosition = ref({ x: 0, y: 0, lng: 0, lat: 0 });
+const contextMenuStyle = computed(() => ({
+  left: `${contextMenuPosition.value.x}px`,
+  top: `${contextMenuPosition.value.y}px`,
+}));
 
-    if (isNaN(longitude) || isNaN(latitude)) {
-        alert('请输入有效的经纬度！');
-        return;
-    }
+// 图表相关
+const visibleCharts = ref([]);
+const expandedChart = ref(null);
+const chartInstances = ref({});
 
-    marker.value = { lng: longitude, lat: latitude };
-    center.value = { lng: longitude, lat: latitude };
+// 车辆状态数据
+const statuses = ref({
+  steering: true,
+  acceleration: false,
+  brake: true,
+  tire: true,
+});
+
+const carImages = ref([
+  "../assets/img/car1.png",
+  "../assets/img/car2.png",
+  "../assets/img/car3.png",
+  "../assets/img/car4.png",
+  "../assets/img/car5.png",
+]);
+
+const selectedCarImage = ref("");
+
+const getRandomCarImage = () => {
+  const randomIndex = Math.floor(Math.random() * carImages.value.length);
+  selectedCarImage.value = new URL(
+    carImages.value[randomIndex],
+    import.meta.url
+  ).href;
 };
+
+// 自定义图标
+const customIcon = ref({
+  url: new URL("@/assets/img/car_icon.png", import.meta.url).href, // 使用 new URL 替代 require
+  size: { width: 72, height: 32 }, // 图标的大小
+  opts: {
+    imageOffset: { width: 0, height: 0 }, // 图标在图片中的位置
+    imageSize: { width: 48, height: 32 }, // 图标的大小
+  },
+});
+
+// 更新时间
+const updateTime = () => {
+  const now = new Date();
+  currentTime.value = now
+    .toLocaleString("zh-CN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    })
+    .replace(/\//g, "-");
+};
+
+// 计算车辆整体状态
+const vehicleStatus = computed(() => {
+  const allOk = Object.values(statuses.value).every((v) => v);
+  return {
+    class: allOk ? "status-ok" : "status-warning",
+    text: allOk ? "正常" : "警告",
+  };
+});
 
 // 地图加载完成的回调
 const handleMapReady = ({ BMap, map }) => {
-    console.log("地图已加载", map);
-    map.setMapStyleV2({ styleId: '65d44bc71123817a008a3285df684c69' });
-    map.enableScrollWheelZoom(true);   
+  console.log("地图已加载", map);
+  map.setMapStyleV2({ styleId: "65d44bc71123817a008a3285df684c69" });
+  map.enableScrollWheelZoom(true);
 };
 
-// 切换图表显示/隐藏
-const toggleChart = (chartType) => {
-    const index = visibleCharts.value.indexOf(chartType);
-    if (index === -1) {
-        visibleCharts.value.push(chartType); // 添加图表
-    } else {
-        visibleCharts.value.splice(index, 1); // 移除图表
-        if (expandedChart.value === chartType) {
-            expandedChart.value = null;
-        }
-    }
-    setTimeout(() => {
-        initCharts(); // 初始化所有可见图表
-    }, 0);
+// 左键点击处理
+const handleMapClick = (event) => {
+  // 点击地图空白处关闭信息面板
+  if (hoveredMarkerIndex.value === null) {
+    infoPanelVisible.value = false;
+  }
+  closeContextMenu();
 };
 
-// 初始化所有可见图表
-const initCharts = () => {
-    visibleCharts.value.forEach((chartType) => {
-        const chartDom = document.getElementById(chartType);
-        if (!chartDom) return;
+// 右键点击处理
+const handleMapRightClick = (event) => {
+  const point = event.point;
+  const index = markers.value.findIndex(
+    (marker) =>
+      Math.abs(marker.lng - point.lng) < 0.0001 &&
+      Math.abs(marker.lat - point.lat) < 0.0001
+  );
 
-        // 如果已有实例则先销毁
-        if (chartInstances.value[chartType]) {
-            chartInstances.value[chartType].dispose();
-        }
+  hoveredMarkerIndex.value = index !== -1 ? index : null;
+  contextMenuPosition.value = {
+    x: event.domEvent.clientX - 250,
+    y: event.domEvent.clientY - 170,
+    lng: point.lng,
+    lat: point.lat,
+  };
+  contextMenuVisible.value = true;
 
-        const myChart = echarts.init(chartDom);
-        chartInstances.value[chartType] = myChart;
-
-        // 根据图表类型加载不同的数据和配置
-        let option;
-        if (chartType === 'chart1') {
-            option = {
-                title: { text: '图表1 - 条形图' },
-                tooltip: {},
-                xAxis: { data: ['A', 'B', 'C', 'D', 'E'] },
-                yAxis: {},
-                series: [{ type: 'bar', data: [5, 20, 36, 10, 10] }],
-            };
-        } else if (chartType === 'chart2') {
-            option = {
-                title: { text: '图表2 - 折线图' },
-                tooltip: {},
-                xAxis: { data: ['A', 'B', 'C', 'D', 'E'] },
-                yAxis: {},
-                series: [{ type: 'line', data: [15, 25, 16, 20, 30] }],
-            };
-        } else if (chartType === 'chart3') {
-            option = {
-                title: { text: '图表3 - 饼图' },
-                tooltip: {},
-                series: [{
-                    type: 'pie',
-                    radius: '50%',
-                    data: [
-                        { value: 10, name: 'A' },
-                        { value: 20, name: 'B' },
-                        { value: 30, name: 'C' },
-                        { value: 40, name: 'D' },
-                        { value: 50, name: 'E' },
-                    ],
-                }],
-            };
-        }
-
-        myChart.setOption(option);
-    });
+  // 阻止默认右键菜单
+  event.domEvent.preventDefault();
 };
 
-// 放大图表
-const expandChart = (chartType) => {
-    expandedChart.value = chartType;
-    if (chartInstances.value[chartType]) {
-        setTimeout(() => {
-            chartInstances.value[chartType].resize();
-        }, 10);
-    }
+// 关闭右键菜单
+const closeContextMenu = () => {
+  contextMenuVisible.value = false;
 };
 
-// 缩小图表
-const shrinkChart = (chartType) => {
-    if (expandedChart.value === chartType) {
-        expandedChart.value = null;
-        if (chartInstances.value[chartType]) {
-            setTimeout(() => {
-                chartInstances.value[chartType].resize();
-            }, 10);
-        }
-    }
+// 在右键菜单位置添加标记
+const addMarkerAtContextMenu = () => {
+  const point = {
+    lng: contextMenuPosition.value.lng,
+    lat: contextMenuPosition.value.lat,
+  };
+  markers.value.push(point);
+  closeContextMenu();
+};
+
+// 删除右键菜单选中的标记
+const removeMarkerAtContextMenu = () => {
+  if (hoveredMarkerIndex.value !== null) {
+    markers.value.splice(hoveredMarkerIndex.value, 1);
+    infoPanelVisible.value = false;
+  }
+  closeContextMenu();
+};
+
+// 显示车辆信息
+const showVehicleInfo = (point, index) => {
+  selectedPoint.value = point;
+  hoveredMarkerIndex.value = index;
+  infoPanelVisible.value = true;
+  infoPanelStyle.value = {
+    left: "20px",
+    top: "80px",
+  };
+
+  // 随机生成车辆状态（演示用）
+  statuses.value = {
+    steering: Math.random() > 0.3,
+    acceleration: Math.random() > 0.3,
+    brake: Math.random() > 0.3,
+    tire: Math.random() > 0.3,
+  };
+
+  // 更新当前时间
+  updateTime();
+  showMarkerList.value = false;
+
+  // 更新车辆图片
+  getRandomCarImage();
+};
+// 关闭信息面板
+const closeInfoPanel = () => {
+  infoPanelVisible.value = false;
+  hoveredMarkerIndex.value = null;
+};
+
+// 状态样式和图标
+const getStatusClass = (type) => {
+  return statuses.value[type] ? "status-ok" : "status-error";
+};
+
+const getStatusIcon = (type) => {
+  return statuses.value[type] ? "✓" : "✗";
+};
+
+
+
+// 定时更新时间
+let timeInterval;
+onMounted(() => {
+  updateTime();
+  timeInterval = setInterval(updateTime, 1000);
+
+});
+
+onUnmounted(() => {
+  clearInterval(timeInterval);
+});
+
+// 拖动相关
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+
+const startDrag = (event) => {
+  isDragging = true;
+  dragStartX = event.clientX - parseInt(infoPanelStyle.value.left || 0, 10);
+  dragStartY = event.clientY - parseInt(infoPanelStyle.value.top || 0, 10);
+
+  document.addEventListener("mousemove", handleDrag);
+  document.addEventListener("mouseup", stopDrag);
+};
+
+const handleDrag = (event) => {
+  if (isDragging) {
+    infoPanelStyle.value.left = `${event.clientX - dragStartX}px`;
+    infoPanelStyle.value.top = `${event.clientY - dragStartY}px`;
+  }
+};
+
+const stopDrag = () => {
+  isDragging = false;
+  document.removeEventListener("mousemove", handleDrag);
+  document.removeEventListener("mouseup", stopDrag);
+};
+
+// 分页相关
+const currentPage = ref(1);
+const pageSize = ref(15);
+const paginatedMarkers = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return markers.value.slice(start, end).map((marker, index) => ({
+    ...marker,
+    index: start + index,
+  }));
+});
+
+const handlePageChange = (page) => {
+  currentPage.value = page;
+};
+
+const handleRowClick = (row) => {
+  center.value = { lng: row.lng, lat: row.lat };
 };
 </script>
 
 <style scoped>
-html, body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-}
-
+/* 基础样式 */
+html,
+body,
+.container,
+.map-container,
 .map {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  font-family: "Arial", sans-serif;
 }
 
 .container {
-    display: flex;
-    height: 100%;
-    width: 100%;
+  display: flex;
+  height: 85vh;
+  background-color: #f5f5f5;
 }
 
 .map-container {
-    flex: 1;
-    position: relative;
+  flex: 3;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.map {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 
-.input-panel {
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(255, 255, 255, 0.9);
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    z-index: 10;
-    display: flex;
-    gap: 10px;
+.list-container {
+  flex: 1;
+  background-color: #ffffff;
+  border-left: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  overflow-y: auto;
 }
 
-.input-panel input {
-    padding: 5px;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    width: 120px;
+.list-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #424242;
+  margin-bottom: 16px;
 }
 
-.input-panel button {
-    padding: 5px 10px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
+.el-table {
+  flex: 1;
+  margin-bottom: 16px;
 }
 
-.input-panel button:hover {
-    background-color: #0056b3;
+.el-pagination {
+  margin-top: 16px;
+  text-align: center;
 }
 
+/* 查询面板 */
+.query-panel {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
+.query-panel button {
+  padding: 8px 16px;
+  background-color: #81c784;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.query-panel button:hover {
+  background-color: #66bb6a;
+}
+
+.marker-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 200px;
+  background-color: white;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 11;
+  padding: 10px;
+  margin-top: 0;
+  border: 1px solid #e0e0e0;
+}
+
+.marker-list h3 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #666;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #eee;
+}
+
+.marker-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.marker-list li {
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #424242;
+  border-bottom: 1px solid #f5f5f5;
+  transition: all 0.2s;
+}
+
+.marker-list li:hover {
+  background-color: #f5f5f5;
+  color: #2e7d32;
+}
+
+.marker-list li:last-child {
+  border-bottom: none;
+}
+
+/* 信息面板 */
+.info-panel {
+  position: absolute;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  width: 300px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+  cursor: grab;
+}
+
+.info-panel:active {
+  cursor: grabbing;
+}
+
+.info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #f5f5f5;
+  color: #424242;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.info-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.current-time {
+  font-size: 12px;
+  color: #757575;
+  margin-left: 10px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #757575;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  color: #424242;
+  transform: scale(1.1);
+}
+
+.info-content {
+  padding: 16px;
+}
+
+.vehicle-image {
+  width: 100%;
+  height: 140px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  border-radius: 4px;
+  background-color: #fafafa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e0e0e0;
+}
+
+.vehicle-image img {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+}
+
+.info-row {
+  display: flex;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.info-label {
+  font-weight: 500;
+  color: #757575;
+  width: 60px;
+  font-size: 14px;
+}
+
+.info-value {
+  flex: 1;
+  color: #424242;
+  font-size: 14px;
+  word-break: break-all;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-ok {
+  background-color: rgba(129, 199, 132, 0.2);
+  color: #2e7d32;
+  border: 1px solid #81c784;
+}
+
+.status-warning {
+  background-color: rgba(255, 183, 77, 0.2);
+  color: #ff8f00;
+  border: 1px solid #ffb74d;
+}
+
+.info-divider {
+  height: 1px;
+  background-color: #e0e0e0;
+  margin: 16px 0;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+  border-radius: 6px;
+  background-color: #fafafa;
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s;
+}
+
+.status-item:hover {
+  background-color: #f5f5f5;
+  transform: translateY(-2px);
+}
+
+.status-icon {
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.status-name {
+  font-size: 12px;
+  color: #757575;
+}
+
+.status-ok {
+  color: #2e7d32;
+}
+
+.status-error {
+  color: #d32f2f;
+}
+
+/* 右键菜单 */
+.context-menu {
+  position: absolute;
+  background-color: white;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1001;
+  width: 160px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+}
+
+.menu-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: #424242;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.menu-item:hover {
+  background-color: #f5f5f5;
+}
+
+.menu-icon {
+  margin-right: 10px;
+  font-size: 16px;
+}
+
+.delete-item {
+  color: #d32f2f;
+}
+
+/* 按钮面板 */
 .button-panel {
-    position: absolute;
-    top: 60px;
-    left: 10px;
-    background-color: rgba(255, 255, 255, 0.9);
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    z-index: 10;
-    display: flex;
-    flex-direction: column;
+  position: absolute;
+  top: 70px;
+  left: 10px;
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 10px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid #e0e0e0;
 }
 
 .button-panel button {
-    margin: 5px 0;
-    padding: 10px;
-    width: 100px;
-    cursor: pointer;
+  padding: 8px 12px;
+  background-color: #e0e0e0;
+  color: #424242;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  min-width: 80px;
 }
 
+.button-panel button:hover {
+  background-color: #bdbdbd;
+}
+
+/* 图表面板 */
 .chart-panel {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 300px;
-    background-color: rgba(255, 255, 255, 0.9);
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    z-index: 10;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 320px;
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid #e0e0e0;
 }
 
 .chart-item {
-    width: 100%;
-    height: 200px;
-    background-color: #f5f5f5;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-    transform-origin: top right; /* 设置变换原点为右上角 */
+  width: 100%;
+  height: 200px;
+  background-color: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  transform-origin: top right;
+  border: 1px solid #e0e0e0;
 }
 
-/* 放大时的样式 */
 .chart-item.chart-expanded {
-    transform: scale(1.5); /* 放大1.5倍 */
-    z-index: 100;
-    box-shadow: 0 0 20px rgba(0,0,0,0.3);
-    margin-right: 50px; /* 防止放大后超出容器 */
-    margin-bottom: 50px; /* 防止放大后超出容器 */
+  transform: scale(1.5);
+  z-index: 100;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  margin-right: 50px;
+  margin-bottom: 50px;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .query-panel {
+    width: 90%;
+    left: 5%;
+    transform: none;
+  }
+
+  .info-panel {
+    width: 90%;
+    left: 5% !important;
+    top: 100px !important;
+  }
+
+  .chart-panel {
+    width: 90%;
+    left: 5%;
+    right: auto;
+  }
 }
 </style>

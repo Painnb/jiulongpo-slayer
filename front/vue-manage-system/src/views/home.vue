@@ -41,7 +41,7 @@ const tabs = useTabsStore();
     padding-bottom: 30px;
     -webkit-transition: left 0.3s ease-in-out;
     transition: left 0.3s ease-in-out;
-    background: #eef0fc;
+    background: #4575BD;
     overflow: hidden;
 }
 
