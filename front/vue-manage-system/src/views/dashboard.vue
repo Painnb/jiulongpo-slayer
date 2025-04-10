@@ -1,6 +1,6 @@
 <template>
     <div class="dashboard">
-        <el-row :gutter="20" class="mgb20">
+        <el-row :gutter="20" class="mgb20" >
             <el-col :span="6">
                 <el-card shadow="hover" body-class="card-body">
                     <el-icon class="card-icon bg1">
@@ -46,9 +46,9 @@
             </el-col>
         </el-row>
 
-        <el-row :gutter="20" class="mgb20">
-            <el-col :span="18">
-                <el-card shadow="hover" :body-style="{backgroundColor:'#eef5ff'}">
+        <el-row :gutter="20" class="mgb20" >
+            <el-col :span="12">
+                <el-card shadow="hover" :body-style="{height: '420px',backgroundColor:'#eef5ff'}">
                     <div class="card-header">
                         <p class="card-header-title">动态数据</p>
                         <p class="card-header-desc">实时监测的车辆数据</p>
@@ -56,79 +56,80 @@
                     <v-chart class="chart" :option="dashOpt1" />
                 </el-card>
             </el-col>
-            <el-col :span="6">
-                <el-card shadow="hover" :body-style="{backgroundColor:'#c0dbf8'}">
-                    <div class="card-header">
-                        <div class="card-header-left">
-                            <p class="card-header-title">车辆状态</p>
-                            <p class="card-header-desc">实时监测的车辆状态</p>
-                        </div>
-                        <!-- 添加按钮 -->
-                        <el-button size="mini" type="primary" @click="showList = true">选择车辆</el-button>
-                    </div>
-                    <!-- 图表区域 -->
-                    <div v-if="!showList">
-                        <v-chart class="chart" :option="dashOpt2" />
-                    </div>
-                    <!-- 列表区域 -->
-                    <div v-else class="list-container">
-                        <el-checkbox-group v-model="selectedOptions" class="scrollable-list">
-                            <el-checkbox
-                                v-for="(option, index) in options"
-                                :key="index"
-                                :label="option"
-                                class="checkbox-item"
-                            >
-                                {{ option }}
-                            </el-checkbox>
-                        </el-checkbox-group>
-                        <div class="list-buttons">
-                            <el-button size="mini" type="primary" @click="showList = false">返回</el-button>
-                            <el-button size="mini" type="success" @click="printSelections">打印</el-button>
-                        </div>
-                    </div>
-                </el-card>
+            <el-col :span="12">
+                <el-row :gutter="20">
+                    <el-col :span="12">
+                        <el-card shadow="hover" :body-style="{ height: '420px',backgroundColor:'#c0dbf8'}">
+                            <div class="card-header">
+                                <div class="card-header-left">
+                                    <p class="card-header-title">车辆状态</p>
+                                    <p class="card-header-desc">实时监测的车辆状态</p>
+                                </div>
+                                <!-- 添加按钮 -->
+                                <el-button size="mini" type="primary" @click="showList = true">选择车辆</el-button>
+                            </div>
+                            <!-- 图表区域 -->
+                            <div v-if="!showList">
+                                <v-chart class="chart" :option="dashOpt2" />
+                            </div>
+                            <!-- 列表区域 -->
+                            <div v-else class="list-container">
+                                <el-checkbox-group v-model="selectedOptions" class="scrollable-list">
+                                    <el-checkbox
+                                        v-for="(option, index) in options"
+                                        :key="index"
+                                        :label="option"
+                                        class="checkbox-item"
+                                    >
+                                        {{ option }}
+                                    </el-checkbox>
+                                </el-checkbox-group>
+                                <div class="list-buttons">
+                                    <el-button size="mini" type="primary" @click="showList = false">返回</el-button>
+                                    <el-button size="mini" type="success" @click="printSelections">打印</el-button>
+                                </div>
+                            </div>
+                        </el-card>
+                    </el-col>
+                    <el-col :span="12">
+                        <el-card shadow="hover" :body-style="{ height: '420px', backgroundColor: '#76A9F7' }">
+                            <div class="card-header">
+                                <p class="card-header-title">时间线</p>
+                            </div>
+                            <div class="notification-input">
+                                <el-input 
+                                    v-model="newNotification" 
+                                    placeholder="输入通知内容" 
+                                    size="small" 
+                                    class="notification-textbox" 
+                                />
+                                <el-button 
+                                    type="primary" 
+                                    size="small" 
+                                    @click="addNotification" 
+                                    class="notification-button">
+                                    发布通知
+                                </el-button>
+                            </div>
+                            <el-timeline>
+                                <el-timeline-item v-for="(activity, index) in activities" :key="index" :color="activity.color">
+                                    <div class="timeline-item">
+                                        <div>
+                                            <p>{{ activity.content }}</p>
+                                            <p class="timeline-desc">{{ activity.description }}</p>
+                                        </div>
+                                        <div class="timeline-time">{{ activity.timestamp }}</div>
+                                    </div>
+                                </el-timeline-item>
+                            </el-timeline>
+                        </el-card>
+                    </el-col>
+                </el-row>
             </el-col>
         </el-row>
-        <el-row :gutter="20">
-            <el-col :span="7">
-                <el-card shadow="hover" :body-style="{ height: '400px',backgroundColor: '#76A9F7'
-                 }">
-                    <div class="card-header">
-                        <p class="card-header-title">时间线</p>
-                        <p class="card-header-desc"></p>
-                    </div>
-                    <div class="notification-input">
-                        <el-input 
-                            v-model="newNotification" 
-                            placeholder="输入通知内容" 
-                            size="small" 
-                            class="notification-textbox" 
-                        />
-                        <el-button 
-                            type="primary" 
-                            size="small" 
-                            @click="addNotification" 
-                            class="notification-button">
-                            发布通知
-                        </el-button>
-                    </div>
-                    <el-timeline>
-                            <el-timeline-item v-for="(activity, index) in activities" :key="index" :color="activity.color">
-                                <div class="timeline-item">
-                                    <div>
-                                    <p>{{ activity.content }}</p>
-                                    <p class="timeline-desc">{{ activity.description }}</p>
-                                </div>
-                                <div class="timeline-time">{{ activity.timestamp }}</div>
-                            </div>
-                        </el-timeline-item>
-                    </el-timeline>
-                </el-card>
-            </el-col>
-            <el-col :span="10">
-                <el-card shadow="hover" :body-style="{ height: '400px' ,backgroundColor: '#B1CFFF'
-                }">
+        <el-row :gutter="20" >
+            <el-col :span="12">
+                <el-card shadow="hover" :body-style="{ height: '390px', backgroundColor: '#B1CFFF' }">
                     <div class="card-header">
                         <p class="card-header-title">异常分布</p>
                         <p class="card-header-desc">最近一个月全国各地的异常分布</p>
@@ -136,11 +137,10 @@
                     <v-chart class="map-chart" :option="mapOptions" />
                 </el-card>
             </el-col>
-            <el-col :span="7">
-                <el-card shadow="hover" :body-style="{ height: '400px' ,backgroundColor:'#BFD5F8'}">
+            <el-col :span="12">
+                <el-card shadow="hover" :body-style="{ height: '390px', backgroundColor: '#BFD5F8' }">
                     <div class="card-header">
                         <p class="card-header-title">异常统计</p>
-                        <p class="card-header-desc"></p>
                     </div>
                     <div>
                         <div class="rank-item" v-for="(rank, index) in ranks">
@@ -224,7 +224,7 @@ const activities = ref([
         description: 'xxx异常已被处理',
         timestamp: '55分钟前',
         color: '#1ABC9C',
-    },
+    },  
     {
         content: '异常捕捉',
         description: '捕捉到xxx异常，请处理',
@@ -307,14 +307,14 @@ const printSelections = () => {
     background-color:#4575BD    ;
 }
 
+
 .card-body {
     display: flex;
     align-items: center;
     height: 100px;
     padding: 0;
 }
-</style>
-<style scoped>
+
 .card-content {
     flex: 1;
     text-align: center;
@@ -337,19 +337,19 @@ const printSelections = () => {
 }
 
 .bg1 {
-    background: #2d8cf0;
+    background: #2A6E40;
 }
 
 .bg2 {
-    background: #64d572;
+    background: #003C76;
 }
 
 .bg3 {
-    background: #f25e43;
+    background: #CB5D20;
 }
 
 .bg4 {
-    background: #e9a745;
+    background: #AD1E24;
 }
 
 .color1 {
@@ -443,10 +443,12 @@ const printSelections = () => {
     font-size: 14px;
     color: #999;
 }
+
 .map-chart {
     width: 100%;
     height: 350px;
 }
+
 
 .list-container {
     display: flex;
@@ -455,6 +457,7 @@ const printSelections = () => {
     justify-content: space-between;
     height: 350px; /* 与图表高度一致 */
     padding: 10px;
+
 }
 
 .scrollable-list {
