@@ -20,12 +20,22 @@ public class ExcelController {
     @Autowired
     private ExcelService excelService;
 
+    /**
+     * 导出指定表格的Excel文件
+     * @param tableName 需要导出的表格名称
+     * @return 包含Excel文件的HTTP响应
+     */
     @GetMapping("/business/tables/{tableName}/export")
     @PreAuthorizeRole(roles = {"BIZ_ADMIN"})
     public ResponseEntity<Resource> exportExcel(@PathVariable String tableName) {
         return excelService.exportExcel(tableName);
     }
 
+    /**
+     * 导出指定车辆和时间范围内的组合数据Excel文件
+     * @param request 包含车辆ID、时间范围、选定表和列的请求对象
+     * @return 包含组合数据Excel文件的HTTP响应
+     */
     @PostMapping("/business/tables/combined-export")
     @PreAuthorizeRole(roles = {"BIZ_ADMIN"})
     public ResponseEntity<Resource> exportCombinedExcel(

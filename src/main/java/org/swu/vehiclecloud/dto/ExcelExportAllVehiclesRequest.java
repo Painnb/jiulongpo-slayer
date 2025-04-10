@@ -14,13 +14,26 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class ExcelExportAllVehiclesRequest {
+    /**
+     * 开始时间
+     */
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime startTime;
     
+    /**
+     * 结束时间
+     */
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime endTime;
     
-    private List<String> selectedTables; // 选定的异常表
+    /**
+     * 选定的异常表列表
+     */
+    private List<String> selectedTables;
     
-    private Map<String, List<String>> selectedColumns; // 每个表选定的列
+    /**
+     * 每个表选定的列映射
+     * key为表名，value为该表选定的列名列表
+     */
+    private Map<String, List<String>> selectedColumns;
 }

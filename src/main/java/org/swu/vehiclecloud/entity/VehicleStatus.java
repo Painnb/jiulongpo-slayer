@@ -9,6 +9,10 @@ import lombok.Setter;
 import lombok.ToString;
 import java.util.Date;
 
+/**
+ * 车辆状态实体类
+ * 对应数据库中的vehicle_status表
+ */
 @Getter
 @Setter
 @ToString
@@ -16,30 +20,69 @@ import java.util.Date;
 @TableName("vehicle_status")
 public class VehicleStatus {
 
+        /**
+     * 主键ID
+     */
     @TableId
-    private Long id; // 主键ID
+    private Long id;
     
-    private Date timestamp; // 时间戳
+        /**
+     * 时间戳
+     */
+    private Date timestamp;
     
-    private Integer longitude; // 经度，单位：百万分之一度
+        /**
+     * 经度，单位：百万分之一度
+     */
+    private Integer longitude;
     
-    private Integer latitude; // 纬度，单位：百万分之一度
+        /**
+     * 纬度，单位：百万分之一度
+     */
+    private Integer latitude;
     
-    private String vehicleModel; // 车辆型号
+        /**
+     * 车辆型号
+     */
+    private String vehicleModel;
     
-    private Integer speed; // 车速，单位：0.01km/h
+        /**
+     * 车速，单位：0.01km/h
+     */
+    private Integer speed;
     
-    private Integer lateralAcceleration; // 横向加速度，单位：0.01m/s²
+        /**
+     * 横向加速度，单位：0.01m/s²
+     */
+    private Integer lateralAcceleration;
     
-    private Integer longitudinalAcceleration; // 纵向加速度，单位：0.01m/s²
+        /**
+     * 纵向加速度，单位：0.01m/s²
+     */
+    private Integer longitudinalAcceleration;
     
-    private Integer verticalAcceleration; // 垂向加速度，单位：0.01m/s²
+        /**
+     * 垂向加速度，单位：0.01m/s²
+     */
+    private Integer verticalAcceleration;
     
-    private Integer steeringAngle; // 方向盘转角，单位：0.01度
+        /**
+     * 方向盘转角，单位：0.01度
+     */
+    private Integer steeringAngle;
     
-    private Integer recommendedSpeed; // 建议车速，单位：0.01km/h
+        /**
+     * 建议车速，单位：0.01km/h
+     */
+    private Integer recommendedSpeed;
     
-    private Integer tirePressure; // 胎压，单位：0.1kPa
+        /**
+     * 胎压，单位：0.1kPa
+     */
+    private Integer tirePressure;
     
-    private Integer batteryLevel; // 电量，单位：0.1%
+        /**
+     * 电量，单位：0.1%
+     */
+    private Integer batteryLevel;
 }
