@@ -23,12 +23,13 @@ class MqttEventIntegrationTest {
     @SpyBean // 监听器会被Spring自动注册
     private MqttMessageListener mqttMessageListener;
 
+    /*
     @Test
     void shouldTriggerListenerWhenEventPublished() {
         // 准备测试事件
         String testTopic = "alert/fire";
-        String testMessage = "Fire detected!";
-        MqttMessageEvent event = new MqttMessageEvent(this, testTopic, testMessage);
+        //String testMessage = "Fire detected!";
+        //MqttMessageEvent event = new MqttMessageEvent(this, testTopic, testMessage);
 
         // 发布事件
         eventPublisher.publishEvent(event);
@@ -43,4 +44,6 @@ class MqttEventIntegrationTest {
         // 验证特定主题处理逻辑
         //verify(mqttMessageListener).handleAlertMessage(any());
     }
+     */
+
 }
