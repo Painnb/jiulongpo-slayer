@@ -1,23 +1,23 @@
 package org.swu.vehiclecloud.listener;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Component;
-import org.swu.vehiclecloud.entity.ActivityAlert;
-import org.swu.vehiclecloud.event.MqttMessageEvent;
-import org.swu.vehiclecloud.mapper.ActivityAlertMapper;
-import org.swu.vehiclecloud.service.DataService;
-
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+import org.swu.vehiclecloud.event.MqttMessageEvent;
+import org.swu.vehiclecloud.mapper.ActivityAlertMapper;
+import org.swu.vehiclecloud.service.DataService;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
 public class MqttMessageListener {
@@ -66,7 +66,7 @@ public class MqttMessageListener {
                 event.getTopic(), event.getMessage());
 
         try {
-            JsonNode jsonNode = objectMapper.readTree(event.getMessage());
+            JsonNode jsonNode = objectMapper.readTree(objectMapper.writeValueAsString(event.getMessage()));
             String vehicleId = jsonNode.get("vehicleId").asText();
             double velocityGNSS = jsonNode.get("velocityGNSS").asDouble();
             double velocityCAN = jsonNode.get("velocityCAN").asDouble();
@@ -118,3 +118,4 @@ public class MqttMessageListener {
 
     }
 }
+
