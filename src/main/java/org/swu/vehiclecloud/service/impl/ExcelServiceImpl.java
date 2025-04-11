@@ -19,7 +19,6 @@ import org.swu.vehiclecloud.util.SQLInjectionProtector;
 import java.io.ByteArrayOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
