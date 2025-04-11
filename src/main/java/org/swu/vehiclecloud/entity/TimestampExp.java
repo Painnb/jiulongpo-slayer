@@ -8,7 +8,6 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.sql.Timestamp;
-import java.util.Date;
 
 @Getter
 @Setter
@@ -23,19 +22,18 @@ public class TimestampExp {
 
     private Timestamp timestampGNSS; // GNSS时间戳
 
-    private Timestamp timestamp3; // 文档没写这是什么
+//    private Timestamp timestamp3; // 文档没写这是什么
 
-    private Timestamp timestamp4; // 文档没写这是什么
+//    private Timestamp timestamp4; // 文档没写这是什么
 
     private Timestamp timestamp; // 时间戳
 
     public TimestampExp(String vehicleId, Timestamp timestampGNSS,
-                        Timestamp timestamp3, Timestamp timestamp4,
                         Timestamp timestamp) {
         this.vehicleId = vehicleId;
         this.timestampGNSS = timestampGNSS;
-        this.timestamp3 = timestamp3;
-        this.timestamp4 = timestamp4;
+//        this.timestamp3 = timestamp3;
+//        this.timestamp4 = timestamp4;
         this.timestamp = timestamp;
     }
 }

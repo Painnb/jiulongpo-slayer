@@ -8,13 +8,13 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.sql.Timestamp;
-import java.util.Date;
 
 @Getter
 @Setter
 @ToString
 @NoArgsConstructor
 @TableName("speed_exp")
+@Deprecated
 public class SpeedExp {
     @TableId
     private Integer id; // 自增id

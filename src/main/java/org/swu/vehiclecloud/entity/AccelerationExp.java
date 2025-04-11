@@ -15,6 +15,7 @@ import java.util.Date;
 @ToString
 @NoArgsConstructor
 @TableName("acceleration_exp")
+@Deprecated
 public class AccelerationExp {
     @TableId
     private Integer id; // 自增id
