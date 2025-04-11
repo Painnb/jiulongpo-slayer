@@ -3,6 +3,10 @@ package org.swu.vehiclecloud.service;
 import org.springframework.http.codec.ServerSentEvent;
 import reactor.core.publisher.Flux;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+
 /**
  * 使用WebFlux处理服务器发送事件(SSE)数据流的服务接口。
  */
@@ -28,4 +32,35 @@ public interface DataService {
      * @param content 要推送的新内容。
      */
     void setPushContent(String id, String content);
+
+    /**
+     * 获取所有异常类型的统计信息
+     * @return 包含异常类型和数量的列表
+     */
+    List<Map<String, Object>> getExceptionStatistics();
+    /**
+     * 获取指定时间范围内的异常数据
+     * @param tableName 异常表名
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return 异常数据列表
+     */
+    List<Map<String, Object>> getExceptionDataWithTimeRange(
+            String tableName,
+            LocalDateTime startTime,
+            LocalDateTime endTime);
+    /**
+     * 获取指定车辆和时间范围内的异常数据
+     * @param tableName 异常表名
+     * @param vehicleId 车辆ID
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return 异常数据列表
+     */
+    List<Map<String, Object>> getExceptionDataWithFilter(
+            String tableName,
+            String vehicleId,
+            LocalDateTime startTime,
+            LocalDateTime endTime);
+
 }

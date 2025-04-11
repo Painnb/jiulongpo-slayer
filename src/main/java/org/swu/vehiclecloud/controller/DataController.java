@@ -1,12 +1,18 @@
 package org.swu.vehiclecloud.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType; // Import MediaType
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent; // Import ServerSentEvent
 import org.springframework.web.bind.annotation.*;
 import org.swu.vehiclecloud.service.DataService;
 import org.swu.vehiclecloud.annotations.PreAuthorizeRole;
 import reactor.core.publisher.Flux; // Import Flux
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 数据控制器 (WebFlux版本)，提供SSE数据流相关的REST接口。
@@ -25,12 +31,13 @@ public class DataController {
      * 生成text/event-stream类型的响应，使用Server-Sent Events协议。
      *
      * @param id SSE连接的唯一标识符，用于区分不同的数据流通道
-     * @return Flux<ServerSentEvent<String>> 返回一个发射SSE事件的响应式流
+     * @return Flux<ServerSentEvent < String>> 返回一个发射SSE事件的响应式流
      * 客户端通过连接此接口并监听事件流，实时接收推送的内容
      * 可通过/set-push-content端点动态更新推送内容
      * 需要BIZ_ADMIN、USER或ADMIN角色权限
      */
-    @GetMapping(value = "/public/ssestream/{ID}", produces = MediaType.TEXT_EVENT_STREAM_VALUE) // Specify stream production
+    @GetMapping(value = "/public/ssestream/{ID}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    // Specify stream production
     @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"}) // Keep your custom annotation
     public Flux<ServerSentEvent<String>> streamData(@PathVariable("ID") String id) {
         // Delegate directly to the service
@@ -43,8 +50,8 @@ public class DataController {
      *
      * @param id      SSE连接的唯一标识符，必须与streamData方法中的ID一致
      * @param content 要推送的内容(请求体中的纯文本)，不能为null
-     * 推送内容将立即发送给所有订阅此ID的客户端，无需等待响应
-     * 需要BIZ_ADMIN、USER或ADMIN角色权限
+     *                推送内容将立即发送给所有订阅此ID的客户端，无需等待响应
+     *                需要BIZ_ADMIN、USER或ADMIN角色权限
      */
     @PostMapping("/public/setpushcontent/{ID}")
     @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"}) // Keep your custom annotation
@@ -56,4 +63,31 @@ public class DataController {
         // For clarity or chaining, you could return Mono.empty():
         // return Mono.fromRunnable(() -> dataService.setPushContent(id, content));
     }
+
+
+    @GetMapping("public/exceptionpie")
+    public ResponseEntity<List<Map<String, Object>>> getExceptionStatistics() {
+        List<Map<String, Object>> statistics = dataService.getExceptionStatistics();
+        return ResponseEntity.ok(statistics);
+    }
+
+    @GetMapping("public/exception-data")
+    public ResponseEntity<List<Map<String, Object>>> getExceptionData(
+            @RequestParam String tableName,
+            @RequestParam(required = false) String vehicleId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
+
+        List<Map<String, Object>> data;
+        if (vehicleId != null) {
+            data = dataService.getExceptionDataWithFilter(tableName, vehicleId, startTime, endTime);
+        } else {
+            data = dataService.getExceptionDataWithTimeRange(tableName, startTime, endTime);
+        }
+
+        return ResponseEntity.ok(data);
+    }
+
+
 }
+
