@@ -61,16 +61,31 @@ public class MqttMessageListener {
 
     @EventListener
     public void handleMqttMessage(MqttMessageEvent event) {
-                // String json = event.getMessage();
-        logger.info("Event received - Topic: {}, Message: {}",
-                event.getTopic(), event.getMessage());
-
         try {
-            JsonNode jsonNode = objectMapper.readTree(objectMapper.writeValueAsString(event.getMessage()));
-            String vehicleId = jsonNode.get("vehicleId").asText();
-            double velocityGNSS = jsonNode.get("velocityGNSS").asDouble();
-            double velocityCAN = jsonNode.get("velocityCAN").asDouble();
-            long timestamp = jsonNode.get("timestamp").asLong();
+            Map<String, Object> payload = event.getMessage();
+            if (payload == null) {
+                logger.error("Received null payload");
+                return;
+            }
+
+            String vehicleId = String.valueOf(payload.get("vehicleId"));
+            Object velocityGNSSObj = payload.get("velocityGNSS");
+            Object velocityCANObj = payload.get("velocityCAN");
+            Object timestampObj = payload.get("timestamp");
+
+            double velocityGNSS = 0.0;
+            double velocityCAN = 0.0;
+            long timestamp = System.currentTimeMillis();
+
+            if (velocityGNSSObj instanceof Number) {
+                velocityGNSS = ((Number) velocityGNSSObj).doubleValue();
+            }
+            if (velocityCANObj instanceof Number) {
+                velocityCAN = ((Number) velocityCANObj).doubleValue();
+            }
+            if (timestampObj instanceof Number) {
+                timestamp = ((Number) timestampObj).longValue();
+            }
 
             // 更新最后更新时间
             lastUpdateTime.put(vehicleId, timestamp);
@@ -85,7 +100,7 @@ public class MqttMessageListener {
             pushStatistics();
 
         } catch (Exception e) {
-            logger.error("Error processing MQTT message", e);
+            logger.error("Error processing MQTT message: {}", e.getMessage(), e);
         }
     }
 
@@ -115,7 +130,9 @@ public class MqttMessageListener {
                 onlineCount, activeCount, new Date());
         dataService.setPushContent("activity_alerts", statsMessage);
 
+        // String json = event.getMessage();
+//         logger.info("Event received - Topic: {}, Message: {}",
+//                 event.getTopic(), event.getMessage());
 
     }
 }
-
