@@ -471,11 +471,11 @@ export default {
 <style scoped>
 .export-button {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 52px;
+  right: 22px;
   z-index: 1000;
   padding: 10px 20px;
-  background-color: #00eaff;
+  background-color: #30399f;
   color: #fff;
   border: none;
   border-radius: 5px;

@@ -137,16 +137,8 @@ const handlePageChange = (page) => {
   height: 80vh;
   padding: 20px;
   background-color: #f5f5f5;
-  background-image: url('@/assets/img/his_bg.jpg');
+  background-image: url('@/assets/img/his_bg.png');
   background-size: cover
-}
-
-.el-table {
-  background-color: rgba(255, 255, 255, 0.5); /* 设置表格背景为半透明白色 */
-  background-image: url('@/assets/img/his_bg1.jpg'); /* 设置表格背景图片 */
-  background-size: cover; /* 让图片覆盖整个表格 */
-  background-repeat: no-repeat; /* 防止图片重复 */
-  background-position: center; /* 居中显示图片 */
 }
 
 .filter-container {
