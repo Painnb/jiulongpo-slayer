@@ -70,35 +70,48 @@ public class ProcessExp {
                 // 提取车辆数据
                 JsonNode messageNode = objectMapper.readTree(event.getMessage());
 
-                JsonNode headerNode = messageNode.get("header");
-                JsonNode bodyNode = messageNode.get("body");
+                JsonNode bodyNode = messageNode.path("body");
+                JsonNode positionNode = bodyNode.path("position");
 
-                long timestamp = headerNode.get("timestamp").asLong();
+                String vehicleId = bodyNode.path("vehicleId").asText();
 
-                String vehicleId = bodyNode.get("vehicleId").asText();
-                double accelerationLon = bodyNode.get("accelerationLon").asDouble();
-                double accelerationLat = bodyNode.get("accelerationLat").asDouble();
-                double accelerationVer = bodyNode.get("accelerationVer").asDouble();
+                double steeringAngle = bodyNode.path("steeringAngle").asDouble();
 
-                double velocityGNSS = bodyNode.get("velocityGNSS").asDouble();
-                double velocityCAN = bodyNode.get("velocityCAN").asDouble();
+                long timestampGNSS = bodyNode.path("timestampGNSS").asLong();
+                long timestamp = messageNode.path("header").path("timestamp").asLong();
 
-                double engineSpeed = bodyNode.get("engineSpeed").asDouble();
-                double engineTorque = bodyNode.get("engineTorque").asDouble();
+                double latitude = positionNode.path("latitude").asDouble();
+                double longitude = positionNode.path("longitude").asDouble();
 
-                int brakeFlag = bodyNode.get("brakeFlag").asInt();
-                double brakePos = bodyNode.get("brakePos").asDouble();
-                double brakePressure = bodyNode.get("brakePressure").asDouble();
-
-                double steeringAngle = bodyNode.get("steeringAngle").asDouble();
-                double yawRate = bodyNode.get("yawRate").asDouble();
-
-                long timestampGNSS = bodyNode.get("timestampGNSS").asLong();
-                long timestamp3 = bodyNode.get("timestamp3").asLong();
-                long timestamp4 = bodyNode.get("timestamp4").asLong();
-
-                double longitude = bodyNode.get("longitude").asDouble();
-                double latitude = bodyNode.get("latitude").asDouble();
+//                JsonNode headerNode = messageNode.get("header");
+//                JsonNode bodyNode = messageNode.get("body");
+//
+//                long timestamp = headerNode.get("timestamp").asLong();
+//
+//                String vehicleId = bodyNode.get("vehicleId").asText();
+//                double accelerationLon = bodyNode.get("accelerationLon").asDouble();
+//                double accelerationLat = bodyNode.get("accelerationLat").asDouble();
+//                double accelerationVer = bodyNode.get("accelerationVer").asDouble();
+//
+//                double velocityGNSS = bodyNode.get("velocityGNSS").asDouble();
+//                double velocityCAN = bodyNode.get("velocityCAN").asDouble();
+//
+//                double engineSpeed = bodyNode.get("engineSpeed").asDouble();
+//                double engineTorque = bodyNode.get("engineTorque").asDouble();
+//
+//                int brakeFlag = bodyNode.get("brakeFlag").asInt();
+//                double brakePos = bodyNode.get("brakePos").asDouble();
+//                double brakePressure = bodyNode.get("brakePressure").asDouble();
+//
+//                double steeringAngle = bodyNode.get("steeringAngle").asDouble();
+//                double yawRate = bodyNode.get("yawRate").asDouble();
+//
+//                long timestampGNSS = bodyNode.get("timestampGNSS").asLong();
+//                long timestamp3 = bodyNode.get("timestamp3").asLong();
+//                long timestamp4 = bodyNode.get("timestamp4").asLong();
+//
+//                double longitude = bodyNode.get("longitude").asDouble();
+//                double latitude = bodyNode.get("latitude").asDouble();
 
                 // 将UTC时间戳转换为东八区(CST)时间戳
                 Timestamp datestamp = UtcToCst(timestamp);
@@ -116,7 +129,7 @@ public class ProcessExp {
                 pushLocationData.put("vehicleId", vehicleId);
                 pushLocationData.put("longitude", longitude);
                 pushLocationData.put("latitude", latitude);
-                dataService.setPushContent("4", objectMapper.writeValueAsString(pushLocationData));
+                dataService.setPushContent("1", objectMapper.writeValueAsString(pushLocationData));
 
                 // 上一个时间片某辆车的数据
                 Map<String, Object> previousVehicleData = vehicleDataCache.get(vehicleId);
@@ -128,7 +141,7 @@ public class ProcessExp {
                     // 如果是第一次接受该车辆的数据，则存储车辆数据到缓存当中, 用来判断转向异常和经纬度异常
                     currentVehicleData.put("timestamp", timestamp);
                     currentVehicleData.put("steeringAngle", steeringAngle);
-                    currentVehicleData.put("yawRate", yawRate);
+//                    currentVehicleData.put("yawRate", yawRate);
                     currentVehicleData.put("longitude", longitude);
                     currentVehicleData.put("latitude", latitude);
                     vehicleDataCache.put(vehicleId, currentVehicleData);
@@ -146,33 +159,33 @@ public class ProcessExp {
                                 latitude, (double) previousVehicleData.get("longitude"),
                                 (double) previousVehicleData.get("latitude"), datestamp,
                                 numOfExp);
-                        // 检测横摆角速度与方向盘转角变化趋势是否匹配
-                        detectSwivelAngleExp(vehicleId, steeringAngle,
-                                yawRate, (double) previousVehicleData.get("steeringAngle"),
-                                (double) previousVehicleData.get("yawRate"), datestamp,
-                                numOfExp);
+//                        // 检测横摆角速度与方向盘转角变化趋势是否匹配
+//                        detectSwivelAngleExp(vehicleId, steeringAngle,
+//                                yawRate, (double) previousVehicleData.get("steeringAngle"),
+//                                (double) previousVehicleData.get("yawRate"), datestamp,
+//                                numOfExp);
                         vehicleDataCache.replace(vehicleId, previousVehicleData, currentVehicleData);
                     }
                 }
 
                 // 加速度异常检测
-                detectAccelerationExp(vehicleId, accelerationLon, accelerationLat,
-                        accelerationVer, datestamp, numOfExp);
+//                detectAccelerationExp(vehicleId, accelerationLon, accelerationLat,
+//                        accelerationVer, datestamp, numOfExp);
 
                 // 速度异常检测
-                detectSpeedExp(vehicleId, velocityGNSS, velocityCAN, datestamp, numOfExp);
+//                detectSpeedExp(vehicleId, velocityGNSS, velocityCAN, datestamp, numOfExp);
 
                 // 发动机异常检测
-                detectEngineExp(vehicleId, engineSpeed, engineTorque, datestamp, numOfExp);
+//                detectEngineExp(vehicleId, engineSpeed, engineTorque, datestamp, numOfExp);
 
                 // 制动异常检测
-                detectBrakeExp(vehicleId, brakeFlag, brakePos, brakePressure, datestamp, numOfExp);
+//                detectBrakeExp(vehicleId, brakeFlag, brakePos, brakePressure, datestamp, numOfExp);
 
                 // 转向异常检测
-                detectSteeringExp(vehicleId, steeringAngle, yawRate, datestamp, numOfExp);
+                detectSteeringExp(vehicleId, steeringAngle, datestamp, numOfExp);
 
                 // 时间戳异常检测
-                detectTimestampExp(vehicleId, timestampGNSS, timestamp3, timestamp4, datestamp, numOfExp);
+                detectTimestampExp(vehicleId, timestampGNSS, timestamp, datestamp, numOfExp);
 
                 // 将对应时间片的异常车数量存入缓存
                 // 使用 compute 来更新值
@@ -191,113 +204,113 @@ public class ProcessExp {
             }
         }
     }
-    private void detectAccelerationExp(String vehicleId, double accelerationLon,
-                                       double accelerationLat, double accelerationVer,
-                                       Timestamp timestamp, int numOfExp) throws JsonProcessingException {
-        // 判断加速度是否异常
-        if(isAccelerationExp(accelerationLon,accelerationLat,
-                accelerationVer)){
-            // 车辆有异常
-            numOfExp = 1;
-
-            // 创建加速度异常对象
-            AccelerationExp accelerationExp = new AccelerationExp(vehicleId, accelerationLon / 100,
-                    accelerationLat / 100, accelerationVer / 100,
-                    timestamp);
-
-            // 插入加速度异常对象
-            vehicleExpMapper.insertAccelerationExp(accelerationExp);
-
-            // 推送异常信息给前端
-            Map<String, Object> pushData = new HashMap<>();
-            pushData.put("vehicleId", vehicleId);
-            pushData.put("accelerationExp", true);
-            dataService.setPushContent("5", objectMapper.writeValueAsString(pushData));
-        }
-    }
-
-    private void detectSpeedExp(String vehicleId, double velocityGNSS,
-                                double velocityCAN, Timestamp timestamp,
-                                int numOfExp) throws JsonProcessingException {
-        // 判断速度是否异常
-        if(isSpeedExp(velocityGNSS, velocityCAN)){
-            // 车辆有异常
-            numOfExp = 1;
-
-            // 创建速度异常对象
-            SpeedExp speedExp = new SpeedExp(vehicleId, velocityGNSS / 100,
-                    velocityCAN / 100, timestamp);
-
-            // 插入速度异常对象
-            vehicleExpMapper.insertSpeedExp(speedExp);
-
-            // 推送异常信息给前端
-            Map<String, Object> pushData = new HashMap<>();
-            pushData.put("vehicleId", vehicleId);
-            pushData.put("speedExp", true);
-            dataService.setPushContent("6", objectMapper.writeValueAsString(pushData));
-        }
-    }
-
-    private void detectEngineExp(String vehicleId, double engineSpeed,
-                                 double engineTorque, Timestamp timestamp,
-                                 int numOfExp) throws JsonProcessingException {
-        // 判断发动机是否异常
-        if(isEngineExp(engineSpeed, engineTorque)){
-            // 车辆有异常
-            numOfExp = 1;
-
-            // 创建发动机异常对象
-            EngineExp engineExp = new EngineExp(vehicleId, engineSpeed,
-                    engineTorque / 100, timestamp);
-
-            // 插入发动机异常对象
-            vehicleExpMapper.insertEngineExp(engineExp);
-
-            // 推送异常信息给前端
-            Map<String, Object> pushData = new HashMap<>();
-            pushData.put("vehicleId", vehicleId);
-            pushData.put("engineExp", true);
-            dataService.setPushContent("7", objectMapper.writeValueAsString(pushData));
-        }
-    }
-
-    private void detectBrakeExp(String vehicleId, int brakeFlag,
-                                double brakePos, double brakePressure,
-                                Timestamp timestamp, int numOfExp) throws JsonProcessingException {
-        if(isBrakeExp(brakeFlag, brakePos, brakePressure)){
-            // 车辆有异常
-            numOfExp = 1;
-
-            // 将brakeFlag转换为boolean
-            boolean flag = brakeFlag != 0;
-
-            // 创建制动异常对象
-            BrakeExp brakeExp = new BrakeExp(vehicleId, flag,
-                    brakePos / 10, brakePressure / 100,
-                    timestamp);
-
-            // 插入制动异常对象
-            vehicleExpMapper.insertBrakeExp(brakeExp);
-
-            // 推送异常信息给前端
-            Map<String, Object> pushData = new HashMap<>();
-            pushData.put("vehicleId", vehicleId);
-            pushData.put("brakeExp", true);
-            dataService.setPushContent("7", objectMapper.writeValueAsString(pushData));
-        }
-    }
+//    private void detectAccelerationExp(String vehicleId, double accelerationLon,
+//                                       double accelerationLat, double accelerationVer,
+//                                       Timestamp timestamp, int numOfExp) throws JsonProcessingException {
+//        // 判断加速度是否异常
+//        if(isAccelerationExp(accelerationLon,accelerationLat,
+//                accelerationVer)){
+//            // 车辆有异常
+//            numOfExp = 1;
+//
+//            // 创建加速度异常对象
+//            AccelerationExp accelerationExp = new AccelerationExp(vehicleId, accelerationLon / 100,
+//                    accelerationLat / 100, accelerationVer / 100,
+//                    timestamp);
+//
+//            // 插入加速度异常对象
+//            vehicleExpMapper.insertAccelerationExp(accelerationExp);
+//
+//            // 推送异常信息给前端
+//            Map<String, Object> pushData = new HashMap<>();
+//            pushData.put("vehicleId", vehicleId);
+//            pushData.put("accelerationExp", true);
+//            dataService.setPushContent("5", objectMapper.writeValueAsString(pushData));
+//        }
+//    }
+//
+//    private void detectSpeedExp(String vehicleId, double velocityGNSS,
+//                                double velocityCAN, Timestamp timestamp,
+//                                int numOfExp) throws JsonProcessingException {
+//        // 判断速度是否异常
+//        if(isSpeedExp(velocityGNSS, velocityCAN)){
+//            // 车辆有异常
+//            numOfExp = 1;
+//
+//            // 创建速度异常对象
+//            SpeedExp speedExp = new SpeedExp(vehicleId, velocityGNSS / 100,
+//                    velocityCAN / 100, timestamp);
+//
+//            // 插入速度异常对象
+//            vehicleExpMapper.insertSpeedExp(speedExp);
+//
+//            // 推送异常信息给前端
+//            Map<String, Object> pushData = new HashMap<>();
+//            pushData.put("vehicleId", vehicleId);
+//            pushData.put("speedExp", true);
+//            dataService.setPushContent("6", objectMapper.writeValueAsString(pushData));
+//        }
+//    }
+//
+//    private void detectEngineExp(String vehicleId, double engineSpeed,
+//                                 double engineTorque, Timestamp timestamp,
+//                                 int numOfExp) throws JsonProcessingException {
+//        // 判断发动机是否异常
+//        if(isEngineExp(engineSpeed, engineTorque)){
+//            // 车辆有异常
+//            numOfExp = 1;
+//
+//            // 创建发动机异常对象
+//            EngineExp engineExp = new EngineExp(vehicleId, engineSpeed,
+//                    engineTorque / 100, timestamp);
+//
+//            // 插入发动机异常对象
+//            vehicleExpMapper.insertEngineExp(engineExp);
+//
+//            // 推送异常信息给前端
+//            Map<String, Object> pushData = new HashMap<>();
+//            pushData.put("vehicleId", vehicleId);
+//            pushData.put("engineExp", true);
+//            dataService.setPushContent("7", objectMapper.writeValueAsString(pushData));
+//        }
+//    }
+//
+//    private void detectBrakeExp(String vehicleId, int brakeFlag,
+//                                double brakePos, double brakePressure,
+//                                Timestamp timestamp, int numOfExp) throws JsonProcessingException {
+//        if(isBrakeExp(brakeFlag, brakePos, brakePressure)){
+//            // 车辆有异常
+//            numOfExp = 1;
+//
+//            // 将brakeFlag转换为boolean
+//            boolean flag = brakeFlag != 0;
+//
+//            // 创建制动异常对象
+//            BrakeExp brakeExp = new BrakeExp(vehicleId, flag,
+//                    brakePos / 10, brakePressure / 100,
+//                    timestamp);
+//
+//            // 插入制动异常对象
+//            vehicleExpMapper.insertBrakeExp(brakeExp);
+//
+//            // 推送异常信息给前端
+//            Map<String, Object> pushData = new HashMap<>();
+//            pushData.put("vehicleId", vehicleId);
+//            pushData.put("brakeExp", true);
+//            dataService.setPushContent("7", objectMapper.writeValueAsString(pushData));
+//        }
+//    }
 
     private void detectSteeringExp(String vehicleId, double steeringAngle,
-                                   double yawRate, Timestamp timestamp,
+                                   Timestamp timestamp,
                                    int numOfExp) throws JsonProcessingException {
-        if(isSteeringExp(steeringAngle, yawRate)){
+        if(isSteeringExp(steeringAngle)){
             // 车辆有异常
             numOfExp = 1;
 
             // 创建转向异常对象
             SteeringExp steeringExp = new SteeringExp(vehicleId, steeringAngle / 10000,
-                    yawRate / 100, timestamp);
+                    timestamp);
 
             // 插入转向异常对象
             vehicleExpMapper.insertSteeringExp(steeringExp);
@@ -306,54 +319,47 @@ public class ProcessExp {
             Map<String, Object> pushData = new HashMap<>();
             pushData.put("vehicleId", vehicleId);
             pushData.put("steeringExp", true);
-            dataService.setPushContent("8", objectMapper.writeValueAsString(pushData));
+            dataService.setPushContent("3", objectMapper.writeValueAsString(pushData));
         }
 
     }
 
-    private void detectSwivelAngleExp(String vehicleId, double steeringAngle,
-                                      double yawRate, double previousSteeringAngle,
-                                      double previousYawRate, Timestamp timestamp,
-                                      int numOfExp) throws JsonProcessingException {
-        if(isSwivelAngleExp(steeringAngle, previousSteeringAngle, yawRate, previousYawRate)){
-            // 车辆有异常
-            numOfExp = 1;
-
-            // 创建转向异常对象
-            SteeringExp steeringExp = new SteeringExp(vehicleId, steeringAngle / 10000,
-                    yawRate / 100, timestamp);
-
-            // 插入转向异常对象
-            vehicleExpMapper.insertSteeringExp(steeringExp);
-
-            // 推送异常信息给前端
-            Map<String, Object> pushData = new HashMap<>();
-            pushData.put("vehicleId", vehicleId);
-            pushData.put("steeringExp", true);
-            dataService.setPushContent("8", objectMapper.writeValueAsString(pushData));
-        }
-    }
+//    private void detectSwivelAngleExp(String vehicleId, double steeringAngle,
+//                                      double yawRate, double previousSteeringAngle,
+//                                      double previousYawRate, Timestamp timestamp,
+//                                      int numOfExp) throws JsonProcessingException {
+//        if(isSwivelAngleExp(steeringAngle, previousSteeringAngle, yawRate, previousYawRate)){
+//            // 车辆有异常
+//            numOfExp = 1;
+//
+//            // 创建转向异常对象
+//            SteeringExp steeringExp = new SteeringExp(vehicleId, steeringAngle / 10000,
+//                    yawRate / 100, timestamp);
+//
+//            // 插入转向异常对象
+//            vehicleExpMapper.insertSteeringExp(steeringExp);
+//
+//            // 推送异常信息给前端
+//            Map<String, Object> pushData = new HashMap<>();
+//            pushData.put("vehicleId", vehicleId);
+//            pushData.put("steeringExp", true);
+//            dataService.setPushContent("8", objectMapper.writeValueAsString(pushData));
+//        }
+//    }
 
     private void detectTimestampExp(String vehicleId, long timestampGNSS,
-                                    long timestamp3, long timestamp4,
-                                    Timestamp timestamp, int numOfExp) throws JsonProcessingException, ParseException {
-        if(isTimeStampExp(timestampGNSS, timestamp3, timestamp4)){
+                                    long timestamp, Timestamp datestamp,
+                                    int numOfExp) throws JsonProcessingException, ParseException {
+        if(isTimeStampExp(timestampGNSS, timestamp)){
             // 车辆有异常
             numOfExp = 1;
 
             // 将UTC时间戳转换为东八区(CST)时间戳
             Timestamp datestampGNSS = UtcToCst(timestampGNSS);
 
-            // 将UTC时间戳转换为东八区(CST)时间戳
-            Timestamp datestamp3 = UtcToCst(timestamp3);
-
-            // 将UTC时间戳转换为东八区(CST)时间戳
-            Timestamp datestamp4 = UtcToCst(timestamp4);
-
             // 创建时间戳异常对象
             TimestampExp timestampExp = new TimestampExp(vehicleId, datestampGNSS,
-                    datestamp3, datestamp4,
-                    timestamp);
+                    datestamp);
 
             // 插入时间戳异常对象
             vehicleExpMapper.insertTimestampExp(timestampExp);
@@ -362,7 +368,7 @@ public class ProcessExp {
             Map<String, Object> pushData = new HashMap<>();
             pushData.put("vehicleId", vehicleId);
             pushData.put("timestampExp", true);
-            dataService.setPushContent("9", objectMapper.writeValueAsString(pushData));
+            dataService.setPushContent("4", objectMapper.writeValueAsString(pushData));
         }
     }
 
@@ -375,8 +381,8 @@ public class ProcessExp {
             numOfExp = 1;
 
             // 创建地理位置异常对象
-            GeoLocationExp geoLocationExp = new GeoLocationExp(vehicleId, (longitude / 10000000) - 180,
-                    (latitude / 10000000) - 90, datestamp);
+            GeoLocationExp geoLocationExp = new GeoLocationExp(vehicleId, longitude,
+                    latitude, datestamp);
 
             // 插入地理位置异常对象
             vehicleExpMapper.insertGeoLocationExp(geoLocationExp);
@@ -385,58 +391,66 @@ public class ProcessExp {
             Map<String, Object> pushData = new HashMap<>();
             pushData.put("vehicleId", vehicleId);
             pushData.put("geoLocationExp", true);
-            dataService.setPushContent("10", objectMapper.writeValueAsString(pushData));
+            dataService.setPushContent("5", objectMapper.writeValueAsString(pushData));
         }
     }
 
-    private boolean isAccelerationExp(double accelerationLon, double accelerationLat,
-                                      double accelerationVer) {
-        return accelerationLon > 500 || accelerationLon < -500
-                || accelerationLat > 500 || accelerationLat < -500
-                || accelerationVer > 500 || accelerationVer < -500;
+//    private boolean isAccelerationExp(double accelerationLon, double accelerationLat,
+//                                      double accelerationVer) {
+//        return accelerationLon > 500 || accelerationLon < -500
+//                || accelerationLat > 500 || accelerationLat < -500
+//                || accelerationVer > 500 || accelerationVer < -500;
+//    }
+//
+//    private boolean isSpeedExp(double velocityGNSS, double velocityCAN) {
+//        return Math.abs(velocityGNSS - velocityCAN) >= 5;
+//    }
+//
+//    private boolean isEngineExp(double engineSpeed, double engineTorque) {
+//        return engineSpeed < 50 && engineTorque >= 50000;
+//    }
+//
+//    private boolean isBrakeExp(int brakeFlag, double brakePos, double brakePressure) {
+//        return (brakeFlag == 1 && brakePos < 50 && brakePressure < 5000) ||
+//                (brakeFlag == 0 && brakePos != 0 && brakePressure != 0);
+//    }
+
+    private boolean isSteeringExp(double steeringAngle) {
+        return Math.abs(steeringAngle) > Math.pow(10, 7);
+
     }
 
-    private boolean isSpeedExp(double velocityGNSS, double velocityCAN) {
-        return Math.abs(velocityGNSS - velocityCAN) >= 5;
-    }
+//    private boolean isSwivelAngleExp(double steeringAngle, double previousSteeringAngle,
+//                                     double yawRate, double previousYawRate) {
+//        return (Math.abs(steeringAngle - previousSteeringAngle) <= 5 * Math.pow(10, 4)
+//                && Math.abs(yawRate - previousYawRate) >= 15 * Math.pow(10, 2)) ||
+//                (Math.abs(steeringAngle - previousSteeringAngle) >= 30 * Math.pow(10, 4)
+//                        && Math.abs(yawRate - previousYawRate) <= 5 * Math.pow(10, 2));
+//    }
 
-    private boolean isEngineExp(double engineSpeed, double engineTorque) {
-        return engineSpeed < 50 && engineTorque >= 50000;
-    }
-
-    private boolean isBrakeExp(int brakeFlag, double brakePos, double brakePressure) {
-        return (brakeFlag == 1 && brakePos < 50 && brakePressure < 5000) ||
-                (brakeFlag == 0 && brakePos != 0 && brakePressure != 0);
-    }
-
-    private boolean isSteeringExp(double steeringAngle, double yawRate) {
-        return steeringAngle > Math.pow(10, 7) || steeringAngle <  -(Math.pow(10, 7))
-                || yawRate > Math.pow(10, 4) || yawRate <  -(Math.pow(10, 4));
-    }
-
-    private boolean isSwivelAngleExp(double steeringAngle, double previousSteeringAngle,
-                                     double yawRate, double previousYawRate) {
-        return (Math.abs(steeringAngle - previousSteeringAngle) <= 5 * Math.pow(10, 4)
-                && Math.abs(yawRate - previousYawRate) >= 15 * Math.pow(10, 2)) ||
-                (Math.abs(steeringAngle - previousSteeringAngle) >= 30 * Math.pow(10, 4)
-                        && Math.abs(yawRate - previousYawRate) <= 5 * Math.pow(10, 2));
-    }
-
-    private boolean isTimeStampExp(long timestampGNSS, long timestamp3, long timestamp4) {
-        return Math.abs(timestampGNSS - timestamp3) > 100 ||
-                Math.abs(timestampGNSS - timestamp4) > 100 ||
-                Math.abs(timestamp4 - timestampGNSS) > 100;
+    private boolean isTimeStampExp(long timestampGNSS, long timestamp) {
+        return Math.abs(timestampGNSS - timestamp) > 100;
     }
 
     private boolean isGeoLocationExp(double longitude, double latitude,
                                      double previousLongitude, double previousLatitude) {
-        if(Math.abs(longitude - previousLongitude) > 1.8 * Math.pow(10, 9)){
-            return 3.6 * Math.pow(10, 9) - Math.abs(longitude - previousLongitude) > 5 * Math.pow(10, 4) ||
-                    Math.abs(latitude - previousLatitude) > 4 * Math.pow(10, 4);
-        }else{
-            return Math.abs(longitude - previousLongitude) > 5 * Math.pow(10, 4) ||
-                    Math.abs(latitude - previousLatitude) > 4 * Math.pow(10, 4);
+        // 计算经度差值
+        double longitudeDiff = Math.abs(longitude - previousLongitude);
+
+        // 如果经度差值大于180，取180到360之间的最小差值
+        if (longitudeDiff > 180) {
+            longitudeDiff = 360 - longitudeDiff;
         }
+
+        // 计算纬度差值
+        double latitudeDiff = Math.abs(latitude - previousLatitude);
+
+        // 判断是否超过阈值
+        if (longitudeDiff > 0.005 || latitudeDiff > 0.004) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -475,7 +489,7 @@ public class ProcessExp {
             Map<String, Object> pushData = new HashMap<>();
             pushData.put("numOfExp", numOfExp);
             // Convert the map to JSON and push the content to the frontend
-            dataService.setPushContent("3", objectMapper.writeValueAsString(pushData));
+            dataService.setPushContent("2", objectMapper.writeValueAsString(pushData));
 
             // Clear the map after sending the data
             numOfExpCar.clear();
