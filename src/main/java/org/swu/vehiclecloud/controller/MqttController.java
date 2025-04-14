@@ -1,5 +1,7 @@
 package org.swu.vehiclecloud.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.swu.vehiclecloud.dto.MqttRequest;
 import org.swu.vehiclecloud.service.MqttService;
+import java.util.Map;
+import static cn.hutool.core.convert.Convert.hexToBytes;
 
 @RestController
 @RequestMapping("/api/mqtt")
@@ -16,9 +20,11 @@ public class MqttController {
     private static final Logger logger = LoggerFactory.getLogger(MqttController.class);
 
     private final MqttService mqttService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public MqttController(MqttService mqttService) {
         this.mqttService = mqttService;
+        objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
     }
 
     /**
@@ -75,6 +81,23 @@ public class MqttController {
             // 返回成功响应
             return ResponseEntity.ok("MQTT client reinitialized successfully");
         } catch (MqttException e) {
+            // 如果重新初始化失败，返回包含错误信息的响应
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to reinitialize MQTT client: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/analysis")
+    public ResponseEntity<String> processRawData(@RequestBody String rawData) {
+        try {
+            byte[] byteArray = hexToBytes(rawData);
+            // 2. 解析字节数据为 Map（保持顺序）
+            Map<String, Object> parsedData = mqttService.parsePayload(byteArray);
+            // 3. 使用 Jackson 转换为 JSON（保持字段顺序）
+            String jsonResult = objectMapper.writeValueAsString(parsedData);
+            // 4. 返回 JSON 响应
+            return ResponseEntity.ok(jsonResult);
+        } catch (Exception e) {
             // 如果重新初始化失败，返回包含错误信息的响应
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Failed to reinitialize MQTT client: " + e.getMessage());
