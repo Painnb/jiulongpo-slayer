@@ -1,7 +1,6 @@
 package org.swu.vehiclecloud.event;
 
 import org.springframework.context.ApplicationEvent;
-
 import java.util.Map;
 
 public class MqttMessageEvent extends ApplicationEvent {
@@ -15,11 +14,13 @@ public class MqttMessageEvent extends ApplicationEvent {
         this.payload = payload;
     }
 
+    /*
     public MqttMessageEvent(Object source, String topic, String message) {
         super(source);
         this.topic = topic;
         this.message = message;
     }
+     */
 
     public String getTopic() {
         return topic;
@@ -30,7 +31,7 @@ public class MqttMessageEvent extends ApplicationEvent {
     }
 
     public String getMessageAsString() {
-        return message;
+        return payload.toString();
     }
 
     // 添加获取JSON格式的方法
