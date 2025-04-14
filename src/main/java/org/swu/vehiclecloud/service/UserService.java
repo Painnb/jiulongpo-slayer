@@ -3,11 +3,13 @@ package org.swu.vehiclecloud.service;
 import org.swu.vehiclecloud.controller.template.ApiResult;
 import org.swu.vehiclecloud.entity.User;
 import java.util.Map;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 用户服务接口
  * 定义用户相关的业务操作
  */
+@Transactional
 public interface UserService {
     // 登录接口
     ApiResult<Map<String, Object>> login(Map<String, Object> requestBody);
