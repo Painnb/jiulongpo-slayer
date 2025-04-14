@@ -152,11 +152,11 @@ import * as echarts from "echarts";
 import { ref, computed, onMounted, onUnmounted } from "vue";
 
 // 地图中心点和标点
-const center = ref({ lng: 106.552, lat: 29.562 });
+const center = ref({ lng: 106.3852, lat: 29.5384 });
 const markers = ref([
-  { lng: 106.552, lat: 29.562 },
-  { lng: 106.553, lat: 29.563 },
-  { lng: 106.554, lat: 29.564 },
+  { lng: 106.385, lat: 29.538 },
+  { lng: 106.395, lat: 29.548 },
+  { lng: 106.375, lat: 29.548 },
   // 添加更多车辆数据
 ]);
 const showMarkerList = ref(false);
@@ -344,14 +344,11 @@ const getStatusIcon = (type) => {
   return statuses.value[type] ? "✓" : "✗";
 };
 
-
-
 // 定时更新时间
 let timeInterval;
 onMounted(() => {
   updateTime();
   timeInterval = setInterval(updateTime, 1000);
-
 });
 
 onUnmounted(() => {
