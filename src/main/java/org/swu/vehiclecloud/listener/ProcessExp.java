@@ -59,6 +59,7 @@ public class ProcessExp {
 
     @EventListener
     public void handleMqttMessage(MqttMessageEvent event) throws IOException, ParseException {
+        System.err.println("进入");
         eventCount++;
 
         // 每监听五条数据检测一次
@@ -68,20 +69,19 @@ public class ProcessExp {
                 int numOfExp = 0;
 
                 // 提取车辆数据
-                JsonNode messageNode = objectMapper.readTree(event.getMessageAsString());
+                Map<String, Object> payload = event.getMessage();
 
-                JsonNode bodyNode = messageNode.path("body");
-                JsonNode positionNode = bodyNode.path("position");
+                Map<String, Object> dataContent = (Map<String, Object>) payload.get("dataContent");
+                Map<String, Object> position = (Map<String, Object>) dataContent.get("position");
 
-                String vehicleId = bodyNode.path("vehicleId").asText();
+                String vehicleId = (String) dataContent.get("vehicleId");
+                int steeringAngle = (int) dataContent.get("steeringAngle");
 
-                double steeringAngle = bodyNode.path("steeringAngle").asDouble();
+                long timestampGNSS = (long) dataContent.get("timestampGNSS");
+                long timestamp = (long) payload.get("timestamp");
 
-                long timestampGNSS = bodyNode.path("timestampGNSS").asLong();
-                long timestamp = messageNode.path("header").path("timestamp").asLong();
-
-                double latitude = positionNode.path("latitude").asDouble();
-                double longitude = positionNode.path("longitude").asDouble();
+                double longitude = (double) position.get("longitude");
+                double latitude = (double) position.get("latitude");
 
 //                JsonNode headerNode = messageNode.get("header");
 //                JsonNode bodyNode = messageNode.get("body");
@@ -130,7 +130,6 @@ public class ProcessExp {
                 pushLocationData.put("longitude", longitude);
                 pushLocationData.put("latitude", latitude);
                 dataService.setPushContent("1", objectMapper.writeValueAsString(pushLocationData));
-
                 // 上一个时间片某辆车的数据
                 Map<String, Object> previousVehicleData = vehicleDataCache.get(vehicleId);
 

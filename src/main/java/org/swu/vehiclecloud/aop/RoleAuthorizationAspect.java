@@ -11,11 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.swu.vehiclecloud.util.CurrentUserContext;
 
-
-
 @Aspect
 @Component
-public class gitRoleAuthorizationAspect {
+public class RoleAuthorizationAspect {
 
     @Autowired
     private UserMapper userMapper;  // 用于从服务中获取当前用户的角色
