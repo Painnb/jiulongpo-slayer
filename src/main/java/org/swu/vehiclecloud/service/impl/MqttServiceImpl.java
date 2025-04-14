@@ -123,7 +123,7 @@ public class MqttServiceImpl implements MqttService {
 
                 if(topic.matches("^vpub/obu/state/.*_hex$")){
                     //Map<String, Object> jsonPayload = parsePayload(message.getPayload());
-                    //System.out.println("jsonPayload: " + jsonPayload);
+                    System.out.println("jsonPayload: " + parsePayload(message.getPayload()));
                     mqttEventPublisher.publishEvent(new MqttMessageEvent(this, topic, parsePayload(message.getPayload())));
 
                 } else if(topic.matches("^vpub/obu/state/[^/]+$")){
