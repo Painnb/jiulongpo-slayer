@@ -243,8 +243,8 @@ class TransformerAutoencoder(nn.Module):
 
 # --- 模型和缩放器加载 ---
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu' # 检查是否有可用的 CUDA 设备
-MODEL_PATH = "transformer_autoencoder_custom.pth"      # 模型文件路径
-SCALER_PATH = "scaler.pkl"                             # 缩放器文件路径
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "transformer_autoencoder_custom.pth")      # 模型文件路径
+SCALER_PATH = os.path.join(os.path.dirname(__file__), "scaler.pkl")                             # 缩放器文件路径
 
 def load_trained_model(model_path, device='cpu'):
     """加载预训练的 TransformerAutoencoder 模型，并处理 pos_embedding 形状不匹配的问题。"""
