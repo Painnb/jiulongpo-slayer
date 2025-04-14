@@ -8,6 +8,9 @@ import java.util.Map;
  * 查询服务接口
  * 提供查询异常数据的功能
  */
+import org.springframework.transaction.annotation.Transactional;
+
+@Transactional
 public interface QueryService {
     
     /**

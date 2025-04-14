@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.time.LocalDateTime;
 
+import org.springframework.transaction.annotation.Transactional;
+
+@Transactional
 public interface ExcelService {
     ResponseEntity<Resource> exportExcel(String tableName);
     

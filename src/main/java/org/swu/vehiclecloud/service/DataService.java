@@ -10,6 +10,9 @@ import java.util.Map;
 /**
  * 使用WebFlux处理服务器发送事件(SSE)数据流的服务接口。
  */
+import org.springframework.transaction.annotation.Transactional;
+
+@Transactional
 public interface DataService {
 
     /**
