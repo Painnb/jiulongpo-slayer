@@ -1,10 +1,10 @@
 package org.swu.vehiclecloud.listener;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.Date;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
@@ -39,15 +39,39 @@ public class MqttMessageListener {
     private final Map<String, Double> lastVelocityCAN = new ConcurrentHashMap<>();
     private final Map<String, Boolean> isActive = new ConcurrentHashMap<>();
 
+    // 车辆在线时间统计
+    private final Map<String, Long> vehicleOnlineTime = new ConcurrentHashMap<>();
+    // 为每一天定义固定模拟数据
+    private final Map<String, Integer> onlineVehiclesByDay = new HashMap<>();
+    private final Map<String, Integer> activeVehiclesByDay = new HashMap<>();
+
+    // 初始化模拟数据
+    {
+        // 在线车辆数
+        onlineVehiclesByDay.put("Mon", 120);
+        onlineVehiclesByDay.put("Tue", 200);
+        onlineVehiclesByDay.put("Wed", 150);
+        onlineVehiclesByDay.put("Thu", 80);
+        onlineVehiclesByDay.put("Fri", 70);
+        onlineVehiclesByDay.put("Sat", 110);
+        onlineVehiclesByDay.put("Sun", 130);
+
+        // 活跃车辆数
+        activeVehiclesByDay.put("Mon", 180);
+        activeVehiclesByDay.put("Tue", 230);
+        activeVehiclesByDay.put("Wed", 190);
+        activeVehiclesByDay.put("Thu", 120);
+        activeVehiclesByDay.put("Fri", 110);
+        activeVehiclesByDay.put("Sat", 230);
+        activeVehiclesByDay.put("Sun", 235);
+    }
+
     /**
      * 处理MQTT消息事件
      */
     @EventListener
     @Transactional
     public void handleMqttMessage(MqttMessageEvent event) {
-        //String json = event.getMessage();
-        //logger.info("Event received - Topic: {}, Message: {}",event.getTopic(), event.getMessage());
-
         try {
             Map<String, Object> payload = event.getMessage();
             if (payload == null) {
@@ -66,6 +90,9 @@ public class MqttMessageListener {
 
             // 检测并保存异常数据
             checkAndSaveAlerts(vehicleId, velocityGNSS, velocityCAN, timestamp);
+
+            // 更新车辆在线时间
+            updateVehicleOnlineTime(vehicleId);
 
             // 推送实时统计信息
             pushStatistics();
@@ -155,5 +182,78 @@ public class MqttMessageListener {
         }
 
         return new int[]{onlineCount, activeCount};
+    }
+
+    /**
+     * 更新车辆在线时间
+     */
+    private void updateVehicleOnlineTime(String vehicleId) {
+        long currentTime = CHECK_INTERVAL; // 每次更新增加检测周期的时间
+
+        // 更新车辆在线时间
+        vehicleOnlineTime.put(vehicleId,
+                vehicleOnlineTime.getOrDefault(vehicleId, 0L) + currentTime);
+
+        // 模拟一些初始数据，确保有数据可以展示
+        if (vehicleOnlineTime.size() < 10) {
+            for (int i = 1; i <= 10; i++) {
+                String vid = "vehicle" + i;
+                if (!vehicleOnlineTime.containsKey(vid)) {
+                    vehicleOnlineTime.put(vid, (long)(Math.random() * 10000));
+                }
+            }
+        }
+    }
+
+    /**
+     * 获取七天内的车辆活跃度统计
+     */
+    public Map<String, Object> getSevenDaysActivityChartData() {
+        Map<String, Object> result = new HashMap<>();
+
+        // 使用固定的xAxis数据
+        List<String> xAxis = Arrays.asList("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun");
+
+        // 使用固定的示例数据
+        List<Integer> onlineData = new ArrayList<>();
+        List<Integer> activeData = new ArrayList<>();
+
+        for (String day : xAxis) {
+            onlineData.add(onlineVehiclesByDay.get(day));
+            activeData.add(activeVehiclesByDay.get(day));
+        }
+
+        result.put("xAxis", xAxis);
+        result.put("onlineData", onlineData);
+        result.put("activeData", activeData);
+
+        return result;
+    }
+
+    /**
+     * 获取车辆在线时间排行
+     */
+    public List<Map<String, Object>> getVehicleOnlineTimeRanking(int limit) {
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        // 如果没有实际数据，添加一些模拟数据
+        if (vehicleOnlineTime.isEmpty()) {
+            for (int i = 1; i <= 10; i++) {
+                vehicleOnlineTime.put("vehicle" + i, (long)(Math.random() * 10000));
+            }
+        }
+
+        // 将车辆在线时间按降序排序
+        vehicleOnlineTime.entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .limit(limit)
+                .forEach(entry -> {
+                    Map<String, Object> vehicleData = new HashMap<>();
+                    vehicleData.put("vehicleId", entry.getKey());
+                    vehicleData.put("onlineTime", entry.getValue());
+                    result.add(vehicleData);
+                });
+
+        return result;
     }
 }
