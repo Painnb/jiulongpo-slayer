@@ -12,18 +12,20 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import org.swu.vehiclecloud.entity.ActivityAlert;
 import org.swu.vehiclecloud.event.MqttMessageEvent;
 import org.swu.vehiclecloud.mapper.ActivityAlertMapper;
 import org.swu.vehiclecloud.service.DataService;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 @Component
 public class MqttMessageListener {
     private static final Logger logger = LoggerFactory.getLogger(MqttMessageListener.class);
-    private static final int CHECK_INTERVAL = 10; // 10秒
-    private static final double LOW_SPEED_THRESHOLD = 1.0;
+
+    // 配置化参数（可通过@Value注入）
+    private static final int CHECK_INTERVAL = 10; // 10秒检测周期
+    private static final double LOW_SPEED_THRESHOLD = 1.0; // 低速阈值(m/s)
+    private static final int NO_DATA_ALERT_THRESHOLD = 15; // 无数据报警阈值(秒)
 
     @Autowired
     private ActivityAlertMapper activityAlertMapper;
@@ -31,72 +33,41 @@ public class MqttMessageListener {
     @Autowired
     private DataService dataService;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    // 车辆状态缓存
     private final Map<String, Long> lastUpdateTime = new ConcurrentHashMap<>();
     private final Map<String, Double> lastVelocityGNSS = new ConcurrentHashMap<>();
     private final Map<String, Double> lastVelocityCAN = new ConcurrentHashMap<>();
     private final Map<String, Boolean> isActive = new ConcurrentHashMap<>();
 
     /**
-     * 将 UTC 时间戳转换为东八区 Date 对象
-     * @param timestamp UTC 时间戳（单位：秒）
-     * @return Date 对象（东八区时间）
+     * 处理MQTT消息事件
      */
-    private Date UtcToCst(long timestamp) {
-        // 创建内部变量，避免修改参数的值
-        long datestamp = timestamp / 1000;
-
-        // 将毫秒转换为秒
-        datestamp %= 1000;
-
-        // 将 UTC 时间戳转换为 Instant 对象
-        Instant instant = Instant.ofEpochSecond(datestamp);
-
-        // 将 UTC 时间戳转换为东八区（Asia/Shanghai）的 ZonedDateTime 对象
-        ZonedDateTime beijingTime = instant.atZone(ZoneId.of("Asia/Shanghai"));
-
-        // 将 ZonedDateTime 转换为 java.util.Date 并返回
-        return Date.from(beijingTime.toInstant());
-    }
-
     @EventListener
+    @Transactional
     public void handleMqttMessage(MqttMessageEvent event) {
+        //String json = event.getMessage();
+        //logger.info("Event received - Topic: {}, Message: {}",event.getTopic(), event.getMessage());
+
         try {
             Map<String, Object> payload = event.getMessage();
             if (payload == null) {
-                logger.error("Received null payload");
+                logger.warn("Received null payload");
                 return;
             }
 
+            // 解析基础数据
             String vehicleId = String.valueOf(payload.get("vehicleId"));
-            Object velocityGNSSObj = payload.get("velocityGNSS");
-            Object velocityCANObj = payload.get("velocityCAN");
-            Object timestampObj = payload.get("timestamp");
+            double velocityGNSS = parseDouble(payload.get("velocityGNSS"));
+            double velocityCAN = parseDouble(payload.get("velocityCAN"));
+            long timestamp = parseTimestamp(payload.get("timestamp"));
 
-            double velocityGNSS = 0.0;
-            double velocityCAN = 0.0;
-            long timestamp = System.currentTimeMillis();
+            // 更新车辆状态缓存
+            updateVehicleStatus(vehicleId, velocityGNSS, velocityCAN, timestamp);
 
-            if (velocityGNSSObj instanceof Number) {
-                velocityGNSS = ((Number) velocityGNSSObj).doubleValue();
-            }
-            if (velocityCANObj instanceof Number) {
-                velocityCAN = ((Number) velocityCANObj).doubleValue();
-            }
-            if (timestampObj instanceof Number) {
-                timestamp = ((Number) timestampObj).longValue();
-            }
+            // 检测并保存异常数据
+            checkAndSaveAlerts(vehicleId, velocityGNSS, velocityCAN, timestamp);
 
-            // 更新最后更新时间
-            lastUpdateTime.put(vehicleId, timestamp);
-            lastVelocityGNSS.put(vehicleId, velocityGNSS);
-            lastVelocityCAN.put(vehicleId, velocityCAN);
-
-            // 更新活跃状态
-            boolean isVehicleActive = velocityGNSS >= LOW_SPEED_THRESHOLD && velocityCAN >= LOW_SPEED_THRESHOLD;
-            isActive.put(vehicleId, isVehicleActive);
-
-            // 推送统计数据
+            // 推送实时统计信息
             pushStatistics();
 
         } catch (Exception e) {
@@ -104,35 +75,85 @@ public class MqttMessageListener {
         }
     }
 
+    // === 私有方法 ===
+
+    private double parseDouble(Object obj) {
+        return (obj instanceof Number) ? ((Number) obj).doubleValue() : 0.0;
+    }
+
+    private long parseTimestamp(Object obj) {
+        return (obj instanceof Number) ? ((Number) obj).longValue() : System.currentTimeMillis();
+    }
+
+    private void updateVehicleStatus(String vehicleId, double velocityGNSS, double velocityCAN, long timestamp) {
+        lastUpdateTime.put(vehicleId, timestamp);
+        lastVelocityGNSS.put(vehicleId, velocityGNSS);
+        lastVelocityCAN.put(vehicleId, velocityCAN);
+        isActive.put(vehicleId, velocityGNSS >= LOW_SPEED_THRESHOLD && velocityCAN >= LOW_SPEED_THRESHOLD);
+    }
+
+    /**
+     * 检测异常并持久化到数据库
+     */
+    private void checkAndSaveAlerts(String vehicleId, double velocityGNSS, double velocityCAN, long timestamp) {
+        boolean noDataAlert = isNoDataAlert(vehicleId);
+        boolean lowSpeedAlert = isLowSpeedAlert(velocityGNSS, velocityCAN);
+
+        if (noDataAlert || lowSpeedAlert) {
+            ActivityAlert alert = new ActivityAlert();
+            alert.setVehicleId(vehicleId);
+            alert.setNoDataAlert(noDataAlert);
+            alert.setLowSpeedAlert(lowSpeedAlert);
+            alert.setTimestamp(new Date(timestamp));
+            alert.setAlertLevel(calculateAlertLevel(velocityGNSS, velocityCAN));
+
+            activityAlertMapper.insert(alert);
+            logger.debug("Saved alert: {}", alert);
+        }
+    }
+
+    private boolean isNoDataAlert(String vehicleId) {
+        Long lastUpdate = lastUpdateTime.get(vehicleId);
+        return lastUpdate == null ||
+                (System.currentTimeMillis() - lastUpdate) > NO_DATA_ALERT_THRESHOLD * 1000;
+    }
+
+    private boolean isLowSpeedAlert(double velocityGNSS, double velocityCAN) {
+        return velocityGNSS < LOW_SPEED_THRESHOLD || velocityCAN < LOW_SPEED_THRESHOLD;
+    }
+
+    private int calculateAlertLevel(double velocityGNSS, double velocityCAN) {
+        return (velocityGNSS < 0.5 || velocityCAN < 0.5) ? 2 : 1;
+    }
+
+    /**
+     * 推送实时统计数据
+     */
     private void pushStatistics() {
-        // 计算在线车辆数量（10秒内有数据的车辆）
         long currentTime = System.currentTimeMillis();
+        int[] counts = countActiveVehicles(currentTime);
+
+        String statsMessage = String.format(
+                "{\"onlineCount\":%d,\"activeCount\":%d,\"timestamp\":\"%s\"}",
+                counts[0], counts[1], new Date()
+        );
+
+        dataService.setPushContent("activity_alerts", statsMessage);
+    }
+
+    private int[] countActiveVehicles(long currentTime) {
         int onlineCount = 0;
         int activeCount = 0;
 
         for (Map.Entry<String, Long> entry : lastUpdateTime.entrySet()) {
-            String vehicleId = entry.getKey();
-            long lastUpdate = entry.getValue();
-            
-            // 检查是否在线（10秒内有数据）
-            if (currentTime - lastUpdate <= CHECK_INTERVAL * 1000) {
+            if (currentTime - entry.getValue() <= CHECK_INTERVAL * 1000) {
                 onlineCount++;
-                
-                // 检查是否活跃
-                if (isActive.getOrDefault(vehicleId, false)) {
+                if (isActive.getOrDefault(entry.getKey(), false)) {
                     activeCount++;
                 }
             }
         }
 
-        // 推送统计数据
-        String statsMessage = String.format("{\"onlineCount\":%d,\"activeCount\":%d,\"timestamp\":\"%s\"}",
-                onlineCount, activeCount, new Date());
-        dataService.setPushContent("activity_alerts", statsMessage);
-
-        // String json = event.getMessage();
-//         logger.info("Event received - Topic: {}, Message: {}",
-//                 event.getTopic(), event.getMessage());
-
+        return new int[]{onlineCount, activeCount};
     }
 }

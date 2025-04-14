@@ -5,7 +5,7 @@
                 <el-card shadow="hover" body-class="card-body">
                     <img src="@/assets/img/card1.png" alt="在线数量" class="card-icon bg-blue" />
                     <div class="card-content">
-                        <div class="card-num color1"  >6666</div>
+                        <div class="card-num color1"  >{{onlineCount}}</div>
                         <div>在线数量</div>
                     </div>
                 </el-card>
@@ -14,7 +14,7 @@
                 <el-card shadow="hover" body-class="card-body">
                     <img src="@/assets/img/card2.png" alt="活跃数量" class="card-icon bg-green" />
                     <div class="card-content">
-                        <div class="card-num color2"  >6666</div>
+                        <div class="card-num color2"  >{{activeCount}}</div>
                         <div>活跃数量</div>
                     </div>
                 </el-card>
@@ -23,7 +23,7 @@
                 <el-card shadow="hover" body-class="card-body">
                     <img src="@/assets/img/card3.png" alt="异常数量" class="card-icon bg-red" />
                     <div class="card-content">
-                        <div class="card-num color3"  >{{ message }}</div>
+                        <div class="card-num color3"  >{{ exceptionCount }}</div>
                         <div>异常数量</div>
                     </div>
                 </el-card>
@@ -54,39 +54,51 @@
                         <el-card shadow="hover" :body-style="{ height: '420px',backgroundColor:'#c0dbf8'}">
                             <div class="card-header">
                                 <div class="card-header-left">
-                                    <p class="card-header-title">车辆状态</p>
-                                    <p class="card-header-desc">实时监测的车辆状态</p>
+                                    <p class="card-header-title">数据解析</p>
+                                    <p class="card-header-desc">输入数据并解析为JSON</p>
                                 </div>
-                                <!-- 添加按钮 -->
-                                <el-button size="mini" type="primary" @click="showList = true">选择车辆</el-button>
                             </div>
-                            <!-- 图表区域 -->
-                            <div v-if="!showList">
-                                <v-chart class="chart" :option="dashOpt2" />
+                            <div class="data-parser">
+                                <el-input
+                                    v-model="inputData"
+                                    type="textarea"
+                                    placeholder="输入待解析数据"
+                                    size="small"
+                                    class="parser-input"
+                                />
+                                <el-button
+                                    type="primary"
+                                    size="small"
+                                    @click="parseData"
+                                    class="parser-button"
+                                >
+                                    解析
+                                </el-button>
                             </div>
-                            <!-- 列表区域 -->
-                            <div v-else class="list-container">
-                                <el-checkbox-group v-model="selectedOptions" class="scrollable-list">
-                                    <el-checkbox
-                                        v-for="(option, index) in options"
-                                        :key="index"
-                                        :label="option"
-                                        class="checkbox-item"
-                                    >
-                                        {{ option }}
-                                    </el-checkbox>
-                                </el-checkbox-group>
-                                <div class="list-buttons">
-                                    <el-button size="mini" type="primary" @click="showList = false">返回</el-button>
-                                    <el-button size="mini" type="success" @click="printSelections">打印</el-button>
-                                </div>
+                            <div v-if="parsedData" class="parser-result">
+                                <p>解析结果：</p>
+                                <el-table
+                                    :data="parsedTableData"
+                                    border
+                                    style="width: 100%; max-height: 250px; overflow-y: auto;"
+                                >
+                                    <el-table-column
+                                        prop="key"
+                                        label="字段"
+                                        width="150"
+                                    />
+                                    <el-table-column
+                                        prop="value"
+                                        label="值"
+                                    />
+                                </el-table>
                             </div>
                         </el-card>
                     </el-col>
                     <el-col :span="12">
                         <el-card shadow="hover" :body-style="{ height: '420px', backgroundColor: '#76A9F7' }">
                             <div class="card-header">
-                                <p class="card-header-title">时间线</p>
+                                <p class="card-header-title">通知</p>
                             </div>
                             <div class="notification-input">
                                 <el-input 
@@ -176,7 +188,9 @@ import chinaMap from '@/utils/china';
 import { ref ,onMounted,onUnmounted} from 'vue';
 import { createSSEConnection } from '../utils/sse'; // 假设封装的工具函数放在 utils/sse.ts
 
-const message = ref<string>('');
+const activeCount = ref<string>('');
+const onlineCount = ref<string>('');
+const exceptionCount = ref<string>('');
 let sseConnection: { close: () => void } | null = null;
 
 const token = localStorage.getItem('token') || ''; // 假设 token 存储在 localStorage 中
@@ -187,7 +201,9 @@ onMounted(() => {
       console.log('SSE连接已建立');
     },
     onMessage: (data) => {
-      message.value = data;
+        console.log('收到SSE消息:', data);
+        activeCount.value = data.activeCount;
+        onlineCount.value = data.onlineCount;
     },
     onError: (error) => {
       console.error('SSE连接错误:', error);
@@ -278,6 +294,7 @@ const ranks = [
         value: 8000,
         percent: 70,
         color: '#00bcd4',
+        
     },
     {
         title: '加速度异常',
@@ -315,6 +332,36 @@ const printSelections = () => {
         alert(`选中的选项是：${selectedOptions.value.join(', ')}`);
     } else {
         alert('请先选择一个或多个选项！');
+    }
+};
+
+const inputData = ref(''); // 输入数据
+const parsedData = ref(''); // 解析结果
+const parsedTableData = ref([]); // 表格数据
+
+const parseData = async () => {
+    if (!inputData.value.trim()) {
+        alert('请输入数据！');
+        return;
+    }
+    try {
+        // 调用后端接口，替换为实际接口地址
+        const response = await fetch('/api/parse', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ data: inputData.value }),
+        });
+        const result = await response.json();
+        parsedData.value = JSON.stringify(result, null, 2); // 格式化 JSON
+        parsedTableData.value = Object.entries(result).map(([key, value]) => ({
+            key,
+            value: typeof value === 'object' ? JSON.stringify(value) : value,
+        }));
+    } catch (error) {
+        console.error('解析失败:', error);
+        alert('解析失败，请检查输入或稍后重试！');
     }
 };
 </script>
@@ -530,5 +577,35 @@ const printSelections = () => {
     flex-shrink: 0;
     height: 30px; /* 调高按钮高度 */
     font-size: 16px; /* 放大字体 */
+}
+
+.data-parser {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+
+.parser-input {
+    flex: 1;
+    margin-right: 10px;
+    height: 100px; /* 增大输入框高度 */
+    
+}
+
+.parser-button {
+    flex-shrink: 0;
+    height: 40px; /* 调整按钮高度 */
+}
+
+.parser-result {
+    background-color: #f5f5f5;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #333;
+    white-space: pre-wrap; /* 保留换行 */
+    word-wrap: break-word; /* 自动换行 */
+    overflow-y: auto; /* 启用滚动 */
+    max-height: 250px; /* 限制最大高度 */
 }
 </style>

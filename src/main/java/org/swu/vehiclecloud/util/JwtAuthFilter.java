@@ -24,25 +24,25 @@ public class JwtAuthFilter implements Filter{
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        // 类型转换，将 ServletRequest 和 ServletResponse 转换为 HttpServletRequest 和 HttpServletResponse
-        HttpServletRequest httpRequest = (HttpServletRequest) request;
-        HttpServletResponse httpResponse = (HttpServletResponse) response;
+        try{
+            // 类型转换，将 ServletRequest 和 ServletResponse 转换为 HttpServletRequest 和 HttpServletResponse
+            HttpServletRequest httpRequest = (HttpServletRequest) request;
+            HttpServletResponse httpResponse = (HttpServletResponse) response;
 
-        // 获取请求路径
-        String requestURI = httpRequest.getRequestURI();
+            // 获取请求路径
+            String requestURI = httpRequest.getRequestURI();
 
-        // 排除登录和注册接口，登录不需要进行JWT认证
-        if (requestURI.equals("/api/usermanage/public/login")
-        || requestURI.equals("/api/usermanage/public/register")) {
-            // 不进行拦截，直接传递请求
-            chain.doFilter(request, response);
-            return;
-        }
+            // 排除登录和注册接口，登录不需要进行JWT认证
+            if (requestURI.equals("/api/usermanage/public/login")
+                    || requestURI.equals("/api/usermanage/public/register")) {
+                // 不进行拦截，直接传递请求
+                chain.doFilter(request, response);
+                return;
+            }
 
-        // 从请求头获取 JWT Token
-        String token = httpRequest.getHeader("Authorization");
-        if (token != null && token.startsWith("Bearer ")) {
-            try {
+            // 从请求头获取 JWT Token
+            String token = httpRequest.getHeader("Authorization");
+            if (token != null && token.startsWith("Bearer ")) {
                 // 移除 "Bearer " 部分
                 token = token.substring(7);
 
@@ -66,11 +66,15 @@ public class JwtAuthFilter implements Filter{
                     // 将认证信息设置到 SecurityContext 中
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
-            } catch (Exception e) {
-                // 解析失败，返回未授权
+            }else{
+                // 解析失败, 抛出异常
                 throw new JwtParseFailedException("Jwt parse failed");
             }
+            chain.doFilter(request, response);
+        }catch(IOException e){
+            throw new IOException("Internal server error. Please try again later.");
+        }catch(ServletException e){
+            throw new ServletException("Internal server error. Please try again later.");
         }
-        chain.doFilter(request, response);
     }
 }

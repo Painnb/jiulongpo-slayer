@@ -1,14 +1,19 @@
 package org.swu.vehiclecloud.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.MediaType; // Import MediaType
+
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.codec.ServerSentEvent; // Import ServerSentEvent
+
+
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
+
 import org.springframework.web.bind.annotation.*;
 import org.swu.vehiclecloud.service.DataService;
 import org.swu.vehiclecloud.annotations.PreAuthorizeRole;
-import reactor.core.publisher.Flux; // Import Flux
+import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,11 +25,11 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/datacontroller")
-@CrossOrigin(origins = "*") // Standard Spring WebFlux CORS annotation
+@CrossOrigin(origins = "*") 
 public class DataController {
 
     @Autowired
-    private DataService dataService; // Inject the WebFlux DataService
+    private DataService dataService; 
 
     /**
      * 获取SSE数据流 (WebFlux)
@@ -36,11 +41,11 @@ public class DataController {
      * 可通过/set-push-content端点动态更新推送内容
      * 需要BIZ_ADMIN、USER或ADMIN角色权限
      */
-    @GetMapping(value = "/public/ssestream/{ID}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    // Specify stream production
-    @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"}) // Keep your custom annotation
+
+    @GetMapping(value = "/public/ssestream/{ID}", produces = MediaType.TEXT_EVENT_STREAM_VALUE) // 指定流式响应类型
+    @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"})
     public Flux<ServerSentEvent<String>> streamData(@PathVariable("ID") String id) {
-        // Delegate directly to the service
+        // 直接委托给服务层处理
         return dataService.streamData(id);
     }
 
@@ -54,13 +59,13 @@ public class DataController {
      *                需要BIZ_ADMIN、USER或ADMIN角色权限
      */
     @PostMapping("/public/setpushcontent/{ID}")
-    @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"}) // Keep your custom annotation
+    @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"}) 
     public void setPushContent(@PathVariable("ID") String id, @RequestBody String content) {
-        // Delegate directly to the service
+        // 直接委托给服务层处理
         dataService.setPushContent(id, content);
-        // Note: In WebFlux, void methods typically return Mono<Void>.
-        // Spring handles this automatically for @RestController.
-        // For clarity or chaining, you could return Mono.empty():
+        // 注意：在WebFlux中，void方法通常返回Mono<Void>
+        // Spring会自动为@RestController处理这种情况
+        // 为了清晰或链式调用，可以返回Mono.empty():
         // return Mono.fromRunnable(() -> dataService.setPushContent(id, content));
     }
 
