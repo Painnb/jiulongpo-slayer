@@ -16,8 +16,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.*;
 
 @Service
@@ -120,7 +118,6 @@ public class MqttServiceImpl implements MqttService {
 
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
-
                 //System.out.println("payload_hex：" + bytesToHex(message.getPayload()));
                 //logger.info("Received MQTT message - Topic: {}, Payload: {}", topic, payload);
 
@@ -128,8 +125,9 @@ public class MqttServiceImpl implements MqttService {
                     //Map<String, Object> jsonPayload = parsePayload(message.getPayload());
                     //System.out.println("jsonPayload: " + jsonPayload);
                     mqttEventPublisher.publishEvent(new MqttMessageEvent(this, topic, parsePayload(message.getPayload())));
+
                 } else if(topic.matches("^vpub/obu/state/[^/]+$")){
-/*
+                    /*
                     String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
                     System.out.println("Original Message: " + payload);
 
@@ -145,7 +143,7 @@ public class MqttServiceImpl implements MqttService {
                     } catch (IOException e) {
                         logger.error("Failed to write message to file", e);
                     }
-                     */
+                    */
                 }
 
                 // mqtt协议解析
@@ -160,7 +158,7 @@ public class MqttServiceImpl implements MqttService {
         });
     }
 
-    private Map<String, Object> parsePayload(byte[] payload) throws Exception {
+    public Map<String, Object> parsePayload(byte[] payload) throws Exception {
         if (payload == null || payload.length < 16) { // 最小长度检查
             throw new IllegalArgumentException("无效的数据长度");
         }
@@ -224,7 +222,8 @@ public class MqttServiceImpl implements MqttService {
         ByteBuffer statusBuffer = ByteBuffer.wrap(statusBytes).order(ByteOrder.BIG_ENDIAN);
 
         content.put("tapPos", statusBuffer.get() & 0xFF);
-        content.put("steeringAngle", statusBuffer.getInt());
+        int steeringAngle = statusBuffer.getInt();
+        content.put("steeringAngle", steeringAngle == -1 ? 0 : steeringAngle); // 解析值无意义
         //content.put("velocityCAN", statusBuffer.getShort());
         //content.put("accelerationLon", statusBuffer.getShort());
         //content.put("accelerationLat", statusBuffer.getShort());
@@ -232,7 +231,8 @@ public class MqttServiceImpl implements MqttService {
         //content.put("yawRate", statusBuffer.getShort());
         //content.put("accelPos", statusBuffer.getShort());
         //content.put("engineSpeed", statusBuffer.getShort());
-        content.put("engineTorque", statusBuffer.getInt());
+        int engineTorque = statusBuffer.getInt();
+        content.put("engineTorque", engineTorque == -1 ? 0 : engineTorque); // 解析值无意义
         //content.put("brakeFlag", statusBuffer.get() & 0xFF);
         //content.put("brakePos", statusBuffer.getShort());
         //content.put("brakePressure", statusBuffer.getShort());
@@ -243,13 +243,16 @@ public class MqttServiceImpl implements MqttService {
         //error
         // 22. 目的地位置 (8字节)
         Map<String, Object> destLocation = new LinkedHashMap<>(2);
-        destLocation.put("longitude", buffer.getInt() * 1e-7 - 180);
-        destLocation.put("latitude", buffer.getInt() * 1e-7 - 90);
+        int destLocationLongitude = buffer.getInt();
+        destLocation.put("longitude", (destLocationLongitude == -1 ? 0 : destLocationLongitude) * 1e-7 - 180);// 解析值无意义
+        int destLocationLatitude = buffer.getInt();
+        destLocation.put("latitude", (destLocationLatitude == -1 ? 0 : destLocationLatitude) * 1e-7 - 90); // 解析值无意义
         content.put("destLocation", destLocation);
         // 23. 途经点
         //int passPointsNum = buffer.get() & 0xFF;
         //content.put("passPointsNum", passPointsNum);
-        content.put("passPointsNum", buffer.get());
+        int passPointsNum = buffer.get();
+        content.put("passPointsNum", passPointsNum == -1 ? 0 : passPointsNum); // 解析值无意义
         /*
         if (passPointsNum > 0) {
             if (buffer.remaining() < passPointsNum * 8) {
