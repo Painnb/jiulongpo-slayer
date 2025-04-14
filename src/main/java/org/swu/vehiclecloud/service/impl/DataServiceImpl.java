@@ -2,8 +2,12 @@ package org.swu.vehiclecloud.service.impl;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
+import org.swu.vehiclecloud.dto.AnomalyStat;
+import org.swu.vehiclecloud.dto.VehicleExceptionCount;
+import org.swu.vehiclecloud.mapper.DataMapper;
 import org.swu.vehiclecloud.service.DataService;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -11,6 +15,8 @@ import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -276,4 +282,74 @@ public class DataServiceImpl implements DataService {
         }
         return activeStreams.containsKey(id);
     }
+    @Autowired
+    private DataMapper dataMapper;
+
+    @Override
+    public List<AnomalyStat> getExceptionPieData() {
+        // 1. 从数据库获取各异常类型统计数
+        List<AnomalyStat> stats = new ArrayList<>();
+        stats.add(new AnomalyStat("方向盘异常", dataMapper.countSteeringAnomalies(), "#f25e43"));
+        stats.add(new AnomalyStat("车速异常", dataMapper.countSpeedAnomalies(), "#00bcd4"));
+        stats.add(new AnomalyStat("加速度异常", dataMapper.countAccelerationAnomalies(), "#64d572"));
+        stats.add(new AnomalyStat("油门异常", dataMapper.countBrakeAnomalies(), "#ffeb3b"));
+        stats.add(new AnomalyStat("发动机异常", dataMapper.countEngineAnomalies(), "#ff5722"));
+        stats.add(new AnomalyStat("地理位置异常", dataMapper.countGeolocationAnomalies(), "#ff5722"));
+        stats.add(new AnomalyStat("时间戳异常", dataMapper.countTimestampAnomalies(), "#ff5722"));
+
+        // 2. 计算总异常数用于百分比计算
+        int total = stats.stream().mapToInt(AnomalyStat::getValue).sum();
+
+        // 3. 设置每个异常项的百分比（四舍五入）
+        stats.forEach(stat -> {
+            double percent = (total > 0) ? (stat.getValue() * 100.0 / total) : 0;
+            stat.setPercent((int) Math.round(percent));
+        });
+
+        // 4. 按value从大到小排序
+        stats.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+
+        return stats;
+
+    }
+    @Override
+    public List<VehicleExceptionCount> getVehicleExceptionCounts() {
+        // 1. 从数据库获取各车辆异常数量统计（现在包含7个表）
+        List<Map<String, Object>> rawData = dataMapper.countExceptionsByVehicle();
+
+        // 2. 转换为VehicleExceptionCount对象列表
+        List<VehicleExceptionCount> result = new ArrayList<>();
+        for (Map<String, Object> item : rawData) {
+            String vehicleId = (String) item.get("name");
+            // 处理可能的null值
+            long count = item.get("value") == null ? 0 : ((Number) item.get("value")).longValue();
+            result.add(new VehicleExceptionCount("车辆" + vehicleId, (int) count));
+        }
+
+        // 3. 确保所有5种车辆都有数据（即使异常数为0）
+        ensureAllVehiclesPresent(result);
+
+        // 4. 按异常数量从大到小排序
+        result.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+
+        return result;
+    }
+    /**
+     * 确保结果中包含所有5种车辆（111,222,333,444,555），即使异常数为0
+     */
+    private void ensureAllVehiclesPresent(List<VehicleExceptionCount> result) {
+        String[] allVehicleIds = {"111", "222", "333", "444", "555"};
+
+        for (String vehicleId : allVehicleIds) {
+            boolean exists = result.stream()
+                    .anyMatch(item -> item.getName().equals("车辆" + vehicleId));
+
+            if (!exists) {
+                result.add(new VehicleExceptionCount("车辆" + vehicleId, 0));
+            }
+        }
+    }
+
 }
+
+
