@@ -1,6 +1,6 @@
 package org.swu.vehiclecloud.service.impl;
 
-import cn.hutool.json.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.*;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
@@ -11,12 +11,11 @@ import org.springframework.stereotype.Service;
 import org.swu.vehiclecloud.config.MqttConfigProperties;
 import org.swu.vehiclecloud.service.MqttService;
 import org.swu.vehiclecloud.event.MqttMessageEvent;
-
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.*;
 
 @Service
@@ -119,21 +118,37 @@ public class MqttServiceImpl implements MqttService {
 
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
-
+                //System.out.println("payload_hex：" + bytesToHex(message.getPayload()));
                 //logger.info("Received MQTT message - Topic: {}, Payload: {}", topic, payload);
 
-                if(topic.endsWith("_hex")){
-                    parsePayload(message.getPayload());
+                if(topic.matches("^vpub/obu/state/.*_hex$")){
+                    //Map<String, Object> jsonPayload = parsePayload(message.getPayload());
+                    //System.out.println("jsonPayload: " + jsonPayload);
                     mqttEventPublisher.publishEvent(new MqttMessageEvent(this, topic, parsePayload(message.getPayload())));
-                } else {
+
+                } else if(topic.matches("^vpub/obu/state/[^/]+$")){
+                    /*
                     String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
                     System.out.println("Original Message: " + payload);
-                    mqttEventPublisher.publishEvent(new MqttMessageEvent(this, topic, payload));
+
+                    ObjectMapper mapper = new ObjectMapper();
+                    Map<String, Object> payloadMap = mapper.readValue(payload, Map.class);
+                    mqttEventPublisher.publishEvent(new MqttMessageEvent(this, topic, payloadMap));
+
+                    // 写入本地文件
+                    try (FileWriter writer = new FileWriter("mqtt_messages.txt", true)) {
+                        //writer.write("[" + Instant.now().atZone(ZoneId.systemDefault()) + "] ");
+                        //writer.write("Topic: " + topic + " | ");
+                        writer.write( payload + "\n");
+                    } catch (IOException e) {
+                        logger.error("Failed to write message to file", e);
+                    }
+                    */
                 }
+
                 // mqtt协议解析
 
                 // 发布事件
-
             }
 
             @Override
@@ -143,7 +158,7 @@ public class MqttServiceImpl implements MqttService {
         });
     }
 
-    private Map<String, Object> parsePayload(byte[] payload) throws Exception {
+    public Map<String, Object> parsePayload(byte[] payload) throws Exception {
         if (payload == null || payload.length < 16) { // 最小长度检查
             throw new IllegalArgumentException("无效的数据长度");
         }
@@ -184,23 +199,22 @@ public class MqttServiceImpl implements MqttService {
         buffer.get(vehicleIdBytes);
         content.put("vehicleId", new String(vehicleIdBytes).trim());
         // 2. 消息编号 (8字节)
-        byte[] messageIdBytes = new byte[8];
-        buffer.get(messageIdBytes);
-        content.put("messageId", messageIdBytes);
+        content.put("messageId", buffer.getLong());
         // 3. GNSS时间戳 (8字节)
         content.put("timestampGNSS", buffer.getLong());
         // 4. GNSS速度 (2字节)
-        content.put("velocityGNSS", buffer.getShort());
+        content.put("velocityGNSS", buffer.getShort() & 0xFF);
 
-        //error
         // 5. 位置 (12字节)
         Map<String, Object> position = new LinkedHashMap<>(3);
-        position.put("longitude", buffer.getInt() * 1e-7);
-        position.put("latitude", buffer.getInt() * 1e-7);
-        position.put("elevation", buffer.getInt() * 1e-7);
+        long longitudeRaw = buffer.getInt() & 0xFFFFFFFFL;
+        double longitudeDeg = (longitudeRaw - 1800000000L) * 1e-7;
+        position.put("longitude", longitudeDeg);
+        position.put("latitude", buffer.getInt() * 1e-7 - 90);
+        position.put("elevation", buffer.getInt() - 5000);
         content.put("position", position);
         // 6. 航向角 (4字节)
-        content.put("heading", buffer.getInt() / 1000);
+        content.put("heading", buffer.getInt() * 1e-4);
         // 7-21. 车辆状态数据
         //byte[] statusBytes = new byte[1 + 4 + 2 + 2*6 + 4 + 1 + 2*3 + 2 + 1];
         byte[] statusBytes = new byte[9];
@@ -208,7 +222,8 @@ public class MqttServiceImpl implements MqttService {
         ByteBuffer statusBuffer = ByteBuffer.wrap(statusBytes).order(ByteOrder.BIG_ENDIAN);
 
         content.put("tapPos", statusBuffer.get() & 0xFF);
-        content.put("steeringAngle", statusBuffer.getInt());
+        int steeringAngle = statusBuffer.getInt();
+        content.put("steeringAngle", steeringAngle == -1 ? 0 : steeringAngle); // 解析值无意义
         //content.put("velocityCAN", statusBuffer.getShort());
         //content.put("accelerationLon", statusBuffer.getShort());
         //content.put("accelerationLat", statusBuffer.getShort());
@@ -216,7 +231,8 @@ public class MqttServiceImpl implements MqttService {
         //content.put("yawRate", statusBuffer.getShort());
         //content.put("accelPos", statusBuffer.getShort());
         //content.put("engineSpeed", statusBuffer.getShort());
-        content.put("engineTorque", statusBuffer.getInt());
+        int engineTorque = statusBuffer.getInt();
+        content.put("engineTorque", engineTorque == -1 ? 0 : engineTorque); // 解析值无意义
         //content.put("brakeFlag", statusBuffer.get() & 0xFF);
         //content.put("brakePos", statusBuffer.getShort());
         //content.put("brakePressure", statusBuffer.getShort());
@@ -227,12 +243,16 @@ public class MqttServiceImpl implements MqttService {
         //error
         // 22. 目的地位置 (8字节)
         Map<String, Object> destLocation = new LinkedHashMap<>(2);
-        destLocation.put("longitude", buffer.getInt() * 1e-7);
-        destLocation.put("latitude", buffer.getInt() * 1e-7);
+        int destLocationLongitude = buffer.getInt();
+        destLocation.put("longitude", (destLocationLongitude == -1 ? 0 : destLocationLongitude) * 1e-7 - 180);// 解析值无意义
+        int destLocationLatitude = buffer.getInt();
+        destLocation.put("latitude", (destLocationLatitude == -1 ? 0 : destLocationLatitude) * 1e-7 - 90); // 解析值无意义
         content.put("destLocation", destLocation);
         // 23. 途经点
-        int passPointsNum = buffer.get() & 0xFF;
-        content.put("passPointsNum", passPointsNum);
+        //int passPointsNum = buffer.get() & 0xFF;
+        //content.put("passPointsNum", passPointsNum);
+        int passPointsNum = buffer.get();
+        content.put("passPointsNum", passPointsNum == -1 ? 0 : passPointsNum); // 解析值无意义
         /*
         if (passPointsNum > 0) {
             if (buffer.remaining() < passPointsNum * 8) {
@@ -305,6 +325,14 @@ public class MqttServiceImpl implements MqttService {
 
     public boolean isConnected() {
         return mqttClient != null && mqttClient.isConnected();
+    }
+
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
     }
 }
 

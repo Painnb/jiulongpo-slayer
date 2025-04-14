@@ -45,6 +45,9 @@ public class MqttMessageListener {
     @EventListener
     @Transactional
     public void handleMqttMessage(MqttMessageEvent event) {
+        //String json = event.getMessage();
+        //logger.info("Event received - Topic: {}, Message: {}",event.getTopic(), event.getMessage());
+
         try {
             Map<String, Object> payload = event.getMessage();
             if (payload == null) {
