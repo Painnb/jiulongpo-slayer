@@ -25,9 +25,29 @@
                 :body-style="{ padding: '20px 50px', height: '100%', boxSizing: 'border-box' }"
             >
                 <el-tabs tab-position="left" v-model="activeName">
-                    <el-tab-pane name="label1" label="消息通知" class="user-tabpane">
-                        <TabsComp />
+                    <el-tab-pane name="label5" label="更改订阅" class="user-tabpane">
+                        <el-form class="w500" label-position="top">
+                            <el-form-item label="Broker URL：">
+                                <el-input v-model="mqttConfig.brokerUrl" placeholder="tcp://192.168.31.250:1887"></el-input>
+                            </el-form-item>
+                            <el-form-item label="用户名：">
+                                <el-input v-model="mqttConfig.username" placeholder="smqtt"></el-input>
+                            </el-form-item>
+                            <el-form-item label="密码：">
+                                <el-input type="password" v-model="mqttConfig.password" placeholder="smqtt"></el-input>
+                            </el-form-item> 
+                            <el-form-item label="客户端 ID：">
+                                <el-input v-model="mqttConfig.clientId" placeholder="myclient"></el-input>
+                            </el-form-item>
+                            <el-form-item label="订阅主题：">
+                                <el-input v-model="mqttConfig.subTopics" placeholder="#"></el-input>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="saveMqttConfig">保存</el-button>
+                            </el-form-item>
+                        </el-form>
                     </el-tab-pane>
+                        
                     <el-tab-pane name="label2" label="个人信息" class="user-tabpane">
                         <el-form class="w500" label-position="top">
                             <el-form-item label="用户名：">
@@ -60,28 +80,7 @@
                             </el-form-item>
                         </el-form>
                     </el-tab-pane>
-                    <el-tab-pane name="label5" label="更改订阅" class="user-tabpane">
-                        <el-form class="w500" label-position="top">
-                            <el-form-item label="Broker URL：">
-                                <el-input v-model="mqttConfig.brokerUrl" placeholder="tcp://192.168.31.250:1887"></el-input>
-                            </el-form-item>
-                            <el-form-item label="用户名：">
-                                <el-input v-model="mqttConfig.username" placeholder="smqtt"></el-input>
-                            </el-form-item>
-                            <el-form-item label="密码：">
-                                <el-input type="password" v-model="mqttConfig.password" placeholder="smqtt"></el-input>
-                            </el-form-item> 
-                            <el-form-item label="客户端 ID：">
-                                <el-input v-model="mqttConfig.clientId" placeholder="myclient"></el-input>
-                            </el-form-item>
-                            <el-form-item label="订阅主题：">
-                                <el-input v-model="mqttConfig.subTopics" placeholder="#"></el-input>
-                            </el-form-item>
-                            <el-form-item>
-                                <el-button type="primary" @click="saveMqttConfig">保存</el-button>
-                            </el-form-item>
-                        </el-form>
-                    </el-tab-pane>
+                    
                 </el-tabs>
             </el-card>
         </div>
@@ -94,6 +93,7 @@ import { VueCropper } from 'vue-cropper';
 import 'vue-cropper/dist/index.css';
 import avatar from '@/assets/img/img.jpg';
 import TabsComp from '../element/tabs.vue';
+import axios from 'axios';
 
 const name = localStorage.getItem('vuems_name');
 const form = reactive({
@@ -103,7 +103,7 @@ const form = reactive({
 });
 const onSubmit = () => {};
 
-const activeName = ref('label1');
+const activeName = ref('label5');
 
 const avatarImg = ref(avatar);
 const imgSrc = ref(avatar);
@@ -158,13 +158,26 @@ const saveAvatar = () => {
 
 const saveMqttConfig = () => {
     console.log('保存 MQTT 配置：', mqttConfig);
-    // TODO: 调用后端接口保存 MQTT 配置
-    // 示例：
-    // axios.post('/api/mqtt/config', mqttConfig).then(response => {
-    //     console.log('保存成功', response);
-    // }).catch(error => {
-    //     console.error('保存失败', error);
-    // });
+    const token = localStorage.getItem('token');
+    if (token) {
+        axios.post('/abc/mqtt/config',  mqttConfig, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+
+        })
+        .then(response => {
+            console.log('保存成功', response);
+            // 可以在这里添加保存成功的提示信息
+        })
+        .catch(error => {
+            console.error('保存失败', error);
+            // 可以在这里添加保存失败的提示信息
+        });
+    } else {
+        console.error('Token 未找到');
+        // 可以在这里添加 Token 未找到的提示信息
+    }
 };
 </script>
 
@@ -186,7 +199,7 @@ const saveMqttConfig = () => {
 .user-profile-bg {
     width: 100%;
     height: 80vh;
-    background-image: url('../../assets/img/ucenter-bg.png');
+    background-image: url('../../assets/img/ucenter-bg.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -217,7 +230,7 @@ const saveMqttConfig = () => {
     margin-top: 260px; 
     text-align: center;
     padding: 20px;
-    background-color: rgba(255, 255, 255, 0.332);
+    background-color: rgba(255, 255, 255, 0.675);
     border-radius: 10px; /* 圆角 */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 添加阴影 */
 }
@@ -260,6 +273,7 @@ const saveMqttConfig = () => {
 
 .user-content {
     flex: 1;
+    background-image: url('../../assets/img/ucenter-bg1.jpg');
 }
 </style>
 

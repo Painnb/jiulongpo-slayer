@@ -1,55 +1,46 @@
 <template>
-    <div>
-        <el-row :gutter="20" class="mgb20">
+    <div class="dashboard">
+        <el-row :gutter="20" class="mgb20" >
             <el-col :span="6">
                 <el-card shadow="hover" body-class="card-body">
-                    <el-icon class="card-icon bg1">
-                        <User />
-                    </el-icon>
+                    <img src="@/assets/img/card1.png" alt="在线数量" class="card-icon bg-blue" />
                     <div class="card-content">
-                        <countup class="card-num color1" :end="6666" />
-                        <div>用户访问量</div>
-                    </div>
-                </el-card>
-            </el-col>
-            <el-col :span="6">
-                <el-card shadow="hover" body-class="card-body">
-                    <el-icon class="card-icon bg2">
-                        <ChatDotRound />
-                    </el-icon>
-                    <div class="card-content">
-                        <countup class="card-num color2" :end="168" />
-                        <div>系统消息</div>
-                    </div>
-                </el-card>
-            </el-col>
-            <el-col :span="6">
-                <el-card shadow="hover" body-class="card-body">
-                    <el-icon class="card-icon bg3">
-                        <DataAnalysis />
-                    </el-icon>
-                    <div class="card-content">
-                        <countup class="card-num color3" :end="999" />
+                        <div class="card-num color1"  >{{onlineCount}}</div>
                         <div>在线数量</div>
                     </div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" body-class="card-body">
-                    <el-icon class="card-icon bg4">
-                        <MostlyCloudy />
-                    </el-icon>
+                    <img src="@/assets/img/card2.png" alt="活跃数量" class="card-icon bg-green" />
                     <div class="card-content">
-                        <countup class="card-num color4" :end="888" />
-                        <div>离线数量</div>
+                        <div class="card-num color2"  >{{activeCount}}</div>
+                        <div>活跃数量</div>
+                    </div>
+                </el-card>
+            </el-col>
+            <el-col :span="6">
+                <el-card shadow="hover" body-class="card-body">
+                    <img src="@/assets/img/card3.png" alt="异常数量" class="card-icon bg-red" />
+                    <div class="card-content">
+                        <div class="card-num color3"  >{{ exceptionCount }}</div>
+                        <div>异常数量</div>
+                    </div>
+                </el-card>
+            </el-col>
+            <el-col :span="6">
+                <el-card shadow="hover" body-class="card-body">
+                    <img src="@/assets/img/card4.png" alt="时间" class="card-icon bg-orange" />
+                    <div class="card-content">
+                        <div class="card-num color4"  >{{ currentTime }}</div>
                     </div>
                 </el-card>
             </el-col>
         </el-row>
 
-        <el-row :gutter="20" class="mgb20">
-            <el-col :span="18">
-                <el-card shadow="hover">
+        <el-row :gutter="20" class="mgb20" >
+            <el-col :span="12">
+                <el-card shadow="hover" :body-style="{height: '420px',backgroundColor:'#eef5ff'}">
                     <div class="card-header">
                         <p class="card-header-title">动态数据</p>
                         <p class="card-header-desc">实时监测的车辆数据</p>
@@ -57,62 +48,92 @@
                     <v-chart class="chart" :option="dashOpt1" />
                 </el-card>
             </el-col>
-            <el-col :span="6">
-                <el-card shadow="hover">
-                    <div class="card-header">
-                        <div class="card-header-left">
-                            <p class="card-header-title">车辆状态</p>
-                            <p class="card-header-desc">实时监测的车辆状态</p>
-                        </div>
-                        <!-- 添加按钮 -->
-                        <el-button size="mini" type="primary" @click="showList = true">选择车辆</el-button>
-                    </div>
-                    <!-- 图表区域 -->
-                    <div v-if="!showList">
-                        <v-chart class="chart" :option="dashOpt2" />
-                    </div>
-                    <!-- 列表区域 -->
-                    <div v-else class="list-container">
-                        <el-checkbox-group v-model="selectedOptions" class="scrollable-list">
-                            <el-checkbox
-                                v-for="(option, index) in options"
-                                :key="index"
-                                :label="option"
-                                class="checkbox-item"
-                            >
-                                {{ option }}
-                            </el-checkbox>
-                        </el-checkbox-group>
-                        <div class="list-buttons">
-                            <el-button size="mini" type="primary" @click="showList = false">返回</el-button>
-                            <el-button size="mini" type="success" @click="printSelections">打印</el-button>
-                        </div>
-                    </div>
-                </el-card>
+            <el-col :span="12">
+                <el-row :gutter="20">
+                    <el-col :span="12">
+                        <el-card shadow="hover" :body-style="{ height: '420px',backgroundColor:'#c0dbf8'}">
+                            <div class="card-header">
+                                <div class="card-header-left">
+                                    <p class="card-header-title">数据解析</p>
+                                    <p class="card-header-desc">输入数据并解析为JSON</p>
+                                </div>
+                            </div>
+                            <div class="data-parser">
+                                <el-input
+                                    v-model="inputData"
+                                    type="textarea"
+                                    placeholder="输入待解析数据"
+                                    size="small"
+                                    class="parser-input"
+                                />
+                                <el-button
+                                    type="primary"
+                                    size="small"
+                                    @click="parseData"
+                                    class="parser-button"
+                                >
+                                    解析
+                                </el-button>
+                            </div>
+                            <div v-if="parsedData" class="parser-result">
+                                <p>解析结果：</p>
+                                <el-table
+                                    :data="parsedTableData"
+                                    border
+                                    style="width: 100%; max-height: 250px; overflow-y: auto;"
+                                >
+                                    <el-table-column
+                                        prop="key"
+                                        label="字段"
+                                        width="150"
+                                    />
+                                    <el-table-column
+                                        prop="value"
+                                        label="值"
+                                    />
+                                </el-table>
+                            </div>
+                        </el-card>
+                    </el-col>
+                    <el-col :span="12">
+                        <el-card shadow="hover" :body-style="{ height: '420px', backgroundColor: '#76A9F7' }">
+                            <div class="card-header">
+                                <p class="card-header-title">通知</p>
+                            </div>
+                            <div class="notification-input">
+                                <el-input 
+                                    v-model="newNotification" 
+                                    placeholder="输入通知内容" 
+                                    size="small" 
+                                    class="notification-textbox" 
+                                />
+                                <el-button 
+                                    type="primary" 
+                                    size="small" 
+                                    @click="addNotification" 
+                                    class="notification-button">
+                                    发布通知
+                                </el-button>
+                            </div>
+                            <el-timeline>
+                                <el-timeline-item v-for="(activity, index) in activities" :key="index" :color="activity.color">
+                                    <div class="timeline-item">
+                                        <div>
+                                            <p>{{ activity.content }}</p>
+                                            <p class="timeline-desc">{{ activity.description }}</p>
+                                        </div>
+                                        <div class="timeline-time">{{ activity.timestamp }}</div>
+                                    </div>
+                                </el-timeline-item>
+                            </el-timeline>
+                        </el-card>
+                    </el-col>
+                </el-row>
             </el-col>
         </el-row>
-        <el-row :gutter="20">
-            <el-col :span="7">
-                <el-card shadow="hover" :body-style="{ height: '400px' }">
-                    <div class="card-header">
-                        <p class="card-header-title">时间线</p>
-                        <p class="card-header-desc"></p>
-                    </div>
-                    <el-timeline>
-                        <el-timeline-item v-for="(activity, index) in activities" :key="index" :color="activity.color">
-                            <div class="timeline-item">
-                                <div>
-                                    <p>{{ activity.content }}</p>
-                                    <p class="timeline-desc">{{ activity.description }}</p>
-                                </div>
-                                <div class="timeline-time">{{ activity.timestamp }}</div>
-                            </div>
-                        </el-timeline-item>
-                    </el-timeline>
-                </el-card>
-            </el-col>
-            <el-col :span="10">
-                <el-card shadow="hover" :body-style="{ height: '400px' }">
+        <el-row :gutter="20" >
+            <el-col :span="12">
+                <el-card shadow="hover" :body-style="{ height: '390px', backgroundColor: '#B1CFFF' }">
                     <div class="card-header">
                         <p class="card-header-title">异常分布</p>
                         <p class="card-header-desc">最近一个月全国各地的异常分布</p>
@@ -120,11 +141,10 @@
                     <v-chart class="map-chart" :option="mapOptions" />
                 </el-card>
             </el-col>
-            <el-col :span="7">
-                <el-card shadow="hover" :body-style="{ height: '400px' }">
+            <el-col :span="12">
+                <el-card shadow="hover" :body-style="{ height: '390px', backgroundColor: '#BFD5F8' }">
                     <div class="card-header">
                         <p class="card-header-title">异常统计</p>
-                        <p class="card-header-desc"></p>
                     </div>
                     <div>
                         <div class="rank-item" v-for="(rank, index) in ranks">
@@ -163,9 +183,38 @@ import {
 } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import VChart from 'vue-echarts';
-import { dashOpt1, dashOpt2, mapOptions,chongqingMapOptions } from './chart/options';
+import { dashOpt1, dashOpt2, mapOptions } from './chart/options';
 import chinaMap from '@/utils/china';
-import { ref } from 'vue';
+import { ref ,onMounted,onUnmounted} from 'vue';
+import { createSSEConnection } from '../utils/sse'; // 假设封装的工具函数放在 utils/sse.ts
+
+const activeCount = ref<string>('');
+const onlineCount = ref<string>('');
+const exceptionCount = ref<string>('');
+let sseConnection: { close: () => void } | null = null;
+
+const token = localStorage.getItem('token') || ''; // 假设 token 存储在 localStorage 中
+
+onMounted(() => {
+  sseConnection = createSSEConnection('/abc/api/datacontroller/public/ssestream/activity_alerts', token, {
+    onOpen: () => {
+      console.log('SSE连接已建立');
+    },
+    onMessage: (data) => {
+        console.log('收到SSE消息:', data);
+        activeCount.value = data.activeCount;
+        onlineCount.value = data.onlineCount;
+    },
+    onError: (error) => {
+      console.error('SSE连接错误:', error);
+    }
+  });
+});
+
+onUnmounted(() => {
+  sseConnection?.close();
+});
+
 
 use([
     CanvasRenderer,
@@ -180,7 +229,23 @@ use([
     MapChart,
 ]);
 registerMap('china', chinaMap);
-const activities = [
+// 当前时间
+const currentTime = ref('');
+
+// 定时更新当前时间
+setInterval(() => {
+    const now = new Date();
+    currentTime.value = now.toLocaleString('zh-CN', {
+        hour12: false,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+    });
+}, 1000);
+const activities = ref([
     {
         content: '车辆行驶',
         description: 'xxx车辆正在行驶，去查看车辆状态',
@@ -192,14 +257,30 @@ const activities = [
         description: 'xxx异常已被处理',
         timestamp: '55分钟前',
         color: '#1ABC9C',
-    },
+    },  
     {
         content: '异常捕捉',
         description: '捕捉到xxx异常，请处理',
         timestamp: '1小时前',
         color: '#3f51b5',
     }
-];
+]);
+
+// 新增通知相关状态
+const newNotification = ref('');
+const addNotification = () => {
+    if (newNotification.value.trim()) {
+        activities.value.unshift({
+            content: '通知',
+            description: newNotification.value,
+            timestamp: '刚刚',
+            color: '#f39c12',
+        });
+        newNotification.value = ''; // 清空输入框
+    } else {
+        alert('请输入通知内容！');
+    }
+};
 
 const ranks = [
     {
@@ -213,6 +294,7 @@ const ranks = [
         value: 8000,
         percent: 70,
         color: '#00bcd4',
+        
     },
     {
         title: '加速度异常',
@@ -252,22 +334,56 @@ const printSelections = () => {
         alert('请先选择一个或多个选项！');
     }
 };
+
+const inputData = ref(''); // 输入数据
+const parsedData = ref(''); // 解析结果
+const parsedTableData = ref([]); // 表格数据
+
+const parseData = async () => {
+    if (!inputData.value.trim()) {
+        alert('请输入数据！');
+        return;
+    }
+    try {
+        // 调用后端接口，替换为实际接口地址
+        const response = await fetch('/api/parse', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ data: inputData.value }),
+        });
+        const result = await response.json();
+        parsedData.value = JSON.stringify(result, null, 2); // 格式化 JSON
+        parsedTableData.value = Object.entries(result).map(([key, value]) => ({
+            key,
+            value: typeof value === 'object' ? JSON.stringify(value) : value,
+        }));
+    } catch (error) {
+        console.error('解析失败:', error);
+        alert('解析失败，请检查输入或稍后重试！');
+    }
+};
 </script>
 
 <style>
+.dashboard{
+    background-color:#4575BD    ;
+}
+
+
 .card-body {
     display: flex;
     align-items: center;
     height: 100px;
     padding: 0;
 }
-</style>
-<style scoped>
+
 .card-content {
     flex: 1;
     text-align: center;
     font-size: 14px;
-    color: #999;
+    color: #362f2f;
     padding: 0 20px;
 }
 
@@ -276,32 +392,32 @@ const printSelections = () => {
 }
 
 .card-icon {
-    font-size: 50px;
-    width: 100px;
-    height: 100px;
-    text-align: center;
-    line-height: 100px;
-    color: #fff;
+    width: 80px;
+    height: 80px;
+    object-fit: contain; /* 确保图片适应容器 */
+    padding: 10px; /* 内边距 */
 }
 
-.bg1 {
-    background: #2d8cf0;
+.bg-blue {
+    background-color: #007bff; /* 蓝色 */
 }
 
-.bg2 {
-    background: #64d572;
+.bg-green {
+    background-color: #28a745; /* 绿色 */
 }
 
-.bg3 {
-    background: #f25e43;
+.bg-red {
+    background-color: #dc3545; /* 红色 */
 }
 
-.bg4 {
-    background: #e9a745;
+.bg-orange {
+    background-color: #fd7e14; /* 橙色 */
 }
+
+
 
 .color1 {
-    color: #2d8cf0;
+    color: #b2d2f5;
 }
 
 .color2 {
@@ -327,6 +443,7 @@ const printSelections = () => {
     justify-content: space-between; /* 将标题和按钮分开对齐 */
     padding-left: 10px;
     margin-bottom: 20px;
+    
 }
 
 .card-header-left {
@@ -349,14 +466,13 @@ const printSelections = () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 16px;
-    color: #000;
+    font-size: 18px;
+    color: #fbffeacb; 
 }
 
-.timeline-time,
-.timeline-desc {
+.tiline-time, .timeline-desc {
     font-size: 12px;
-    color: #787878;
+    color: #dcdcdc; 
 }
 
 .rank-item {
@@ -391,10 +507,12 @@ const printSelections = () => {
     font-size: 14px;
     color: #999;
 }
+
 .map-chart {
     width: 100%;
     height: 350px;
 }
+
 
 .list-container {
     display: flex;
@@ -403,6 +521,7 @@ const printSelections = () => {
     justify-content: space-between;
     height: 350px; /* 与图表高度一致 */
     padding: 10px;
+
 }
 
 .scrollable-list {
@@ -439,5 +558,54 @@ const printSelections = () => {
     justify-content: space-between;
     width: 100%;
     margin-top: 10px;
+}
+
+.notification-input {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.notification-textbox {
+    flex: 1;
+    margin-right: 10px;
+    height: 30px; /* 调高输入框高度 */
+    font-size: 16px; /* 放大字体 */
+}
+
+.notification-button {
+    flex-shrink: 0;
+    height: 30px; /* 调高按钮高度 */
+    font-size: 16px; /* 放大字体 */
+}
+
+.data-parser {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+
+.parser-input {
+    flex: 1;
+    margin-right: 10px;
+    height: 100px; /* 增大输入框高度 */
+    
+}
+
+.parser-button {
+    flex-shrink: 0;
+    height: 40px; /* 调整按钮高度 */
+}
+
+.parser-result {
+    background-color: #f5f5f5;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #333;
+    white-space: pre-wrap; /* 保留换行 */
+    word-wrap: break-word; /* 自动换行 */
+    overflow-y: auto; /* 启用滚动 */
+    max-height: 250px; /* 限制最大高度 */
 }
 </style>

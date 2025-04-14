@@ -104,9 +104,10 @@ const submitForm = async (formEl: FormInstance | undefined) => {
                     const key = userData.role; // 从 data 中获取 role
                     localStorage.setItem('auth', key); // 将 role 存储到 localStorage
                     console.log("key:", key);
+                    localStorage.setItem('token', userData.token);
 
                     // 根据后端返回的 key 设置权限
-                    if (key === 'ADMIN') {
+                    if (key === 'BIZ_ADMIN') {
                         permiss.handleSet(permiss.defaultList.admin);
                     } else if (key === 'USER') {
                         permiss.handleSet(permiss.defaultList.user);
