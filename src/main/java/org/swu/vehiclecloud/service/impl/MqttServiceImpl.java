@@ -1,5 +1,6 @@
 package org.swu.vehiclecloud.service.impl;
 
+import cn.hutool.core.thread.ThreadFactoryBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.*;
@@ -11,12 +12,14 @@ import org.springframework.stereotype.Service;
 import org.swu.vehiclecloud.config.MqttConfigProperties;
 import org.swu.vehiclecloud.service.MqttService;
 import org.swu.vehiclecloud.event.MqttMessageEvent;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 @Service
 @Slf4j
@@ -27,6 +30,11 @@ public class MqttServiceImpl implements MqttService {
     private MqttConnectOptions currentConnectOptions;
     private final MqttConfigProperties config;
     private final ApplicationEventPublisher  mqttEventPublisher;
+    private int receiveCount = 0;
+    private int parsedCount = 0;
+    private static final Pattern HEX_TOPIC_PATTERN =
+            Pattern.compile("^vpub/obu/state/.*_hex$");
+    private ExecutorService messageProcessor;
     //private boolean isConnected = false;
 
     public MqttServiceImpl(MqttConfigProperties mqttConfigProperties, ApplicationEventPublisher  mqttEventPublisher) throws MqttException {
@@ -35,6 +43,12 @@ public class MqttServiceImpl implements MqttService {
     }
 
     private void initClient() {
+        if (this.messageProcessor != null) {
+            shutdownExecutor(this.messageProcessor);
+        }
+        // 2. 创建新的线程池
+        this.messageProcessor = createThreadPool();
+
         try {
             if (this.mqttClient != null && this.mqttClient.isConnected()) {
                 this.mqttClient.disconnect();
@@ -62,6 +76,12 @@ public class MqttServiceImpl implements MqttService {
     }
 
     public void reinitialize(String brokerUrl, String clientId, String username, String password, List<String> topic) throws MqttException {
+        if (this.messageProcessor != null) {
+            shutdownExecutor(this.messageProcessor);
+        }
+        // 2. 创建新的线程池
+        this.messageProcessor = createThreadPool();
+
         // 更新配置
         config.setBrokerUrl(brokerUrl);
         config.setClientId(clientId);
@@ -96,7 +116,29 @@ public class MqttServiceImpl implements MqttService {
         }
     }
 
-    // 创建连接配置
+    // 创建新的线程池
+    private ExecutorService createThreadPool() {
+        return new ThreadPoolExecutor(
+                4, 8, 30, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(1000),
+                new ThreadPoolExecutor.CallerRunsPolicy()
+        );
+    }
+
+    private void shutdownExecutor(ExecutorService executor) {
+        executor.shutdown(); // 停止接收新任务
+        try {
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                List<Runnable> droppedTasks = executor.shutdownNow(); // 强制终止
+                logger.warn("ThreadPool did not terminate gracefully, dropped {} tasks", droppedTasks.size());
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.error("ThreadPool shutdown interrupted", e);
+        }
+    }
+
+        // 创建连接配置
     private MqttConnectOptions createConnectOptions(String username, String password) throws MqttException {
         MqttConnectOptions options = new MqttConnectOptions();
         options.setUserName(username);
@@ -118,16 +160,28 @@ public class MqttServiceImpl implements MqttService {
 
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
-                //System.out.println("payload_hex：" + bytesToHex(message.getPayload()));
-                //logger.info("Received MQTT message - Topic: {}, Payload: {}", topic, payload);
+                receiveCount++;
 
+                messageProcessor.submit(() -> {
+                    try {
+                        if (HEX_TOPIC_PATTERN.matcher(topic).matches()) {
+                            Map<String, Object> jsonPayload = parsePayload(message.getPayload());
+                            mqttEventPublisher.publishEvent(new MqttMessageEvent(this, topic, jsonPayload));
+                            parsedCount++;
+                        }
+                    } catch (Exception e) {
+                        logger.error("Process failed: topic={}, payload={}", topic,
+                                bytesToHex(message.getPayload()), e);
+                    }
+                });
+                /*
                 if(topic.matches("^vpub/obu/state/.*_hex$")){
                     //Map<String, Object> jsonPayload = parsePayload(message.getPayload());
-                    System.out.println("jsonPayload: " + parsePayload(message.getPayload()));
+                    //System.out.println("jsonPayload: " + parsePayload(message.getPayload()));
                     mqttEventPublisher.publishEvent(new MqttMessageEvent(this, topic, parsePayload(message.getPayload())));
-
+                    parsedCount++;
                 } else if(topic.matches("^vpub/obu/state/[^/]+$")){
-                    /*
+
                     String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
                     System.out.println("Original Message: " + payload);
 
@@ -143,12 +197,9 @@ public class MqttServiceImpl implements MqttService {
                     } catch (IOException e) {
                         logger.error("Failed to write message to file", e);
                     }
-                    */
+
                 }
-
-                // mqtt协议解析
-
-                // 发布事件
+                 */
             }
 
             @Override
@@ -176,7 +227,7 @@ public class MqttServiceImpl implements MqttService {
         result.put("ctl", headerBuffer.get() & 0xFF);
         // 解析数据内容
         int dataLength = (int) result.get("dataLen");
-        System.out.println("dataLength: " + dataLength);
+        //System.out.println("dataLength: " + dataLength);
         if (dataLength > 0) {
             if (buffer.remaining() < dataLength) {
                 throw new IllegalArgumentException("数据长度不匹配");
@@ -315,13 +366,22 @@ public class MqttServiceImpl implements MqttService {
 
     @Override
     public void close() throws Exception {
-        if (mqttClient != null) {
-            if (mqttClient.isConnected()) {
-                mqttClient.disconnect();
+        try {
+            shutdownExecutor(messageProcessor); // 复用关闭逻辑
+        } finally {
+            if (mqttClient != null) {
+                try {
+                    if (mqttClient.isConnected()) mqttClient.disconnect();
+                    mqttClient.close();
+                    System.out.println("receiveCount: " + receiveCount);
+                    System.out.println("parserCount: " + parsedCount);
+                } catch (MqttException e) {
+                    throw new Exception("MQTT close failed", e);
+                }
             }
-            mqttClient.close();
         }
     }
+
 
     public boolean isConnected() {
         return mqttClient != null && mqttClient.isConnected();

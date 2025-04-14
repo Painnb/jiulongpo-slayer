@@ -11,8 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.swu.vehiclecloud.util.CurrentUserContext;
 
-
-
 @Aspect
 @Component
 public class RoleAuthorizationAspect {
