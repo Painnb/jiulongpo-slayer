@@ -8,21 +8,31 @@
         </el-col>
         <el-col :span="6">
           <el-date-picker
-            v-model="filters.dateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
+            v-model="filters.startTime"
+            type="datetime"
+            placeholder="开始时间"
             style="width: 100%;"
           />
         </el-col>
         <el-col :span="6">
-            <el-select v-model="filters.exceptionType" placeholder="请选择异常类型" clearable style="width: 100%;">
-            <el-option label="全部类型" value="all" />
-            <el-option label="类型1" value="类型1" />
-            <el-option label="类型2" value="类型2" />
-            <el-option label="类型3" value="类型3" />
-            </el-select>
+          <el-date-picker
+            v-model="filters.endTime"
+            type="datetime"
+            placeholder="结束时间"
+            style="width: 100%;"
+          />
+        </el-col>
+        <el-col :span="6">
+          <el-select
+            v-model="filters.selectedTables"
+            multiple
+            placeholder="请选择表名"
+            style="width: 100%;"
+          >
+            <el-option label="发动机异常" value="engine_exp" />
+            <el-option label="速度异常" value="speed_exp" />
+            <el-option label="其他异常" value="other_exp" />
+          </el-select>
         </el-col>
         <el-col :span="6">
           <el-button type="primary" @click="search">查询</el-button>
@@ -57,12 +67,14 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import axios from 'axios';
 
 // 过滤条件
 const filters = ref({
   vehicleId: '',
-  dateRange: [],
-  exceptionType: ''
+  startTime: null,
+  endTime: null,
+  selectedTables: []
 });
 
 // 模拟数据
@@ -86,13 +98,10 @@ const pageSize = ref(15);
 const filteredData = computed(() => {
   return data.value.filter((item) => {
     const matchesVehicleId = !filters.value.vehicleId || item.vehicleId.includes(filters.value.vehicleId);
-    const matchesDateRange =
-      !filters.value.dateRange.length ||
-      (new Date(item.time) >= new Date(filters.value.dateRange[0]) &&
-        new Date(item.time) <= new Date(filters.value.dateRange[1]));
-    const matchesExceptionType =
-    !filters.value.exceptionType || filters.value.exceptionType === "all" || item.exceptionType === filters.value.exceptionType;
-    return matchesVehicleId && matchesDateRange && matchesExceptionType;
+    const matchesStartTime = !filters.value.startTime || new Date(item.time) >= new Date(filters.value.startTime);
+    const matchesEndTime = !filters.value.endTime || new Date(item.time) <= new Date(filters.value.endTime);
+    const matchesSelectedTables = !filters.value.selectedTables.length || filters.value.selectedTables.includes(item.exceptionType);
+    return matchesVehicleId && matchesStartTime && matchesEndTime && matchesSelectedTables;
   });
 });
 
@@ -112,16 +121,70 @@ const search = () => {
 const resetFilters = () => {
   filters.value = {
     vehicleId: '',
-    dateRange: [],
-    exceptionType: ''
+    startTime: null,
+    endTime: null,
+    selectedTables: [],
+    
   };
   currentPage.value = 1;
 };
 
-const exportData = () => {
-  // 导出数据逻辑
-  console.log('导出数据:', filters.value);
-  // 这里可以调用后端接口进行数据导出
+const exportData = async () => {
+  try {
+
+    const formatDateTime = (date) => {
+      if (!date) return null;
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    };
+    // 构造请求参数
+    const params = {
+      vehicleId: filters.value.vehicleId,
+      startTime: formatDateTime(filters.value.startTime),
+      endTime: formatDateTime(filters.value.endTime),
+      selectedTables: filters.value.selectedTables,
+      selectedColumns: {}
+    };
+    console.log('导出数据请求参数:', params);
+    const token = localStorage.getItem('token');
+
+    // 调用后端接口
+    const response = await axios.post('/abc/api/dataprocess/business/tables/combined-export', params, {
+      responseType: 'blob', // 确保接收的是文件流
+      headers: {
+        Authorization: `Bearer ${token}`, // 在请求头中加入 token
+      },
+    });
+
+    console.log('导出数据请求参数:', response);
+
+      // 3. 从响应头获取文件名
+  const contentDisposition = response.headers['content-disposition'];
+  let fileName = 'export.xlsx';
+  if (contentDisposition) {
+    const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
+    if (fileNameMatch.length === 2) {
+      fileName = fileNameMatch[1];
+    }
+  }
+    // 创建下载链接
+    const blob = new Blob([response.data], { type: 'application/octet-stream' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName; // 设置下载文件名
+    link.click();
+    window.URL.revokeObjectURL(url); // 释放 URL 对象
+
+    console.log('数据导出成功');
+  } catch (error) {
+    console.error('导出数据失败:', error);
+  }
 };
 
 // 分页切换事件
@@ -140,6 +203,7 @@ const handlePageChange = (page) => {
   background-image: url('@/assets/img/his_bg.png');
   background-size: cover
 }
+
 
 .filter-container {
   margin-bottom: 20px;

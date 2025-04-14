@@ -42,7 +42,25 @@ export default {
       ];
 
       const pdf = new jsPDF("p", "mm", "a4"); // 使用A4纸张
-      let position = 10; // 起始位置
+      const currentTime = new Date();
+      const formattedTime = `${currentTime.getFullYear()}-${String(
+        currentTime.getMonth() + 1
+      ).padStart(2, "0")}-${String(currentTime.getDate()).padStart(
+        2,
+        "0"
+      )} ${String(currentTime.getHours()).padStart(2, "0")}:${String(
+        currentTime.getMinutes()
+      ).padStart(2, "0")}`;
+      const title = `${formattedTime} `;
+
+      // 添加标题
+      pdf.setFontSize(16);
+      pdf.setFont("", "bold");
+      pdf.text(title, pdf.internal.pageSize.getWidth() / 2, 10, {
+        align: "center",
+      });
+
+      let position = 20; // 起始位置，标题占用了一部分空间
 
       for (let chart of charts) {
         const chartInstance = echarts.getInstanceByDom(chart);
@@ -69,7 +87,9 @@ export default {
         position += pdfHeight + 10; // 添加间距
       }
 
-      pdf.save("charts.pdf");
+      // 动态命名文件
+      const fileName = `${formattedTime} 导出报表.pdf`;
+      pdf.save(fileName);
     },
     initCharts() {
       const pieChart1 = echarts.init(this.$refs.pieChart1);
@@ -178,7 +198,7 @@ export default {
       pieChart2.setOption({
         title: {
           text: "雷达图",
-            
+
           textStyle: {
             color: "#00FBFF",
           },
@@ -271,30 +291,85 @@ export default {
 
       // 中国地图
       mapChart.setOption({
-        title: {
-          text: "中国地图",
-          left: "center",
-          textStyle: {
-            color: "#00FBFF",
-          },
-        },
         tooltip: {
           trigger: "item",
         },
-
-        series: [
-          {
-            name: "中国",
-            type: "map",
-            mapType: "China",
-            roam: true,
+        geo: {
+          map: "China",
+          roam: false,
+          emphasis: {
             label: {
               show: false,
             },
-            data: mapData,
+          },
+        },
+        visualMap: {
+          show: true, // 显示视觉映射
+          min: 0,
+          max: 200,
+          realtime: true,
+          calculable: true,
+          inRange: {
+            color: ["#d2e0f5", "#71A9FF", "#FF0000"], // 颜色范围：浅蓝 -> 深蓝 -> 红色
+          },
+        },
+        series: [
+          {
+            geoIndex: 0,
+            name: "地域分布",
+            type: "map",
+            coordinateSystem: "geo",
+            map: "china",
+            data: generateRandomProvinceData(), // 调用生成随机数据的函数
           },
         ],
       });
+      // 生成随机省份数据的函数
+      function generateRandomProvinceData() {
+        const provinces = [
+          "北京",
+          "上海",
+          "广东",
+          "浙江",
+          "江西",
+          "山东",
+          "广西",
+          "河南",
+          "青海",
+          "黑龙江",
+          "新疆",
+          "云南",
+          "甘肃",
+          "山西",
+          "陕西",
+          "吉林",
+          "福建",
+          "湖南",
+          "湖北",
+          "辽宁",
+          "四川",
+          "贵州",
+          "海南",
+          "重庆",
+          "内蒙古",
+          "西藏",
+          "宁夏",
+          "台湾",
+          "香港",
+          "澳门",
+          "河北",
+          "安徽",
+          "江苏",
+          "天津",
+        ];
+
+        return provinces.map((province) => {
+          return {
+            name: province,
+            value: Math.floor(Math.random() * 201), // 随机生成 0~200 的值
+          };
+        });
+      }
 
       // 折线图
       lineChart.setOption({
