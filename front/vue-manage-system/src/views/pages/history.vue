@@ -200,10 +200,9 @@ const handlePageChange = (page) => {
   height: 80vh;
   padding: 20px;
   background-color: #f5f5f5;
-  background-image: url('@/assets/img/his_bg.jpg');
+  background-image: url('@/assets/img/his_bg.png');
   background-size: cover
 }
-
 
 
 .filter-container {
