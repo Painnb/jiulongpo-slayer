@@ -4,9 +4,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
+import org.swu.vehiclecloud.dto.AnomalyStat;
+import org.swu.vehiclecloud.dto.VehicleExceptionCount;
 import org.swu.vehiclecloud.service.DataService;
 import org.swu.vehiclecloud.annotations.PreAuthorizeRole;
 import reactor.core.publisher.Flux;
+
+import java.util.List;
 
 /**
  * 数据控制器 (WebFlux版本)，提供SSE数据流相关的REST接口。
@@ -56,4 +60,30 @@ public class DataController {
         // 为了清晰或链式调用，可以返回Mono.empty():
         // return Mono.fromRunnable(() -> dataService.setPushContent(id, content));
     }
-}
+    /**
+     * 获取异常数据统计
+     * API路径遵循统一规范：/api/datacontroller/public/exceptiondata
+     *
+     * @return 按value降序排列的异常统计数据
+     */
+    @GetMapping(
+            value = "/public/exceptiondata",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"})
+    public List<AnomalyStat> getExceptionPieData() {
+        return dataService.getExceptionPieData();
+    }
+
+
+        /**
+         * 获取车辆异常数量统计
+         * @return 车辆异常数量统计列表
+         */
+        @GetMapping("/public/exceptionNumber")
+        @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"})
+        public List<VehicleExceptionCount> getExceptionNumber() {
+            return dataService.getVehicleExceptionCounts();
+        }
+    }
+
