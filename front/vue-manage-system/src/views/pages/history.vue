@@ -200,24 +200,25 @@ const handlePageChange = (page) => {
   height: 80vh;
   padding: 20px;
   background-color: #f5f5f5;
-  background-image: url('@/assets/img/his_bg.png');
-  background-size: cover
+  background-image: url('@/assets/img/his_bg.jpg');
+  background-size: cover;
+  font-size: 16px; /* 调整整体字体大小 */
 }
-
 
 .filter-container {
   margin-bottom: 20px;
+  font-size: 16px; /* 调整过滤区域字体大小 */
 }
 
 .list-container {
   flex: 1;
   overflow-y: auto;
   margin-bottom: 20px;
-  
+  font-size: 16px; /* 调整列表区域字体大小 */
 }
 
 .pagination-container {
   text-align: center;
+  font-size: 16px; /* 调整分页区域字体大小 */
 }
-
 </style>
