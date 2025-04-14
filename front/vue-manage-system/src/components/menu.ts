@@ -52,12 +52,6 @@ export const menuData: Menus[] = [
         icon: 'List',
     },
     {
-        id: '8',
-        title: '折线图',
-        index: '/line-chart',
-        icon: 'Odometer',
-    },
-    {
         id: '2',
         title: '组件',
         index: '2-1',

@@ -5,7 +5,7 @@
                 <el-card shadow="hover" body-class="card-body">
                     <img src="@/assets/img/card1.png" alt="在线数量" class="card-icon bg-blue" />
                     <div class="card-content">
-                        <div class="card-num color1"  >6666</div>
+                        <div class="card-num color1"  >{{onlineCount}}</div>
                         <div>在线数量</div>
                     </div>
                 </el-card>
@@ -14,7 +14,7 @@
                 <el-card shadow="hover" body-class="card-body">
                     <img src="@/assets/img/card2.png" alt="活跃数量" class="card-icon bg-green" />
                     <div class="card-content">
-                        <div class="card-num color2"  >6666</div>
+                        <div class="card-num color2"  >{{activeCount}}</div>
                         <div>活跃数量</div>
                     </div>
                 </el-card>
@@ -23,7 +23,7 @@
                 <el-card shadow="hover" body-class="card-body">
                     <img src="@/assets/img/card3.png" alt="异常数量" class="card-icon bg-red" />
                     <div class="card-content">
-                        <div class="card-num color3"  >{{ message }}</div>
+                        <div class="card-num color3"  >{{ exceptionCount }}</div>
                         <div>异常数量</div>
                     </div>
                 </el-card>
@@ -86,7 +86,7 @@
                     <el-col :span="12">
                         <el-card shadow="hover" :body-style="{ height: '420px', backgroundColor: '#76A9F7' }">
                             <div class="card-header">
-                                <p class="card-header-title">时间线</p>
+                                <p class="card-header-title">通知</p>
                             </div>
                             <div class="notification-input">
                                 <el-input 
@@ -176,7 +176,9 @@ import chinaMap from '@/utils/china';
 import { ref ,onMounted,onUnmounted} from 'vue';
 import { createSSEConnection } from '../utils/sse'; // 假设封装的工具函数放在 utils/sse.ts
 
-const message = ref<string>('');
+const activeCount = ref<string>('');
+const onlineCount = ref<string>('');
+const exceptionCount = ref<string>('');
 let sseConnection: { close: () => void } | null = null;
 
 const token = localStorage.getItem('token') || ''; // 假设 token 存储在 localStorage 中
@@ -187,7 +189,9 @@ onMounted(() => {
       console.log('SSE连接已建立');
     },
     onMessage: (data) => {
-      message.value = data;
+        console.log('收到SSE消息:', data);
+        activeCount.value = data.activeCount;
+        onlineCount.value = data.onlineCount;
     },
     onError: (error) => {
       console.error('SSE连接错误:', error);
