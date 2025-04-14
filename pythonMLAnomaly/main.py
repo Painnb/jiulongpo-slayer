@@ -6,6 +6,7 @@ import numpy as np
 import os
 import pickle
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional
 import uvicorn
@@ -417,6 +418,15 @@ app = FastAPI(
     title="车辆异常检测 API",
     description="接收车辆数据记录，并使用 Transformer 自编码器检测异常。",
     version="1.0.1" # 版本号递增
+)
+
+# 添加CORS中间件
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.post("/detect-anomaly/",
