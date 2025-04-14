@@ -276,25 +276,22 @@ public class DataServiceImpl implements DataService {
     }
 
     /**
-     * 检查指定ID的数据流是否活跃 (冗余方法)
-     *
-     * @param id 数据流ID
-     * @return 是否活跃
+     * 异常统计服务实现类
+     * 提供异常数据的统计查询和筛选功能
      */
-    public boolean isStreamActive(String id) {
-        if (id == null || id.trim().isEmpty()) {
-            return false;
-        }
-        return activeStreams.containsKey(id);
-    }
-
-
-
-
-    //异常处理
+// 异常处理
     @Autowired
     private DataMapper dataMapper;
 
+    /**
+     * 获取系统异常统计信息
+     * 查询所有异常表的数据量，生成饼图所需的数据格式
+     *
+     * @return 包含异常统计数据的列表，每个元素为一个Map，包含：
+     * - value: 异常记录数量
+     * - name: 异常类型名称(自动从表名转换)
+     * 返回空列表表示没有异常数据或异常表不存在
+     */
     @Override
     public List<Map<String, Object>> getExceptionStatistics() {
         List<Map<String, Object>> result = new ArrayList<>();
@@ -314,6 +311,13 @@ public class DataServiceImpl implements DataService {
 
     /**
      * 获取指定时间范围内的异常数据
+     *
+     * @param tableName 异常表名(如"device_exp")
+     * @param startTime 查询开始时间(包含)
+     * @param endTime   查询结束时间(包含)
+     * @return 符合时间范围的异常数据列表，每个元素为包含异常详细信息的Map
+     * 返回空列表表示该时间段内无异常数据
+     * @throws IllegalArgumentException 当tableName为空或无效时抛出
      */
     public List<Map<String, Object>> getExceptionDataWithTimeRange(
             String tableName,
@@ -324,6 +328,14 @@ public class DataServiceImpl implements DataService {
 
     /**
      * 获取指定车辆和时间范围内的异常数据
+     *
+     * @param tableName 异常表名(如"device_exp")
+     * @param vehicleId 车辆唯一标识符
+     * @param startTime 查询开始时间(包含)
+     * @param endTime   查询结束时间(包含)
+     * @return 符合车辆和时间范围的异常数据列表，每个元素为包含异常详细信息的Map
+     * 返回空列表表示该车辆在指定时间段内无异常数据
+     * @throws IllegalArgumentException 当tableName或vehicleId为空时抛出
      */
     public List<Map<String, Object>> getExceptionDataWithFilter(
             String tableName,
@@ -332,7 +344,4 @@ public class DataServiceImpl implements DataService {
             LocalDateTime endTime) {
         return dataMapper.selectExceptionDataWithFilter(tableName, vehicleId, startTime, endTime);
     }
-
 }
-
-

@@ -11,6 +11,8 @@ import org.swu.vehiclecloud.annotations.PreAuthorizeRole;
 import reactor.core.publisher.Flux; // Import Flux
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -64,7 +66,15 @@ public class DataController {
         // return Mono.fromRunnable(() -> dataService.setPushContent(id, content));
     }
 
-
+    /**
+     * 获取异常统计饼图数据 (WebFlux)
+     * 查询系统中各类异常的统计信息，以饼图数据结构形式返回
+     *
+     * @return 包含异常统计数据的响应实体，数据结构为List<Map<String, Object>>格式
+     *         每个Map代表一种异常类型，包含异常名称、数量等统计信息
+     *         响应状态码为200(OK)表示成功获取数据
+     *         此接口为公开接口，无需特定权限即可访问
+     */
     @GetMapping("public/exceptionpie")
     public ResponseEntity<List<Map<String, Object>>> getExceptionStatistics() {
         List<Map<String, Object>> statistics = dataService.getExceptionStatistics();
@@ -72,21 +82,38 @@ public class DataController {
     }
 
     @GetMapping("public/exception-data")
-    public ResponseEntity<List<Map<String, Object>>> getExceptionData(
+    public ResponseEntity<Map<String, Object>> getExceptionData(
             @RequestParam String tableName,
             @RequestParam(required = false) String vehicleId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
+            @RequestParam String startTime,
+            @RequestParam String endTime) {
 
-        List<Map<String, Object>> data;
+        // 解析时间字符串为 LocalDateTime
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+        LocalDateTime parsedStartTime = LocalDateTime.parse(startTime, formatter);
+        LocalDateTime parsedEndTime = LocalDateTime.parse(endTime, formatter);
+
+        // 获取原始数据（List<Map<String, Object>>）
+        List<Map<String, Object>> rawData;
         if (vehicleId != null) {
-            data = dataService.getExceptionDataWithFilter(tableName, vehicleId, startTime, endTime);
+            rawData = dataService.getExceptionDataWithFilter(tableName, vehicleId, parsedStartTime, parsedEndTime);
         } else {
-            data = dataService.getExceptionDataWithTimeRange(tableName, startTime, endTime);
+            rawData = dataService.getExceptionDataWithTimeRange(tableName, parsedStartTime, parsedEndTime);
         }
 
-        return ResponseEntity.ok(data);
+        // 构建返回的 Map（仅包含请求参数 + 原始数据）
+        Map<String, Object> response = new HashMap<>();
+        response.put("tableName", tableName);
+        if (vehicleId != null) {
+            response.put("vehicleId", vehicleId);  // 仅当 vehicleId 非空时返回
+        }
+        response.put("startTime", startTime);
+        response.put("endTime", endTime);
+        response.put("exceptionData", rawData);  // 原始数据改名为 "exceptionData"（可选）
+
+        return ResponseEntity.ok(response);
     }
+
 
 
 }
