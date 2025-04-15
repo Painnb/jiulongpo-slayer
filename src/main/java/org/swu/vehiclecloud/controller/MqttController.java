@@ -69,7 +69,7 @@ public class MqttController {
      *         如果失败，返回状态码500和错误信息。
      */
     @PostMapping("/config")
-    public ResponseEntity<MqttRequest> updateConfig(@RequestBody MqttRequest config) throws MqttException {
+    public ResponseEntity<Map<String, Object>> updateConfig(@RequestBody MqttRequest config) throws MqttException {
         mqttService.reinitialize(
                 config.getBrokerUrl(),
                 config.getClientId(),
@@ -78,7 +78,11 @@ public class MqttController {
                 config.getSubTopics()
         );
 
-        return ResponseEntity.ok(config);
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "200");
+        response.put("message", "MQTT connected closed");
+        response.put("config", config);
+        return ResponseEntity.ok(response);
     }
 
 
