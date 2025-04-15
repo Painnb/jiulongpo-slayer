@@ -28,7 +28,7 @@ public class QueryController {
      * @return 查询结果列表
      */
     @GetMapping("/business/tables/{tableName}")
-    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN"})
+    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN", "USER"})
     public List<Map<String, Object>> queryTable(@PathVariable String tableName) {
         return queryService.queryTable(tableName);
     }
@@ -57,7 +57,7 @@ public class QueryController {
      * @return 查询结果列表
      */
     @PostMapping("/business/tables/all-vehicles-exceptions-query")
-    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN"})
+    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN", "USER"})
     public List<Map<String, Object>> queryAllVehiclesExceptions(
             @RequestBody ExcelExportAllVehiclesRequest request) {
         return queryService.queryAllVehiclesExceptions(
