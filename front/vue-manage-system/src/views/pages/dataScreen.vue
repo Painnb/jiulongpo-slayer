@@ -2,17 +2,21 @@
   <div class="container">
     <button @click="exportChartsToPDF" class="export-button">导出为PDF</button>
     <div class="left">
-      <div class="chart" ref="pieChart1"></div>
-      <div class="chart" ref="pieChart2"></div>
-      <div class="chart" ref="ringChart"></div>
-    </div>
-    <div class="center">
-      <div class="chart" ref="mapChart"></div>
-      <div class="chart" ref="lineChart"></div>
+      <!-- 左侧上半部分：地图 -->
+      <div class="map-chart chart" ref="mapChart"></div>
+      <!-- 左侧下半部分 -->
+      <div class="bottom-left">
+        <div class="pie-charts">
+          <div class="chart" ref="barChartHorizontal"></div>
+          <div class="chart" ref="pieChart1"></div>
+        </div>
+        <div class="line-chart chart" ref="lineChart"></div>
+      </div>
     </div>
     <div class="right">
-      <div class="chart" ref="barChartHorizontal"></div>
+      <!-- 右侧竖向排列的条形图 -->
       <div class="chart" ref="barChartVertical1"></div>
+      <div class="chart" ref="pieChart2"></div>
       <div class="chart" ref="barChartVertical"></div>
     </div>
   </div>
@@ -23,17 +27,48 @@ import * as echarts from "echarts";
 import chinaJson from "@/utils/china"; // 引入中国地图数据
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import axios from 'axios';
 export default {
   name: "DataVisualization",
   mounted() {
     this.initCharts();
+    this.fetchPieChartData(); // 调用后端接口获取饼图数据
   },
   methods: {
+    async fetchPieChartData() {
+    try {
+      // 获取 token
+      const token = localStorage.getItem('token');
+
+      // 调用后端接口
+      const response = await axios.get('/abc/api/datacontroller/public/exceptionpie', {
+        headers: {
+          Authorization: `Bearer ${token}`, // 在请求头中传入 token
+        },
+      });
+
+      const pieData = response.data || [];
+
+      // 更新 pieChart1 的数据
+      const pieChart1 = echarts.getInstanceByDom(this.$refs.pieChart1);
+      pieChart1.setOption({
+        series: [
+          {
+            data: pieData, // 使用后端返回的数据
+          },
+        ],
+      });
+
+      console.log('饼图数据更新成功:', pieData);
+    } catch (error) {
+      console.error('获取饼图数据失败:', error);
+    }
+  },
+
     async exportChartsToPDF() {
       const charts = [
         this.$refs.pieChart1,
         this.$refs.pieChart2,
-        this.$refs.ringChart,
         this.$refs.mapChart,
         this.$refs.lineChart,
         this.$refs.barChartHorizontal,
@@ -94,7 +129,6 @@ export default {
     initCharts() {
       const pieChart1 = echarts.init(this.$refs.pieChart1);
       const pieChart2 = echarts.init(this.$refs.pieChart2);
-      const ringChart = echarts.init(this.$refs.ringChart);
       const mapChart = echarts.init(this.$refs.mapChart);
       const lineChart = echarts.init(this.$refs.lineChart);
       const barChartHorizontal = echarts.init(this.$refs.barChartHorizontal);
@@ -104,54 +138,9 @@ export default {
       // 注册中国地图
       echarts.registerMap("China", chinaJson);
 
-      // 深色科技风配色
-      const colors = ["#00E5FF", "#00C853", "#FFEA00", "#FF3D00", "#6200EA"];
-
       // 模拟数据
-      const pieData1 = [
-        { value: 335, name: "直接访问" },
-        { value: 310, name: "邮件营销" },
-        { value: 234, name: "联盟广告" },
-        { value: 135, name: "视频广告" },
-        { value: 1548, name: "搜索引擎" },
-      ];
-      const pieData2 = [
-        { value: 234, name: "直接访问" },
-        { value: 135, name: "邮件营销" },
-        { value: 1548, name: "联盟广告" },
-        { value: 310, name: "视频广告" },
-        { value: 335, name: "搜索引擎" },
-      ];
-      const ringData = [
-        { value: 1048, name: "搜索引擎" },
-        { value: 735, name: "直接访问" },
-        { value: 580, name: "邮件营销" },
-        { value: 484, name: "联盟广告" },
-        { value: 300, name: "视频广告" },
-      ];
-      const mapData = [
-        { name: "重庆市", value: 120 }, // 修改为中国的省份或城市名称
-        { name: "北京市", value: 200 },
-        { name: "上海市", value: 150 },
-        { name: "广东省", value: 180 },
-        { name: "江苏省", value: 220 },
-      ];
-      const lineData = [
-        { name: "周一", value: 120 },
-        { name: "周二", value: 200 },
-        { name: "周三", value: 150 },
-        { name: "周四", value: 180 },
-        { name: "周五", value: 220 },
-        { name: "周六", value: 190 },
-        { name: "周日", value: 210 },
-      ];
-      const barDataHorizontal = [
-        { name: "类别A", value: 120 },
-        { name: "类别B", value: 200 },
-        { name: "类别C", value: 150 },
-        { name: "类别D", value: 180 },
-        { name: "类别E", value: 220 },
-      ];
+
+
       const barDataVertical = [
         { name: "类别1", value: 120 },
         { name: "类别2", value: 200 },
@@ -163,134 +152,116 @@ export default {
       // 饼图1
       pieChart1.setOption({
         title: {
-          text: "饼图1",
-          left: "center",
+          text: "异常种类饼图",
+          left: "left",
           textStyle: {
             color: "#00FBFF",
-            fontWeight: "bold",
-          },
-        },
-        tooltip: {
-          trigger: "item",
-        },
-        textStyle: {
-          color: "#E4E1E1",
-          fontWeight: "bold",
-        },
-        series: [
-          {
-            name: "访问来源",
-            type: "pie",
-            radius: "50%",
-            data: pieData1,
-            emphasis: {
-              itemStyle: {
-                shadowBlur: 10,
-                shadowOffsetX: 0,
-                shadowColor: "rgba(0, 0, 0, 0.5)",
-              },
-            },
-          },
-        ],
-      });
-
-      // 饼图2
-      pieChart2.setOption({
-        title: {
-          text: "雷达图",
-
-          textStyle: {
-            color: "#00FBFF",
-          },
-        },
-        legend: {
-          top: "5%",
-          data: ["Allocated Budget", "Actual Spending"],
-          textStyle: {
-            color: "#E4E1E1",
-            fontWeight: "bold",
-          },
-        },
-        radar: {
-          // shape: 'circle',
-          indicator: [
-            { name: "Sales", max: 6500 },
-            { name: "Administration", max: 16000 },
-            { name: "Information Technology", max: 30000 },
-            { name: "Customer Support", max: 38000 },
-            { name: "Development", max: 52000 },
-            { name: "Marketing", max: 25000 },
-          ],
-        },
-        series: [
-          {
-            name: "Budget vs spending",
-            type: "radar",
-            data: [
-              {
-                value: [4200, 3000, 20000, 35000, 50000, 18000],
-                name: "Allocated Budget",
-              },
-              {
-                value: [5000, 14000, 28000, 26000, 42000, 21000],
-                name: "Actual Spending",
-              },
-            ],
-          },
-        ],
-      });
-
-      // 环形图
-      ringChart.setOption({
-        title: {
-          text: "环形图",
-          left: "center",
-          textStyle: {
-            color: "#00FBFF",
-            fontWeight: "bold",
           },
         },
         tooltip: {
           trigger: "item",
         },
         legend: {
-          top: "90%",
+          top: "75%",
           left: "center",
           textStyle: {
-            color: "#E4E1E1",
-            fontWeight: "bold",
+            color: "#00FBFF",
           },
         },
         series: [
           {
-            name: "访问来源",
+            name: "Access From",
             type: "pie",
             radius: ["40%", "70%"],
             avoidLabelOverlap: false,
-            itemStyle: {
-              borderRadius: 10,
-              borderWidth: 2,
-            },
             label: {
               show: false,
+              position: "center",
             },
             emphasis: {
               label: {
                 show: true,
-                fontSize: 20,
+                fontSize: 40,
                 fontWeight: "bold",
               },
             },
             labelLine: {
               show: false,
             },
-            data: ringData,
+            data: [],
+          },
+        ],
+      });
+
+      // 饼图2
+      pieChart2.setOption({
+        dataset: {
+          source: [
+            ["amount", "product"],
+            [58212, "Matcha Latte"],
+            [78254, "Milk Tea"],
+            [41032, "Cheese Cocoa"],
+            [12755, "Cheese Brownie"],
+            [20145, "Matcha Cocoa"],
+            [79146, "Tea"],
+            [91852, "Orange Juice"],
+            [101852, "Lemon Juice"],
+            [20112, "Walnut Brownie"],
+          ],
+        },
+        title: {
+          text: "横向条形图",
+          left: "center",
+          textStyle: {
+            color: "#00FBFF",
+          },
+        },
+        grid: { containLabel: true },
+        xAxis: {
+          name: "amount",
+          axisLine: {
+            lineStyle: {
+              color: "#FFFFFF",
+            },
+          },
+          axisLabel: {
+            color: "#00FBFF",
+          },
+        },
+        yAxis: {
+          type: "category",
+          axisLine: {
+            lineStyle: {
+              color: "#FFFFFF",
+            },
+          },
+          axisLabel: {
+            color: "#00FBFF",
+          },
+        },
+        series: [
+          {
+            type: "bar",
+            encode: {
+              // Map the "amount" column to X axis.
+              x: "amount",
+              // Map the "product" column to Y axis
+              y: "product",
+            },
           },
         ],
       });
 
       // 中国地图
       mapChart.setOption({
+        title: {
+          text: "异常分布",
+          left: "center",
+          textStyle: {
+            color: "#00FBFF",
+            fontWeight: "bold",
+          },
+        },
         tooltip: {
           trigger: "item",
         },
@@ -374,8 +345,8 @@ export default {
       // 折线图
       lineChart.setOption({
         title: {
-          text: "折线图",
-          left: "center",
+          text: "历史活跃表",
+          left: "left",
           textStyle: {
             color: "#00FBFF",
             fontWeight: "bold",
@@ -383,82 +354,106 @@ export default {
         },
         tooltip: {
           trigger: "axis",
+          axisPointer: {
+            type: "line",
+          },
+        },
+        legend: {
+          data: ["活跃数量", "在线数量"],
+          textStyle: {
+            color: "#00FBFF",
+          },
         },
         xAxis: {
           type: "category",
-          data: lineData.map((item) => item.name),
+          data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
           axisLine: {
             lineStyle: {
               color: "#FFFFFF",
             },
           },
           axisLabel: {
-            color: "#FFFFFF",
+            color: "#00FBFF",
           },
         },
         yAxis: {
           type: "value",
           axisLine: {
             lineStyle: {
-              color: "#FFFFFF",
+              color: "#00FBFF",
             },
           },
           axisLabel: {
-            color: "#FFFFFF",
+            color: "#00FBFF",
           },
         },
         series: [
           {
-            data: lineData.map((item) => item.value),
+            name: "活跃数量",
             type: "line",
-            lineStyle: {
-              color: "#00E5FF",
-            },
-            itemStyle: {
-              color: "#00E5FF",
-            },
+            stack: "Total",
+            areaStyle: {},
+            smooth: true,
+            data: [120, 132, 101, 134, 90, 230, 210],
+          },
+          {
+            name: "在线数量",
+            type: "line",
+            stack: "Total",
+            areaStyle: {},
+            smooth: true,
+            data: [220, 182, 191, 234, 290, 330, 310],
           },
         ],
       });
 
-      // 环形条形图
-      barChartHorizontal.setOption({
-        title: [
-          {
-            text: "环形条形图",
-            textStyle: {
-              color: "#00FBFF",
-            },
-          },
-        ],
-        polar: {
-          radius: [30, "80%"],
-        },
-        angleAxis: {
-          max: 4,
-          startAngle: 75,
-        },
-        radiusAxis: {
-          type: "category",
-          data: ["a", "b", "c", "d"],
-        },
-        tooltip: {},
-        series: {
-          type: "bar",
-          data: [2, 1.2, 2.4, 3.6],
-          coordinateSystem: "polar",
-          label: {
-            show: true,
-            position: "middle",
-            formatter: "{b}: {c}",
-          },
-        },
-      });
+// 环形条形图
+barChartHorizontal.setOption({
+  title: [
+    {
+      text: "机器学习MSE",
+      textStyle: {
+        color: "#00FBFF",
+      },
+    },
+  ],
+  polar: {
+    radius: [30, "80%"],
+  },
+  angleAxis: {
+    max: 4,
+    startAngle: 75,
+    axisLabel: {
+      color: "#00FBFF", // 设置角度轴标签字体颜色
+    },
+  },
+  radiusAxis: {
+    type: "category",
+    data: ["a", "b", "c", "d"],
+    axisLabel: {
+      color: "#00FBFF", // 设置半径轴标签字体颜色
+    },
+  },
+  tooltip: {
+    trigger: "item",
+  },
+  series: {
+    type: "bar",
+    data: [2, 1.2, 2.4, 3.6],
+    coordinateSystem: "polar",
+    label: {
+      show: true,
+      position: "middle",
+      formatter: "{b}: {c}",
+      color: "#00FBFF", // 设置标签字体颜色
+    },
+  },
+});
 
       // 竖向条形图
       barChartVertical.setOption({
         title: {
-          text: "竖向条形图",
+          text: "车异常表",
           left: "center",
           textStyle: {
             color: "#00FBFF",
@@ -480,7 +475,7 @@ export default {
             },
           },
           axisLabel: {
-            color: "#FFFFFF",
+            color: "#00FBFF",
           },
         },
         yAxis: {
@@ -491,7 +486,7 @@ export default {
             },
           },
           axisLabel: {
-            color: "#FFFFFF",
+            color: "#00FBFF",
           },
         },
         series: [
@@ -504,16 +499,16 @@ export default {
       barChartVertical1.setOption({
         dataset: {
           source: [
-            ["score", "amount", "product"],
-            [89.3, 58212, "Matcha Latte"],
-            [57.1, 78254, "Milk Tea"],
-            [74.4, 41032, "Cheese Cocoa"],
-            [50.1, 12755, "Cheese Brownie"],
-            [89.7, 20145, "Matcha Cocoa"],
-            [68.1, 79146, "Tea"],
-            [19.6, 91852, "Orange Juice"],
-            [10.6, 101852, "Lemon Juice"],
-            [32.7, 20112, "Walnut Brownie"],
+            ["amount", "product"],
+            [58212, "Matcha Latte"],
+            [78254, "Milk Tea"],
+            [41032, "Cheese Cocoa"],
+            [12755, "Cheese Brownie"],
+            [20145, "Matcha Cocoa"],
+            [79146, "Tea"],
+            [91852, "Orange Juice"],
+            [101852, "Lemon Juice"],
+            [20112, "Walnut Brownie"],
           ],
         },
         title: {
@@ -524,8 +519,28 @@ export default {
           },
         },
         grid: { containLabel: true },
-        xAxis: { name: "amount" },
-        yAxis: { type: "category" },
+        xAxis: {
+          name: "amount",
+          axisLine: {
+            lineStyle: {
+              color: "#FFFFFF",
+            },
+          },
+          axisLabel: {
+            color: "#00FBFF",
+          },
+        },
+        yAxis: {
+          type: "category",
+          axisLine: {
+            lineStyle: {
+              color: "#FFFFFF",
+            },
+          },
+          axisLabel: {
+            color: "#00FBFF",
+          },
+        },
         series: [
           {
             type: "bar",
@@ -570,7 +585,17 @@ export default {
   font-family: "Microsoft YaHei", Arial, sans-serif;
 }
 
-.left,
+.left {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
 .right {
   flex: 1;
   display: flex;
@@ -582,15 +607,27 @@ export default {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
 }
 
-.center {
-  flex: 2;
-  display: flex;
-  flex-direction: column;
-  padding: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+.map-chart {
+  flex: 1;
+  width: 100%;
+  height: 50%;
+  margin-bottom: 10px;
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.5);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  animation: fadeIn 1s ease-in-out;
+}
+
+.bottom-left {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+}
+
+.pie-charts {
+  display: flex;
+  flex: 2;
+  flex-direction: column;
 }
 
 .chart {
@@ -602,6 +639,11 @@ export default {
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
   animation: fadeIn 1s ease-in-out;
+}
+
+.line-chart {
+  flex: 3;
+  margin-top: 10px;
 }
 
 .chart-title {

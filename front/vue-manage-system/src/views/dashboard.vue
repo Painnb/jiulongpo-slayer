@@ -192,6 +192,7 @@ const activeCount = ref<string>('');
 const onlineCount = ref<string>('');
 const exceptionCount = ref<string>('');
 let sseConnection: { close: () => void } | null = null;
+let sseConnection1: { close: () => void } | null = null;
 
 const token = localStorage.getItem('token') || ''; // 假设 token 存储在 localStorage 中
 
@@ -201,9 +202,21 @@ onMounted(() => {
       console.log('SSE连接已建立');
     },
     onMessage: (data) => {
-        console.log('收到SSE消息:', data);
+        console.log('收到SSE活跃度消息:', data);
         activeCount.value = data.activeCount;
         onlineCount.value = data.onlineCount;
+    },
+    onError: (error) => {
+      console.error('SSE连接错误:', error);
+    }
+  });
+  sseConnection1 = createSSEConnection('/abc/api/datacontroller/public/ssestream/2', token, {
+    onOpen: () => {
+      console.log('SSE连接已建立');
+    },
+    onMessage: (data) => {
+        console.log('收到SSE异常消息:', data);
+        exceptionCount.value = data.numOfExp;
     },
     onError: (error) => {
       console.error('SSE连接错误:', error);
@@ -213,6 +226,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   sseConnection?.close();
+  sseConnection1?.close();
 });
 
 

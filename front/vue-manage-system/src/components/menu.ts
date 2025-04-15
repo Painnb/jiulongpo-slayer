@@ -35,19 +35,19 @@ export const menuData: Menus[] = [
     },
     {
         id: '7',
-        title: '地图',
+        title: '实时地图',
         index: '/map',
         icon: 'MapLocation',
     },
     {
         id: '7',
-        title: '数据大屏',
+        title: '数据报表',
         index: '/dataScreen',
         icon: 'DataAnalysis',
     },
     {
         id: '7',
-        title: '历史记录',
+        title: '数据导出',
         index: '/history',
         icon: 'List',
     },
@@ -187,7 +187,7 @@ export const menuData: Menus[] = [
         permiss: '5',
     },
     {
-        id: '7',
+        id: '77',
         icon: 'Brush',
         index: '/theme',
         title: '主题',
