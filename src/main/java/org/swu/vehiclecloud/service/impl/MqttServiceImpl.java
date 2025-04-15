@@ -228,7 +228,8 @@ public class MqttServiceImpl implements MqttService {
         // 3. GNSS时间戳 (8字节)
         content.put("timestampGNSS", buffer.getLong());
         // 4. GNSS速度 (2字节)
-        content.put("velocityGNSS", buffer.getShort() & 0xFF);
+        double velocityGNSS = buffer.getShort() & 0xFFFF;
+        content.put("velocityGNSS", velocityGNSS);
 
         // 5. 位置 (12字节)
         Map<String, Object> position = new LinkedHashMap<>(3);
