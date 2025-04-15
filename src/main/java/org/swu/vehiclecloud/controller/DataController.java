@@ -32,8 +32,8 @@ public class DataController {
     /**
      * 获取SSE数据流 (WebFlux)
      */
-    @GetMapping(value = "/public/ssestream/{ID}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"})
+    @GetMapping(value = "/public/ssestream/{ID}", produces = MediaType.TEXT_EVENT_STREAM_VALUE) // 指定流式响应类型
+    @PreAuthorizeRole(roles = {"USER, SYS_ADMIN, BIZ_ADMIN"})
     public Flux<ServerSentEvent<String>> streamData(@PathVariable("ID") String id) {
         return dataService.streamData(id);
     }
@@ -42,18 +42,20 @@ public class DataController {
      * 设置推送内容 (WebFlux)
      */
     @PostMapping("/public/setpushcontent/{ID}")
-    @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"})
+    @PreAuthorizeRole(roles = {"USER, SYS_ADMIN, BIZ_ADMIN"})
     public void setPushContent(@PathVariable("ID") String id, @RequestBody String content) {
         dataService.setPushContent(id, content);
     }
 
     @GetMapping("public/exceptionpie")
+    @PreAuthorizeRole(roles = {"SYS_ADMIN, BIZ_ADMIN"})
     public ResponseEntity<List<Map<String, Object>>> getExceptionStatistics() {
         List<Map<String, Object>> statistics = dataService.getExceptionStatistics();
         return ResponseEntity.ok(statistics);
     }
 
     @GetMapping("public/exception-data")
+    @PreAuthorizeRole(roles = {"SYS_ADMIN, BIZ_ADMIN"})
     public ResponseEntity<List<Map<String, Object>>> getExceptionData(
             @RequestParam String tableName,
             @RequestParam(required = false) String vehicleId,
