@@ -43,7 +43,7 @@ public class DataController {
      */
 
     @GetMapping(value = "/public/ssestream/{ID}", produces = MediaType.TEXT_EVENT_STREAM_VALUE) // 指定流式响应类型
-    @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"})
+    @PreAuthorizeRole(roles = {"USER, SYS_ADMIN, BIZ_ADMIN"})
     public Flux<ServerSentEvent<String>> streamData(@PathVariable("ID") String id) {
         // 直接委托给服务层处理
         return dataService.streamData(id);
@@ -59,7 +59,7 @@ public class DataController {
      *                需要BIZ_ADMIN、USER或ADMIN角色权限
      */
     @PostMapping("/public/setpushcontent/{ID}")
-    @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"}) 
+    @PreAuthorizeRole(roles = {"USER, SYS_ADMIN, BIZ_ADMIN"})
     public void setPushContent(@PathVariable("ID") String id, @RequestBody String content) {
         // 直接委托给服务层处理
         dataService.setPushContent(id, content);
@@ -71,12 +71,14 @@ public class DataController {
 
 
     @GetMapping("public/exceptionpie")
+    @PreAuthorizeRole(roles = {"SYS_ADMIN, BIZ_ADMIN"})
     public ResponseEntity<List<Map<String, Object>>> getExceptionStatistics() {
         List<Map<String, Object>> statistics = dataService.getExceptionStatistics();
         return ResponseEntity.ok(statistics);
     }
 
     @GetMapping("public/exception-data")
+    @PreAuthorizeRole(roles = {"SYS_ADMIN, BIZ_ADMIN"})
     public ResponseEntity<List<Map<String, Object>>> getExceptionData(
             @RequestParam String tableName,
             @RequestParam(required = false) String vehicleId,
