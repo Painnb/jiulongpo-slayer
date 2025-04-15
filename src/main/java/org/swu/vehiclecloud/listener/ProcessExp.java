@@ -457,28 +457,16 @@ public class ProcessExp {
      * @return Date 对象（东八区时间）
      */
     private Timestamp UtcToCst(long timestamp) throws ParseException {
-        // 创建内部变量，避免修改参数的值
-        long datestamp = timestamp / 1000;
+        // 将时间戳转换为Date对象
+        Date date = new Date(timestamp);
 
-        // 将毫秒转换为秒
-        datestamp %= 1000;
+        // 创建SimpleDateFormat对象，定义格式为DATETIME格式
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-        // 将 UTC 时间戳转换为 Instant 对象
-        Instant instant = Instant.ofEpochSecond(datestamp);
+        // 将Date对象格式化为字符串
+        String formattedDate = sdf.format(date);
 
-        // 将 UTC 时间戳转换为东八区（Asia/Shanghai）的 ZonedDateTime 对象
-        ZonedDateTime beijingTime = instant.atZone(ZoneId.of("Asia/Shanghai"));
-
-        // 将 ZonedDateTime 转换为 java.util.Date 并返回
-        Date date = Date.from(beijingTime.toInstant());
-
-        // 格式化 Date 对象为 "yyyy-MM-dd HH:mm:ss" 格式
-        SimpleDateFormat outputFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-        Date parsedDate = outputFormat.parse(outputFormat.format(date));
-
-        // 将 Date 对象转换为 Timestamp并返回
-        return new Timestamp(date.getTime());
+        return Timestamp.valueOf(formattedDate);
     }
 
     private void pushNumOfExpData() {
