@@ -8,9 +8,9 @@ export default defineConfig({
 	server: {
 		proxy: {
 		  '/abc': {
-			//target: 'http://192.168.120.118:8080',
+			//target: 'http://192.168.120.137:8080',
 			//target: 'http://111.231.191.2:8080',
-			target: 'http://192.168.120.222:8080',
+			target: 'http://192.168.120.93:8080',
 			changeOrigin: true,
 			rewrite: (path) => path.replace(/^\/abc/, '')
 		  }
