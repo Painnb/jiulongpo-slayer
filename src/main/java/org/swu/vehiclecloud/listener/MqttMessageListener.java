@@ -38,7 +38,6 @@ public class MqttMessageListener {
     // 车辆状态缓存
     private final Map<String, Long> lastUpdateTime = new ConcurrentHashMap<>();
     private final Map<String, Double> lastVelocityGNSS = new ConcurrentHashMap<>();
-    private final Map<String, Double> lastVelocityCAN = new ConcurrentHashMap<>();
     private final Map<String, Boolean> isActive = new ConcurrentHashMap<>();
 
     // 车辆在线时间统计
@@ -70,13 +69,12 @@ public class MqttMessageListener {
 
     /**
      * 系统启动时初始化一些测试数据
-     * 只初始化与数据库匹配的5辆车
      */
     @PostConstruct
     public void init() {
-        logger.info("初始化MqttMessageListener，添加测试车辆数据（限制为5辆）");
-        // 添加初始模拟数据，确保系统启动时有数据，但只添加5辆车
-        for (int i = 1; i <= 5; i++) {
+        logger.info("初始化MqttMessageListener，添加一些测试车辆数据");
+        // 添加一些初始模拟数据，确保系统启动时有数据
+        for (int i = 1; i <= 10; i++) {
             String vehicleId = "vehicle" + i;
             long timestamp = System.currentTimeMillis();
             double velocity = 5.0 + Math.random() * 10.0;  // 随机速度，确保大于低速阈值
@@ -84,7 +82,6 @@ public class MqttMessageListener {
             // 更新车辆状态缓存
             lastUpdateTime.put(vehicleId, timestamp);
             lastVelocityGNSS.put(vehicleId, velocity);
-            lastVelocityCAN.put(vehicleId, velocity);
             isActive.put(vehicleId, velocity >= LOW_SPEED_THRESHOLD);
 
             // 更新车辆在线时间
@@ -111,66 +108,31 @@ public class MqttMessageListener {
                 return;
             }
 
-            // 解析嵌套的数据结构
-            try {
-                // 获取dataContent子对象
-                Map<String, Object> dataContent = (Map<String, Object>) payload.get("dataContent");
-                if (dataContent == null) {
-                    logger.warn("消息中没有dataContent字段");
-                    return;
-                }
-
-                // 获取position子对象
-                Map<String, Object> position = (Map<String, Object>) dataContent.get("position");
-                if (position == null) {
-                    logger.debug("消息中没有position字段");
-                    // 继续处理，因为position可能是可选的
-                }
-
-                // 从dataContent中提取必要字段
-                String vehicleId = (String) dataContent.get("vehicleId");
-                if (vehicleId == null || vehicleId.trim().isEmpty()) {
-                    logger.warn("消息中vehicleId为空");
-                    return;
-                }
-
-                // 从各种可能的位置提取速度信息
-                double velocityGNSS = parseDouble(dataContent.get("velocityGNSS"));
-                double velocityCAN = velocityGNSS; // 默认设置为相同值，除非有特定CAN速度
-                
-                // 如果有特定的CAN速度，则使用它
-                if (dataContent.containsKey("velocityCAN")) {
-                    velocityCAN = parseDouble(dataContent.get("velocityCAN"));
-                }
-
-                // 从payload和dataContent都尝试获取时间戳
-                long timestamp = parseTimestamp(payload.get("timestamp"));
-                if (timestamp == 0) {
-                    timestamp = parseTimestamp(dataContent.get("timestampGNSS"));
-                    if (timestamp == 0) {
-                        timestamp = System.currentTimeMillis();
-                    }
-                }
-
-                logger.debug("解析消息: 车辆ID={}, GNSS速度={}, CAN速度={}, 时间戳={}",
-                        vehicleId, velocityGNSS, velocityCAN, new Date(timestamp));
-
-                // 更新车辆状态缓存
-                updateVehicleStatus(vehicleId, velocityGNSS, velocityCAN, timestamp);
-
-                // 检测并保存异常数据
-                checkAndSaveAlerts(vehicleId, velocityGNSS, velocityCAN, timestamp);
-
-                // 更新车辆在线时间
-                updateVehicleOnlineTime(vehicleId);
-
-                // 推送实时统计信息
-                pushStatistics();
-
-            } catch (ClassCastException e) {
-                logger.error("消息格式错误，无法解析嵌套对象: {}", e.getMessage());
-                logger.debug("收到的消息内容: {}", payload);
+            // 解析基础数据
+            String vehicleId = String.valueOf(payload.get("vehicleId"));
+            // 确保vehicleId不为null或空字符串
+            if (vehicleId == null || vehicleId.trim().isEmpty() || vehicleId.equals("null")) {
+                logger.warn("接收到无效的车辆ID");
+                return;
             }
+
+            double velocityGNSS = parseDouble(payload.get("velocityGNSS"));
+            long timestamp = parseTimestamp(payload.get("timestamp"));
+
+            logger.debug("解析消息: 车辆ID={}, GNSS速度={}, 时间戳={}",
+                    vehicleId, velocityGNSS, new Date(timestamp));
+
+            // 更新车辆状态缓存
+            updateVehicleStatus(vehicleId, velocityGNSS, timestamp);
+
+            // 检测并保存异常数据
+            checkAndSaveAlerts(vehicleId, velocityGNSS, timestamp);
+
+            // 更新车辆在线时间
+            updateVehicleOnlineTime(vehicleId);
+
+            // 推送实时统计信息
+            pushStatistics();
 
         } catch (Exception e) {
             logger.error("处理MQTT消息时出错: {}", e.getMessage(), e);
@@ -184,53 +146,28 @@ public class MqttMessageListener {
             logger.warn("解析空对象为double值");
             return 0.0;
         }
-        
-        try {
-            if (obj instanceof Number) {
-                return ((Number) obj).doubleValue();
-            } else if (obj instanceof String) {
-                return Double.parseDouble((String) obj);
-            } else {
-                logger.warn("无法将类型 {} 解析为double: {}", obj.getClass(), obj);
-                return 0.0;
-            }
-        } catch (Exception e) {
-            logger.warn("解析为double时出错: {} - {}", obj, e.getMessage());
-            return 0.0;
-        }
+        double result = (obj instanceof Number) ? ((Number) obj).doubleValue() : 0.0;
+        logger.debug("解析对象 {} 为double值: {}", obj, result);
+        return result;
     }
 
     private long parseTimestamp(Object obj) {
         if (obj == null) {
             logger.warn("解析空对象为时间戳");
-            return 0; // 返回0，让调用方可以检查并使用替代时间戳
+            return System.currentTimeMillis();
         }
-        
-        try {
-            if (obj instanceof Number) {
-                return ((Number) obj).longValue();
-            } else if (obj instanceof String) {
-                return Long.parseLong((String) obj);
-            } else if (obj instanceof Date) {
-                return ((Date) obj).getTime();
-            } else {
-                logger.warn("无法将类型 {} 解析为时间戳: {}", obj.getClass(), obj);
-                return 0;
-            }
-        } catch (Exception e) {
-            logger.warn("解析为时间戳时出错: {} - {}", obj, e.getMessage());
-            return 0;
-        }
+        long result = (obj instanceof Number) ? ((Number) obj).longValue() : System.currentTimeMillis();
+        logger.debug("解析对象 {} 为时间戳: {}", obj, new Date(result));
+        return result;
     }
 
-    private void updateVehicleStatus(String vehicleId, double velocityGNSS, double velocityCAN, long timestamp) {
-        logger.debug("更新车辆状态: ID={}, GNSS速度={}, CAN速度={}, 时间戳={}",
-                vehicleId, velocityGNSS, velocityCAN, new Date(timestamp));
+    private void updateVehicleStatus(String vehicleId, double velocityGNSS, long timestamp) {
+        logger.debug("更新车辆状态: ID={}, GNSS速度={}, 时间戳={}",
+                vehicleId, velocityGNSS, new Date(timestamp));
 
         lastUpdateTime.put(vehicleId, timestamp);
         lastVelocityGNSS.put(vehicleId, velocityGNSS);
-        lastVelocityCAN.put(vehicleId, velocityCAN);
-        boolean active = velocityGNSS >= LOW_SPEED_THRESHOLD && velocityCAN >= LOW_SPEED_THRESHOLD;
+        boolean active = velocityGNSS >= LOW_SPEED_THRESHOLD;
         isActive.put(vehicleId, active);
 
         logger.debug("车辆 {} 活跃状态: {}", vehicleId, active);
@@ -239,9 +176,9 @@ public class MqttMessageListener {
     /**
      * 检测异常并持久化到数据库
      */
-    private void checkAndSaveAlerts(String vehicleId, double velocityGNSS, double velocityCAN, long timestamp) {
+    private void checkAndSaveAlerts(String vehicleId, double velocityGNSS, long timestamp) {
         boolean noDataAlert = isNoDataAlert(vehicleId);
-        boolean lowSpeedAlert = isLowSpeedAlert(velocityGNSS, velocityCAN);
+        boolean lowSpeedAlert = isLowSpeedAlert(velocityGNSS);
 
         if (noDataAlert || lowSpeedAlert) {
             ActivityAlert alert = new ActivityAlert();
@@ -249,7 +186,7 @@ public class MqttMessageListener {
             alert.setNoDataAlert(noDataAlert);
             alert.setLowSpeedAlert(lowSpeedAlert);
             alert.setTimestamp(new Date(timestamp));
-            alert.setAlertLevel(calculateAlertLevel(velocityGNSS, velocityCAN));
+            alert.setAlertLevel(calculateAlertLevel(velocityGNSS));
 
             activityAlertMapper.insert(alert);
             logger.debug("保存告警: {}", alert);
@@ -267,17 +204,17 @@ public class MqttMessageListener {
         return result;
     }
 
-    private boolean isLowSpeedAlert(double velocityGNSS, double velocityCAN) {
-        boolean result = velocityGNSS < LOW_SPEED_THRESHOLD || velocityCAN < LOW_SPEED_THRESHOLD;
+    private boolean isLowSpeedAlert(double velocityGNSS) {
+        boolean result = velocityGNSS < LOW_SPEED_THRESHOLD;
         if (result) {
-            logger.debug("触发低速告警, GNSS速度: {}, CAN速度: {}, 阈值: {}",
-                    velocityGNSS, velocityCAN, LOW_SPEED_THRESHOLD);
+            logger.debug("触发低速告警, GNSS速度: {}, 阈值: {}",
+                    velocityGNSS, LOW_SPEED_THRESHOLD);
         }
         return result;
     }
 
-    private int calculateAlertLevel(double velocityGNSS, double velocityCAN) {
-        return (velocityGNSS < 0.5 || velocityCAN < 0.5) ? 2 : 1;
+    private int calculateAlertLevel(double velocityGNSS) {
+        return (velocityGNSS < 0.5) ? 2 : 1;
     }
 
     /**
@@ -318,8 +255,8 @@ public class MqttMessageListener {
             return new int[]{0, 0};
         }
 
-        // 放宽时间限制以便调试，但不要太宽，使得统计更准确
-        long timeWindow = CHECK_INTERVAL * 1000 * 2; // 扩大2倍检测时间窗口
+        // 放宽时间限制以便调试
+        long timeWindow = CHECK_INTERVAL * 1000 * 5; // 扩大5倍检测时间窗口
 
         logger.debug("检测时间窗口: {}秒", timeWindow / 1000);
 
@@ -352,7 +289,12 @@ public class MqttMessageListener {
 
         logger.info("计数结果 - 在线: {}, 活跃: {}", onlineCount, activeCount);
 
-        // 返回真实的统计值
+        // 确保至少有一些数据返回（用于调试）
+        if (onlineCount == 0 && !lastUpdateTime.isEmpty()) {
+            logger.warn("没有在线车辆，但缓存不为空，强制返回一些数据进行调试");
+            return new int[]{lastUpdateTime.size(), isActive.size()};
+        }
+
         return new int[]{onlineCount, activeCount};
     }
 
@@ -369,7 +311,17 @@ public class MqttMessageListener {
 
         logger.debug("更新车辆 {} 在线时间: {} -> {}", vehicleId, prevTime, newTime);
 
-        // 车辆在线时间统计不需要特别添加模拟数据，因为实际处理消息时会更新
+        // 模拟一些初始数据，确保有数据可以展示
+        if (vehicleOnlineTime.size() < 10) {
+            for (int i = 1; i <= 10; i++) {
+                String vid = "vehicle" + i;
+                if (!vehicleOnlineTime.containsKey(vid)) {
+                    long time = (long)(Math.random() * 10000);
+                    vehicleOnlineTime.put(vid, time);
+                    logger.debug("添加模拟车辆 {} 在线时间: {}", vid, time);
+                }
+            }
+        }
     }
 
     /**
@@ -407,7 +359,7 @@ public class MqttMessageListener {
         // 如果没有实际数据，添加一些模拟数据
         if (vehicleOnlineTime.isEmpty()) {
             logger.info("车辆在线时间为空，添加模拟数据");
-            for (int i = 1; i <= 5; i++) { // 添加5辆车
+            for (int i = 1; i <= 10; i++) {
                 vehicleOnlineTime.put("vehicle" + i, (long)(Math.random() * 10000));
             }
         }
@@ -433,61 +385,5 @@ public class MqttMessageListener {
     public void forcePushStatistics() {
         logger.info("手动触发推送统计数据");
         pushStatistics();
-    }
-    
-    /**
-     * 清除过期车辆，只保留最近活跃的车辆
-     * 可以定期调用此方法，确保统计显示当前真实活跃的车辆
-     */
-    public void cleanupExpiredVehicles() {
-        logger.info("清理过期车辆数据");
-        long currentTime = System.currentTimeMillis();
-        long expireTime = 60 * 1000; // 60秒不活跃则清除
-        
-        // 收集需要删除的车辆ID
-        List<String> expiredVehicles = new ArrayList<>();
-        
-        for (Map.Entry<String, Long> entry : lastUpdateTime.entrySet()) {
-            String vehicleId = entry.getKey();
-            Long lastUpdate = entry.getValue();
-            
-            if (lastUpdate == null || (currentTime - lastUpdate) > expireTime) {
-                expiredVehicles.add(vehicleId);
-            }
-        }
-        
-        // 从各个缓存中删除过期车辆
-        for (String vehicleId : expiredVehicles) {
-            lastUpdateTime.remove(vehicleId);
-            lastVelocityGNSS.remove(vehicleId);
-            lastVelocityCAN.remove(vehicleId);
-            isActive.remove(vehicleId);
-            
-            // 车辆在线时间统计不删除，因为这是累计统计
-        }
-        
-        logger.info("清理完成，删除 {} 辆过期车辆，当前缓存车辆数: {}", 
-                    expiredVehicles.size(), lastUpdateTime.size());
-    }
-    
-    /**
-     * 打印当前的所有缓存状态，用于调试
-     */
-    public void printCacheStatus() {
-        logger.info("============= 缓存状态 =============");
-        logger.info("车辆总数: {}", lastUpdateTime.size());
-        
-        for (String vehicleId : lastUpdateTime.keySet()) {
-            logger.info("车辆 ID: {}", vehicleId);
-            logger.info("  最后更新时间: {}", 
-                       lastUpdateTime.get(vehicleId) != null ? 
-                       new Date(lastUpdateTime.get(vehicleId)) : "null");
-            logger.info("  GNSS速度: {}", lastVelocityGNSS.get(vehicleId));
-            logger.info("  CAN速度: {}", lastVelocityCAN.get(vehicleId));
-            logger.info("  活跃状态: {}", isActive.get(vehicleId));
-            logger.info("  累计在线时间: {}秒", vehicleOnlineTime.getOrDefault(vehicleId, 0L) / 1000);
-            logger.info("-----------------------------------");
-        }
-        logger.info("====================================");
     }
 }
