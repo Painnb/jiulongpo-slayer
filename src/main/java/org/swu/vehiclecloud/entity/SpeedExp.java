@@ -14,7 +14,6 @@ import java.sql.Timestamp;
 @ToString
 @NoArgsConstructor
 @TableName("speed_exp")
-@Deprecated
 public class SpeedExp {
     @TableId
     private Integer id; // 自增id
@@ -23,15 +22,15 @@ public class SpeedExp {
 
     private double velocityGNSS; // GNSS速度
 
-    private double velocityCAN; // 当前车速
+//    private double velocityCAN; // 当前车速
 
     private Timestamp timestamp; // 时间戳
 
     public SpeedExp(String vehicleId, double velocityGNSS,
-                           double velocityCAN, Timestamp timestamp) {
+                    Timestamp timestamp) {
         this.vehicleId = vehicleId;
         this.velocityGNSS = velocityGNSS;
-        this.velocityCAN = velocityCAN;
+//        this.velocityCAN = velocityCAN;
         this.timestamp = timestamp;
     }
 }

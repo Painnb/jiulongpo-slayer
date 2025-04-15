@@ -59,7 +59,6 @@ public class ProcessExp {
 
     @EventListener
     public void handleMqttMessage(MqttMessageEvent event) throws IOException, ParseException {
-        System.err.println("进入");
         eventCount++;
 
         // 每监听五条数据检测一次
@@ -76,6 +75,8 @@ public class ProcessExp {
 
                 String vehicleId = (String) dataContent.get("vehicleId");
                 int steeringAngle = (int) dataContent.get("steeringAngle");
+
+                double velocityGNSS = (double) dataContent.get("velocityGNSS");
 
                 long timestampGNSS = (long) dataContent.get("timestampGNSS");
                 long timestamp = (long) payload.get("timestamp");
@@ -172,7 +173,7 @@ public class ProcessExp {
 //                        accelerationVer, datestamp, numOfExp);
 
                 // 速度异常检测
-//                detectSpeedExp(vehicleId, velocityGNSS, velocityCAN, datestamp, numOfExp);
+                detectSpeedExp(vehicleId, velocityGNSS, datestamp, numOfExp);
 
                 // 发动机异常检测
 //                detectEngineExp(vehicleId, engineSpeed, engineTorque, datestamp, numOfExp);
@@ -228,28 +229,26 @@ public class ProcessExp {
 //        }
 //    }
 //
-//    private void detectSpeedExp(String vehicleId, double velocityGNSS,
-//                                double velocityCAN, Timestamp timestamp,
-//                                int numOfExp) throws JsonProcessingException {
-//        // 判断速度是否异常
-//        if(isSpeedExp(velocityGNSS, velocityCAN)){
-//            // 车辆有异常
-//            numOfExp = 1;
-//
-//            // 创建速度异常对象
-//            SpeedExp speedExp = new SpeedExp(vehicleId, velocityGNSS / 100,
-//                    velocityCAN / 100, timestamp);
-//
-//            // 插入速度异常对象
-//            vehicleExpMapper.insertSpeedExp(speedExp);
-//
-//            // 推送异常信息给前端
-//            Map<String, Object> pushData = new HashMap<>();
-//            pushData.put("vehicleId", vehicleId);
-//            pushData.put("speedExp", true);
-//            dataService.setPushContent("6", objectMapper.writeValueAsString(pushData));
-//        }
-//    }
+    private void detectSpeedExp(String vehicleId, double velocityGNSS,
+                                Timestamp timestamp, int numOfExp) throws JsonProcessingException {
+        // 判断速度是否异常
+        if(isSpeedExp(velocityGNSS)){
+            // 车辆有异常
+            numOfExp = 1;
+
+            // 创建速度异常对象
+            SpeedExp speedExp = new SpeedExp(vehicleId, velocityGNSS, timestamp);
+
+            // 插入速度异常对象
+            vehicleExpMapper.insertSpeedExp(speedExp);
+
+            // 推送异常信息给前端
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("vehicleId", vehicleId);
+            pushData.put("speedExp", true);
+            dataService.setPushContent("6", objectMapper.writeValueAsString(pushData));
+        }
+    }
 //
 //    private void detectEngineExp(String vehicleId, double engineSpeed,
 //                                 double engineTorque, Timestamp timestamp,
@@ -401,9 +400,9 @@ public class ProcessExp {
 //                || accelerationVer > 500 || accelerationVer < -500;
 //    }
 //
-//    private boolean isSpeedExp(double velocityGNSS, double velocityCAN) {
-//        return Math.abs(velocityGNSS - velocityCAN) >= 5;
-//    }
+    private boolean isSpeedExp(double velocityGNSS) {
+        return velocityGNSS > 80;
+    }
 //
 //    private boolean isEngineExp(double engineSpeed, double engineTorque) {
 //        return engineSpeed < 50 && engineTorque >= 50000;
