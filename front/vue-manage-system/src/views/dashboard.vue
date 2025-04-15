@@ -93,6 +93,47 @@
                                     />
                                 </el-table>
                             </div>
+                            <div class="card-header">
+                                <div class="card-header-left">
+                                    <p class="card-header-title">机械学习检测</p>
+                                    <p class="card-header-desc">输入车辆信息并检测是否存在异常</p>
+                                </div>
+                            </div>
+                            <div class="data-parser">
+                                <el-input
+                                    v-model="vehicleInfo"
+                                    type="textarea"
+                                    placeholder="输入车辆信息（JSON格式）"
+                                    size="small"
+                                    class="parser-input"
+                                />
+                                <el-button
+                                    type="primary"
+                                    size="small"
+                                    @click="detectAnomalies"
+                                    class="parser-button"
+                                >
+                                    检测
+                                </el-button>
+                            </div>
+                            <div v-if="detectionResult" class="parser-result">
+                                <p>检测结果：</p>
+                                <el-table
+                                    :data="detectionTableData"
+                                    border
+                                    style="width: 100%; max-height: 250px; overflow-y: auto;"
+                                >
+                                    <el-table-column
+                                        prop="key"
+                                        label="字段"
+                                        width="150"
+                                    />
+                                    <el-table-column
+                                        prop="value"
+                                        label="值"
+                                    />
+                                </el-table>
+                            </div>
                         </el-card>
                     </el-col>
                     <el-col :span="12">
@@ -376,6 +417,36 @@ const parseData = async () => {
     } catch (error) {
         console.error('解析失败:', error);
         alert('解析失败，请检查输入或稍后重试！');
+    }
+};
+
+const vehicleInfo = ref(''); // 输入的车辆信息
+const detectionResult = ref(''); // 检测结果
+const detectionTableData = ref([]); // 表格数据
+
+const detectAnomalies = async () => {
+    if (!vehicleInfo.value.trim()) {
+        alert('请输入车辆信息！');
+        return;
+    }
+    try {
+        // 调用后端接口，替换为实际接口地址
+        const response = await fetch('/api/detect-anomalies', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ data: vehicleInfo.value }),
+        });
+        const result = await response.json();
+        detectionResult.value = JSON.stringify(result, null, 2); // 格式化 JSON
+        detectionTableData.value = Object.entries(result).map(([key, value]) => ({
+            key,
+            value: typeof value === 'object' ? JSON.stringify(value) : value,
+        }));
+    } catch (error) {
+        console.error('检测失败:', error);
+        alert('检测失败，请检查输入或稍后重试！');
     }
 };
 </script>
