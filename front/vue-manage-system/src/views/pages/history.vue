@@ -31,7 +31,12 @@
           >
             <el-option label="发动机异常" value="engine_exp" />
             <el-option label="速度异常" value="speed_exp" />
-            <el-option label="其他异常" value="other_exp" />
+            <el-option label="加速度异常" value="acceleration_exp" />
+            <el-option label="刹车异常" value="brake_exp" />
+            <el-option label="经纬度异常" value="geo_location_exp" />
+            <el-option label="机器学习异常" value="ml_exp" />
+            <el-option label="转向异常" value="steering_exp" />
+            <el-option label="时间戳异常" value="timestamp_exp" />
           </el-select>
         </el-col>
         <el-col :span="4">
@@ -92,7 +97,12 @@ const pageSize = ref(15);
 const exceptionTypeMap = {
   engine_exp: '发动机异常',
   speed_exp: '速度异常',
-  other_exp: '其他异常'
+  acceleration_exp: '加速度异常',
+  brake_exp: '刹车异常',
+  geo_location_exp: '经纬度异常',
+  ml_exp: '机器学习异常',
+  steering_exp: '转向异常',
+  timestamp_exp: '时间戳异常'
 };
 
 const filteredData = computed(() => {
@@ -120,7 +130,7 @@ const initCharts = async () => {
     const params = {
       startTime: "2024-04-01 00:00:00",
       endTime: "2035-04-01 00:00:00",
-      selectedTables: ['engine_exp', 'speed_exp'],
+      selectedTables: ['engine_exp', 'speed_exp','acceleration_exp', 'brake_exp','geo_location_exp','ml_exp','steering_exp','timestamp_exp'],
       selectedColumns: {}
     };
 
@@ -141,6 +151,12 @@ const initCharts = async () => {
       const exceptionTypes = [];
       if (item.speed_exp === 1) exceptionTypes.push('速度异常');
       if (item.engine_exp === 1) exceptionTypes.push('发动机异常');
+      if (item.acceleration_exp === 1) exceptionTypes.push('加速度异常');
+      if (item.brake_exp === 1) exceptionTypes.push('刹车异常');
+      if (item.geo_location_exp === 1) exceptionTypes.push('经纬度异常');
+      if (item.ml_exp === 1) exceptionTypes.push('机器学习异常');
+      if (item.steering_exp === 1) exceptionTypes.push('转向异常');
+      if (item.timestamp_exp === 1) exceptionTypes.push('时间戳异常');
       return {
         vehicleId: item.vehicleId,
         timestamp: item.timestamp,
