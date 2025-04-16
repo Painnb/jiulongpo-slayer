@@ -28,6 +28,7 @@ import chinaJson from "@/utils/china"; // 引入中国地图数据
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import axios from "axios";
+import { graphic } from 'echarts/core';
 export default {
   name: "DataVisualization",
   mounted() {
@@ -383,16 +384,6 @@ export default {
       pieChart2.setOption({
         dataset: {
           source: [
-            // ["amount", "product"],
-            // [58212, "Matcha Latte"],
-            // [78254, "Milk Tea"],
-            // [41032, "Cheese Cocoa"],
-            // [12755, "Cheese Brownie"],
-            // [20145, "Matcha Cocoa"],
-            // [79146, "Tea"],
-            // [91852, "Orange Juice"],
-            // [101852, "Lemon Juice"],
-            // [20112, "Walnut Brownie"],
           ],
         },
         title: {
@@ -760,7 +751,7 @@ export default {
 }
 
 .left {
-  flex: 2;
+  flex: 3;
   display: flex;
   flex-direction: column;
   padding: 10px;
@@ -771,7 +762,7 @@ export default {
 }
 
 .right {
-  flex: 1;
+  flex: 2;
   display: flex;
   flex-direction: column;
   padding: 10px;
