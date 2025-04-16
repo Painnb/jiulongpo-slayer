@@ -224,10 +224,12 @@ import {
 } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import VChart from 'vue-echarts';
-import { dashOpt1, dashOpt2, mapOptions } from './chart/options';
+import { dashOpt2, mapOptions } from './chart/options';
 import chinaMap from '@/utils/china';
 import { ref ,onMounted,onUnmounted} from 'vue';
+import axios from 'axios';
 import { createSSEConnection } from '../utils/sse'; // 假设封装的工具函数放在 utils/sse.ts
+import { graphic } from 'echarts/core';
 
 const activeCount = ref<string>('');
 const onlineCount = ref<string>('');
@@ -270,6 +272,79 @@ onUnmounted(() => {
   sseConnection1?.close();
 });
 
+const dashOpt1 = ref({
+    xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: [], // 初始为空，后续通过接口更新
+    },
+    yAxis: {
+        type: 'value',
+    },
+    legend: {
+          data: ["活跃数量", "在线数量"],
+        },
+    grid: {
+        top: '2%',
+        left: '2%',
+        right: '3%',
+        bottom: '2%',
+        containLabel: true,
+    },
+    color: ['#009688', '#f44336'], // 每条线的颜色
+    series: [
+        {
+            name: '在线数量', // 第一条线的名称
+            type: 'line',
+            areaStyle: {
+                color: new graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(0, 150, 136, 0.8)' },
+                    { offset: 1, color: 'rgba(0, 150, 136, 0.2)' },
+                ]),
+            },
+            smooth: true,
+            data: [], // 数据
+        },
+        {
+            name: '活跃数量', // 第二条线的名称
+            type: 'line',
+            areaStyle: {
+                color: new graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(244, 67, 54, 0.8)' },
+                    { offset: 1, color: 'rgba(244, 67, 54, 0.2)' },
+                ]),
+            },
+            smooth: true,
+            data: [], // 数据
+        },
+    ],
+});
+// 获取后端数据的方法
+const fetchChartData = async () => {
+  try {
+    const response = await axios.get('/abc/api/datacontroller/public/activity/seven-days', {
+      headers: {
+        Authorization: `Bearer ${token}`, // 添加 token
+      },
+    });
+
+    const chartData = response.data;
+
+    dashOpt1.value.xAxis.data = chartData.xAxis; // 更新 X 轴数据
+    dashOpt1.value.series[0].data = chartData.onlineData; // 更新第一个折线的数据
+    dashOpt1.value.series[1].data = chartData.activeData; // 更新第二个折线的数据
+    console.log('图表数据更新成功:', chartData);
+  } catch (error) {
+    console.error('获取图表数据失败:', error);
+    return null;
+  }
+};
+
+// 动态更新图表数据
+onMounted( () => {
+    fetchChartData(); // 获取图表数据
+
+});
 
 use([
     CanvasRenderer,
