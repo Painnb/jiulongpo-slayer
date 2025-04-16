@@ -579,16 +579,12 @@ export default {
           {
             name: "活跃数量",
             type: "line",
-            stack: "Total",
-            areaStyle: {},
             smooth: true,
             data: [],
           },
           {
             name: "在线数量",
             type: "line",
-            stack: "Total",
-            areaStyle: {},
             smooth: true,
             data: [],
           },
