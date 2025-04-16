@@ -1,6 +1,8 @@
 package org.swu.vehiclecloud.service;
 
+import io.swagger.annotations.Api;
 import org.springframework.http.codec.ServerSentEvent;
+import org.swu.vehiclecloud.controller.template.ApiResult;
 import org.swu.vehiclecloud.dto.AnomalyStat;
 import org.swu.vehiclecloud.dto.VehicleExceptionCount;
 import reactor.core.publisher.Flux;
@@ -71,16 +73,22 @@ public interface DataService {
             LocalDateTime startTime,
             LocalDateTime endTime);
   
-        /**
-         * 获取异常统计信息（按value从大到小排序）
-         * @return 包含标题、数值、百分比和颜色值的数组
-         */
-        List<AnomalyStat> getExceptionPieData();
+    /**
+     * 获取异常统计信息（按value从大到小排序）
+     * @return 包含标题、数值、百分比和颜色值的数组
+     */
+    List<AnomalyStat> getExceptionPieData();
+
     /**
      * 获取各车辆异常数量统计
      * @return 车辆异常数量列表
      */
     List<VehicleExceptionCount> getVehicleExceptionCounts();
 
+    /**
+     * 获取机器学习异常数量统计
+     * @return 机器学习检测的车辆异常数量统计列表
+     */
+    ApiResult<Map<String, Object>> getMlExceptionData();
 }
 

@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
+import org.swu.vehiclecloud.controller.template.ApiResult;
 import org.swu.vehiclecloud.dto.AnomalyStat;
 import org.swu.vehiclecloud.dto.VehicleExceptionCount;
 import org.swu.vehiclecloud.service.DataService;
@@ -131,20 +132,33 @@ public class DataController {
             value = "/public/exceptiondata",
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"})
+    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN", "USER"})
     public List<AnomalyStat> getExceptionPieData() {
+
         return dataService.getExceptionPieData();
     }
 
 
-        /**
-         * 获取车辆异常数量统计
-         * @return 车辆异常数量统计列表
-         */
-        @GetMapping("/public/exceptionNumber")
-        @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"})
-        public List<VehicleExceptionCount> getExceptionNumber() {
-            return dataService.getVehicleExceptionCounts();
-        }
+    /**
+     * 获取车辆异常数量统计
+     * @return 车辆异常数量统计列表
+     */
+    @GetMapping("/public/exceptionNumber")
+    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN", "USER"})
+    public List<VehicleExceptionCount> getExceptionNumber() {
+        return dataService.getVehicleExceptionCounts();
     }
+
+    /**
+     * 获取机器学习异常数量统计
+     * @return 机器学习检测的车辆异常数量统计列表
+     */
+    @GetMapping("/public/getmlexceptiondata")
+    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN", "USER"})
+    public ApiResult<Map<String, Object>> getMlexceptionData() {
+        return dataService.getMlExceptionData();
+    }
+}
+
+
 
