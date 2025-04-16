@@ -65,11 +65,12 @@ public class ProcessExp {
 
                 // 提取车辆数据
                 Map<String, Object> payload = event.getMessage();
+                System.err.println(payload);
                 Map<String, Object> header = (Map<String, Object>) payload.get("header");
                 Map<String, Object> body = (Map<String, Object>) payload.get("body");
                 Map<String, Object> position = (Map<String, Object>) body.get("position");
                 String vehicleId =  (String)body.get("vehicleId");
-
+                System.err.println(vehicleId);
                 int steeringAngle = (int)payload.get("steeringAngle");
 
                 double velocityGNSS = (double)body.get("velocityGNSS");
