@@ -42,8 +42,8 @@
             <el-col :span="12">
                 <el-card shadow="hover" :body-style="{height: '420px',backgroundColor:'#eef5ff'}">
                     <div class="card-header">
-                        <p class="card-header-title">动态数据</p>
-                        <p class="card-header-desc">实时监测的车辆数据</p>
+                        <p class="card-header-title">历史数据</p>
+                        <p class="card-header-desc">监测到的车辆活跃与在线数据</p>
                     </div>
                     <v-chart class="chart" :option="dashOpt1" />
                 </el-card>
@@ -95,7 +95,7 @@
                             </div>
                             <div class="card-header">
                                 <div class="card-header-left">
-                                    <p class="card-header-title">机械学习检测</p>
+                                    <p class="card-header-title">机器学习检测</p>
                                     <p class="card-header-desc">输入车辆信息并检测是否存在异常</p>
                                 </div>
                             </div>
@@ -185,7 +185,7 @@
             <el-col :span="12">
                 <el-card shadow="hover" :body-style="{ height: '390px', backgroundColor: '#BFD5F8' }">
                     <div class="card-header">
-                        <p class="card-header-title">异常统计</p>
+                        <p class="card-header-title">历史异常统计</p>
                     </div>
                     <div>
                         <div class="rank-item" v-for="(rank, index) in ranks">
@@ -343,6 +343,7 @@ const fetchChartData = async () => {
 // 动态更新图表数据
 onMounted( () => {
     fetchChartData(); // 获取图表数据
+    fetchExpChartData(); // 获取异常统计数据
 
 });
 
@@ -412,39 +413,24 @@ const addNotification = () => {
     }
 };
 
-const ranks = [
-    {
-        title: '方向盘异常',
-        value: 10000,
-        percent: 80,
-        color: '#f25e43',
-    },
-    {
-        title: '车速异常',
-        value: 8000,
-        percent: 70,
-        color: '#00bcd4',
-        
-    },
-    {
-        title: '加速度异常',
-        value: 6000,
-        percent: 60,
-        color: '#64d572',
-    },
-    {
-        title: '油门异常',
-        value: 5000,
-        percent: 55,
-        color: '#e9a745',
-    },
-    {
-        title: '发动机异常',
-        value: 4000,
-        percent: 50,
-        color: '#009688',
-    },
-];
+const ranks = ref([]);
+
+const fetchExpChartData = async () => {
+  try {
+    const response = await axios.get('/abc/api/datacontroller/public/exceptiondata', {
+      headers: {
+        Authorization: `Bearer ${token}`, // 添加 token
+      },
+    });
+
+    const chartData = response.data;
+    ranks.value = chartData;
+    console.log('图表数据更新成功:', chartData);
+  } catch (error) {
+    console.error('获取图表数据失败:', error);
+    return null;
+  }
+};
 
 // 控制显示列表还是图表
 const showList = ref(false);
