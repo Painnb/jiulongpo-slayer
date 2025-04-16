@@ -44,6 +44,7 @@
                             </el-form-item>
                             <el-form-item>
                                 <el-button type="primary" @click="saveMqttConfig">保存</el-button>
+                                <el-button type="primary" @click="subMqttConfig">订阅</el-button>
                             </el-form-item>
                         </el-form>
                     </el-tab-pane>
@@ -88,7 +89,8 @@
 </template>
 
 <script setup lang="ts" name="ucenter">
-import { reactive, ref } from 'vue';
+import { ElMessage } from 'element-plus';
+import { reactive, ref, onMounted } from 'vue';
 import { VueCropper } from 'vue-cropper';
 import 'vue-cropper/dist/index.css';
 import avatar from '@/assets/img/img.jpg';
@@ -109,14 +111,6 @@ const avatarImg = ref(avatar);
 const imgSrc = ref(avatar);
 const cropImg = ref('');
 const cropper: any = ref();
-
-const mqttConfig = reactive({
-    brokerUrl: 'tcp://192.168.31.250:1887',
-    username: 'smqtt',
-    password: 'smqtt',
-    clientId: 'myclient',
-    subTopics: '#',
-});
 
 const userInfo = reactive({
     username: '默认用户名',
@@ -156,7 +150,54 @@ const saveAvatar = () => {
     avatarImg.value = cropImg.value;
 };
 
+const mqttConfig = reactive({
+    brokerUrl: localStorage.getItem('mqtt_brokerUrl') || 'tcp://192.168.31.250:1887',
+    username: localStorage.getItem('mqtt_username') || 'smqtt',
+    password: localStorage.getItem('mqtt_password') || 'smqtt',
+    clientId: localStorage.getItem('mqtt_clientId') || 'myclient',
+    subTopics: localStorage.getItem('mqtt_subTopics') || '#',
+});
+// 组件挂载时从localStorage加载MQTT配置
+onMounted(() => {
+    const savedConfig = localStorage.getItem('mqttConfig');
+    if (savedConfig) {
+        Object.assign(mqttConfig, JSON.parse(savedConfig));
+    }
+});
 const saveMqttConfig = () => {
+    // 保存到localStorage
+    localStorage.setItem('mqttConfig', JSON.stringify(mqttConfig));
+    // 同时单独存储每个字段以便其他页面使用
+    localStorage.setItem('mqtt_brokerUrl', mqttConfig.brokerUrl);
+    localStorage.setItem('mqtt_username', mqttConfig.username);
+    localStorage.setItem('mqtt_password', mqttConfig.password);
+    localStorage.setItem('mqtt_clientId', mqttConfig.clientId);
+    localStorage.setItem('mqtt_subTopics', mqttConfig.subTopics);
+    
+    console.log('MQTT配置已保存到本地存储:', mqttConfig);
+    // 添加成功提示
+    ElMessage.success('MQTT配置已保存');
+    
+    // 如果需要同时保存到后端
+    const token = localStorage.getItem('token');
+    if (token) {
+        axios.post('/abc/mqtt/config', mqttConfig, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+        })
+        .then(response => {
+            console.log('保存到服务器成功', response);
+            ElMessage.success('配置已同步到服务器');
+        })
+        .catch(error => {
+            console.error('保存到服务器失败', error);
+            ElMessage.error('服务器保存失败，但本地已保存');
+        });
+    }
+};
+
+const subMqttConfig = () => {
     console.log('保存 MQTT 配置：', mqttConfig);
     const token = localStorage.getItem('token');
     if (token) {

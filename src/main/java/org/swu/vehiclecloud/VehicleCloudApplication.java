@@ -5,7 +5,14 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.swu.vehiclecloud.config.MqttConfigProperties;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Component;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 /**
  * 车辆云平台主启动类
@@ -20,7 +27,9 @@ import org.swu.vehiclecloud.config.MqttConfigProperties;
 @ServletComponentScan
 @MapperScan("org.swu.vehiclecloud.mapper")
 @EnableConfigurationProperties(MqttConfigProperties.class)
-public class VehicleCloudApplication {
+@EnableTransactionManagement
+@Component
+public class VehicleCloudApplication implements CommandLineRunner {
 
     /**
      * 应用程序主入口
@@ -30,4 +39,23 @@ public class VehicleCloudApplication {
         SpringApplication.run(VehicleCloudApplication.class, args);
     }
 
+    @Override
+    @Async
+    public void run(String... args) throws Exception {
+        try {
+            ProcessBuilder pb = new ProcessBuilder("python", "pythonMLAnomaly/main.py");
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+
+            BufferedReader reader = new BufferedReader(
+                new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println("Python输出: " + line);
+            }
+        } catch (IOException e) {
+            System.err.println("启动Python进程失败: " + e.getMessage());
+        }
+    }
 }
+    
