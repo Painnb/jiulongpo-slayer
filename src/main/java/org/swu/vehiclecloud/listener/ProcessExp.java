@@ -35,6 +35,9 @@ public class ProcessExp {
 
     private static long previousTimestamp = 0;
 
+    // 异常数量
+    private static int numOfExp = 0;
+
     // 间隔执行监听方法
     private static int eventCount = 0;
 
@@ -57,29 +60,36 @@ public class ProcessExp {
     public void handleMqttMessage(MqttMessageEvent event) throws IOException, ParseException {
         eventCount++;
 
-        // 每监听五条数据检测一次
-        if (eventCount % 5 == 0) {
-            try {
-                // 初始化异常数量
-                int numOfExp = 0;
+        // 每监听条数据检测一次
+        try {
+            // 提取车辆数据
+            Map<String, Object> payload = event.getMessage();
+            // 获取 header 部分
+            Map<String, Object> header = (Map<String, Object>) payload.get("header");
 
-                // 提取车辆数据
-                Map<String, Object> payload = event.getMessage();
-                System.err.println(payload);
-                Map<String, Object> header = (Map<String, Object>) payload.get("header");
-                Map<String, Object> body = (Map<String, Object>) payload.get("body");
-                Map<String, Object> position = (Map<String, Object>) body.get("position");
-                String vehicleId =  (String)body.get("vehicleId");
-                System.err.println(vehicleId);
-                int steeringAngle = (int)payload.get("steeringAngle");
+            // 获取 body 部分
+            Map<String, Object> body = (Map<String, Object>) payload.get("body");
 
-                double velocityGNSS = (double)body.get("velocityGNSS");
+            // 获取 vehicleId
+            String vehicleId = (String) body.get("vehicleId");
 
-                long timestampGNSS = (long)body.get("timestampGNSS");
-                long timestamp = (long)header.get("timestamp");
+            // 获取 steeringAngle
+            int steeringAngle = (int) body.get("steeringAngle");
 
-                double longitude = (double)position.get("longitude");
-                double latitude = (double)position.get("latitude");
+            // 获取 velocityGNSS
+            double velocityGNSS = (double) body.get("velocityGNSS");
+
+            // 获取 timestampGNSS
+            long timestampGNSS = (long) body.get("timestampGNSS");
+
+            // 获取 timestamp (来自header)
+            long timestamp = (long) header.get("timestamp");
+
+            // 获取 position 中的 longitude 和 latitude
+            Map<String, Object> position = (Map<String, Object>) body.get("position");
+            double longitude = (double) position.get("longitude");
+            double latitude = (double) position.get("latitude");
+
 //                Map<String, Object> payload = event.getMessage();
 //
 //                Map<String, Object> dataContent = (Map<String, Object>) payload.get("dataContent");
@@ -96,10 +106,6 @@ public class ProcessExp {
 //                double longitude = (double) position.get("longitude");
 //                double latitude = (double) position.get("latitude");
 
-                // 打印成一排
-                System.err.println("vehicleId: " + vehicleId + ", steeringAngle: " + steeringAngle +
-                        ", velocityGNSS: " + velocityGNSS + ", timestampGNSS: " + timestampGNSS +
-                        ", timestamp: " + timestamp + ", longitude: " + longitude + ", latitude: " + latitude);
 
 //                JsonNode headerNode = messageNode.get("header");
 //                JsonNode bodyNode = messageNode.get("body");
@@ -131,95 +137,94 @@ public class ProcessExp {
 //                double longitude = bodyNode.get("longitude").asDouble();
 //                double latitude = bodyNode.get("latitude").asDouble();
 
-                // 将UTC时间戳转换为东八区(CST)时间戳
-                Timestamp datestamp = UtcToCst(timestamp);
+            // 将UTC时间戳转换为东八区(CST)时间戳
+            Timestamp datestamp = UtcToCst(timestamp);
 
-                if (numOfExpCar.isEmpty()) {
-                    // 初始化当前时间片异常车辆数量为0
-                    previousTimestamp = timestamp;
-                    numOfExpCar.put(timestamp, 0);
-                    // 启动一个任务，每10秒将这10秒内的异常车数量推送给前端
-                    scheduler.scheduleAtFixedRate(this::pushNumOfExpData, 0, 10, TimeUnit.SECONDS);
-                }
+            if (numOfExpCar.isEmpty()) {
+                // 初始化当前时间片异常车辆数量为0
+                previousTimestamp = timestamp;
+                numOfExpCar.put(timestamp, 0);
+                // 启动一个任务，每10秒将这10秒内的异常车数量推送给前端
+                scheduler.scheduleAtFixedRate(this::pushNumOfExpData, 0, 10, TimeUnit.SECONDS);
+            }
 
-                // 将经纬度推给前端，不论是否异常
-                Map<String, Object> pushLocationData = new HashMap<>();
-                pushLocationData.put("vehicleId", vehicleId);
-                pushLocationData.put("longitude", longitude);
-                pushLocationData.put("latitude", latitude);
-                dataService.setPushContent("1", objectMapper.writeValueAsString(pushLocationData));
-                // 上一个时间片某辆车的数据
-                Map<String, Object> previousVehicleData = vehicleDataCache.get(vehicleId);
+            // 将经纬度推给前端，不论是否异常
+            Map<String, Object> pushLocationData = new HashMap<>();
+            pushLocationData.put("vehicleId", vehicleId);
+            pushLocationData.put("longitude", longitude);
+            pushLocationData.put("latitude", latitude);
+            dataService.setPushContent("1", objectMapper.writeValueAsString(pushLocationData));
+            // 上一个时间片某辆车的数据
+            Map<String, Object> previousVehicleData = vehicleDataCache.get(vehicleId);
 
-                // 当前时间片某辆车的数据
-                Map<String, Object> currentVehicleData = new HashMap<>();
+            // 当前时间片某辆车的数据
+            Map<String, Object> currentVehicleData = new HashMap<>();
 
-                if (StrUtil.isEmptyIfStr(previousVehicleData)) {
-                    // 如果是第一次接受该车辆的数据，则存储车辆数据到缓存当中, 用来判断转向异常和经纬度异常
-                    currentVehicleData.put("timestamp", timestamp);
-                    currentVehicleData.put("steeringAngle", steeringAngle);
-//                    currentVehicleData.put("yawRate", yawRate);
-                    currentVehicleData.put("longitude", longitude);
-                    currentVehicleData.put("latitude", latitude);
-                    vehicleDataCache.put(vehicleId, currentVehicleData);
+            // 接受车辆的数据，则存储车辆数据到缓存当中, 用来判断转向异常和经纬度异常
+            currentVehicleData.put("timestamp", timestamp);
+            currentVehicleData.put("steeringAngle", steeringAngle);
+//              currentVehicleData.put("yawRate", yawRate);
+            currentVehicleData.put("longitude", longitude);
+            currentVehicleData.put("latitude", latitude);
 
-                    // 启动一个任务，如果10秒之内没有收到该车辆的新数据，则从缓存中删除该车辆数据
-                    scheduler.schedule(() -> {
-                        Map<String, Object> cachedData = vehicleDataCache.get(vehicleId);
-                        if (StrUtil.isEmptyIfStr(cachedData)) {
-                            vehicleDataCache.remove(vehicleId);
-                        }
-                    }, 10, TimeUnit.SECONDS);
-                } else {
-                    if (Math.abs(timestampGNSS - (Long) previousVehicleData.get("timestamp")) > Math.pow(10, 4)) {
-                        // 经纬度异常检测
-                        detectGeoLocationExp(vehicleId, longitude,
-                                latitude, (double) previousVehicleData.get("longitude"),
-                                (double) previousVehicleData.get("latitude"), datestamp,
-                                numOfExp);
+            if (StrUtil.isEmptyIfStr(previousVehicleData)) {
+                vehicleDataCache.put(vehicleId, currentVehicleData);
+
+                // 启动一个任务，如果10秒之内没有收到该车辆的新数据，则从缓存中删除该车辆数据
+                scheduler.schedule(() -> {
+                    Map<String, Object> cachedData = vehicleDataCache.get(vehicleId);
+                    if (StrUtil.isEmptyIfStr(cachedData)) {
+                        vehicleDataCache.remove(vehicleId);
+                    }
+                }, 10, TimeUnit.SECONDS);
+            } else {
+                if (Math.abs(timestampGNSS - (Long) previousVehicleData.get("timestamp")) > Math.pow(10, 4)) {
+                    // 经纬度异常检测
+                    detectGeoLocationExp(vehicleId, longitude,
+                            latitude, (double) previousVehicleData.get("longitude"),
+                            (double) previousVehicleData.get("latitude"), datestamp);
 //                        // 检测横摆角速度与方向盘转角变化趋势是否匹配
 //                        detectSwivelAngleExp(vehicleId, steeringAngle,
 //                                yawRate, (double) previousVehicleData.get("steeringAngle"),
 //                                (double) previousVehicleData.get("yawRate"), datestamp,
 //                                numOfExp);
-                        vehicleDataCache.replace(vehicleId, previousVehicleData, currentVehicleData);
-                    }
+                    vehicleDataCache.replace(vehicleId, previousVehicleData, currentVehicleData);
                 }
+            }
 
-                // 加速度异常检测
+            // 加速度异常检测
 //                detectAccelerationExp(vehicleId, accelerationLon, accelerationLat,
 //                        accelerationVer, datestamp, numOfExp);
 
-                // 速度异常检测
-                detectSpeedExp(vehicleId, velocityGNSS, datestamp, numOfExp);
+            // 速度异常检测
+            detectSpeedExp(vehicleId, velocityGNSS, datestamp);
 
-                // 发动机异常检测
+            // 发动机异常检测
 //                detectEngineExp(vehicleId, engineSpeed, engineTorque, datestamp, numOfExp);
 
-                // 制动异常检测
+            // 制动异常检测
 //                detectBrakeExp(vehicleId, brakeFlag, brakePos, brakePressure, datestamp, numOfExp);
 
-                // 转向异常检测
-                detectSteeringExp(vehicleId, steeringAngle, datestamp, numOfExp);
+            // 转向异常检测
+            detectSteeringExp(vehicleId, steeringAngle, datestamp);
 
-                // 时间戳异常检测
-                detectTimestampExp(vehicleId, timestampGNSS, timestamp, datestamp, numOfExp);
+            // 时间戳异常检测
+            detectTimestampExp(vehicleId, timestampGNSS, timestamp, datestamp);
 
-                // 将对应时间片的异常车数量存入缓存
-                // 使用 compute 来更新值
-                numOfExpCar.compute(previousTimestamp, (key, currentValue) ->
-                        (currentValue == null ? 0 : currentValue) + numOfExp
-                );
+            // 将对应时间片的异常车数量存入缓存
+            // 使用 compute 来更新值
+            numOfExpCar.compute(previousTimestamp, (key, currentValue) ->
+                    (currentValue == null ? 0 : currentValue) + numOfExp
+            );
 
-            } catch (IOException e) {
-                throw new IOException("Internal server error. Please try again later.");
-            } catch (NullPointerException e) {
-                throw new NullPointerException("Bad request. Missing required fields.");
-            } catch (NumberFormatException e) {
-                throw new NumberFormatException("Bad request. Invalid number format.");
-            } catch (ParseException e) {
-                throw new ParseException("Server error, timestamp parse failed", 1);
-            }
+        } catch (IOException e) {
+            throw new IOException("Internal server error. Please try again later.");
+        } catch (NullPointerException e) {
+            throw new NullPointerException("Bad request. Missing required fields.");
+        } catch (NumberFormatException e) {
+            throw new NumberFormatException("Bad request. Invalid number format.");
+        } catch (ParseException e) {
+            throw new ParseException("Server error, timestamp parse failed", 1);
         }
     }
 //    private void detectAccelerationExp(String vehicleId, double accelerationLon,
@@ -248,7 +253,7 @@ public class ProcessExp {
 //    }
 //
     private void detectSpeedExp(String vehicleId, double velocityGNSS,
-                                Timestamp timestamp, int numOfExp) throws JsonProcessingException {
+                                Timestamp timestamp) throws JsonProcessingException {
         // 判断速度是否异常
         if(isSpeedExp(velocityGNSS)){
             // 车辆有异常
@@ -318,8 +323,7 @@ public class ProcessExp {
 //    }
 
     private void detectSteeringExp(String vehicleId, double steeringAngle,
-                                   Timestamp timestamp,
-                                   int numOfExp) throws JsonProcessingException {
+                                   Timestamp timestamp) throws JsonProcessingException {
         if(isSteeringExp(steeringAngle)){
             // 车辆有异常
             numOfExp = 1;
@@ -364,8 +368,7 @@ public class ProcessExp {
 //    }
 
     private void detectTimestampExp(String vehicleId, long timestampGNSS,
-                                    long timestamp, Timestamp datestamp,
-                                    int numOfExp) throws JsonProcessingException, ParseException {
+                                    long timestamp, Timestamp datestamp) throws JsonProcessingException, ParseException {
         if(isTimeStampExp(timestampGNSS, timestamp)){
             // 车辆有异常
             numOfExp = 1;
@@ -390,8 +393,7 @@ public class ProcessExp {
 
     private void detectGeoLocationExp(String vehicleId, double longitude,
                                       double latitude, double previousLongitude,
-                                      double previousLatitude, Timestamp datestamp,
-                                      int numOfExp) throws JsonProcessingException {
+                                      double previousLatitude, Timestamp datestamp) throws JsonProcessingException {
         if(isGeoLocationExp(longitude, latitude, previousLongitude, previousLatitude)){
             // 车辆有异常
             numOfExp = 1;
@@ -497,7 +499,6 @@ public class ProcessExp {
 
             // Clear the map after sending the data
             numOfExpCar.clear();
-            System.err.println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa");
         } catch (JsonProcessingException e) {
             // Log the exception or handle it in another way
             logger.error("Error while processing JSON for push data: {}", e.getMessage());
