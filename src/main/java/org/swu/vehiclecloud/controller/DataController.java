@@ -122,43 +122,4 @@ public class DataController {
 
         return ResponseEntity.ok(result);
     }
-    /**
-     * 获取异常数据统计
-     * API路径遵循统一规范：/api/datacontroller/public/exceptiondata
-     *
-     * @return 按value降序排列的异常统计数据
-     */
-    @GetMapping(
-            value = "/public/exceptiondata",
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
-    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN", "USER"})
-    public List<AnomalyStat> getExceptionPieData() {
-
-        return dataService.getExceptionPieData();
-    }
-
-
-    /**
-     * 获取车辆异常数量统计
-     * @return 车辆异常数量统计列表
-     */
-    @GetMapping("/public/exceptionNumber")
-    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN", "USER"})
-    public List<VehicleExceptionCount> getExceptionNumber() {
-        return dataService.getVehicleExceptionCounts();
-    }
-
-    /**
-     * 获取机器学习异常数量统计
-     * @return 机器学习检测的车辆异常数量统计列表
-     */
-    @GetMapping("/public/getmlexceptiondata")
-    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN", "USER"})
-    public ApiResult<Map<String, Object>> getMlexceptionData() {
-        return dataService.getMlExceptionData();
-    }
 }
-
-
-

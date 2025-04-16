@@ -109,25 +109,45 @@ public class MqttMessageListener {
                 return;
             }
 
+            // 新的消息解析结构
+            Map<String, Object> dataContent = (Map<String, Object>) payload.get("dataContent");
+            if (dataContent == null) {
+                logger.warn("接收到无效的dataContent");
+                return;
+            }
+
             // 解析基础数据
-            String vehicleId = String.valueOf(payload.get("vehicleId"));
+            String vehicleId = (String) dataContent.get("vehicleId");
             // 确保vehicleId不为null或空字符串
             if (vehicleId == null || vehicleId.trim().isEmpty() || vehicleId.equals("null")) {
                 logger.warn("接收到无效的车辆ID");
                 return;
             }
-            
-            double velocityGNSS = parseDouble(payload.get("velocityGNSS"));
-            long timestamp = parseTimestamp(payload.get("timestamp"));
+
+            double velocityGNSS = parseDouble(dataContent.get("velocityGNSS"));
+            long timestampGNSS = parseLong(dataContent.get("timestampGNSS"));
+            long timestamp = parseLong(payload.get("timestamp"));
+
+            // 使用timestampGNSS如果有效，否则使用timestamp
+            long effectiveTimestamp = (timestampGNSS > 0) ? timestampGNSS : timestamp;
+
+            // 可以解析其他字段，但在此不需要使用
+            // int steeringAngle = parseInt(dataContent.get("steeringAngle"));
+            // Map<String, Object> position = (Map<String, Object>) dataContent.get("position");
+            // double longitude = position != null ? parseDouble(position.get("longitude")) : 0.0;
+            // double latitude = position != null ? parseDouble(position.get("latitude")) : 0.0;
+
+            logger.debug("解析消息: 车辆ID={}, GNSS速度={}, 时间戳={}",
+                    vehicleId, velocityGNSS, new Date(effectiveTimestamp));
 
             logger.debug("解析消息: 车辆ID={}, GNSS速度={}, 时间戳={}",
                     vehicleId, velocityGNSS, new Date(timestamp));
 
             // 更新车辆状态缓存
-            updateVehicleStatus(vehicleId, velocityGNSS, timestamp);
+            updateVehicleStatus(vehicleId, velocityGNSS, effectiveTimestamp);
 
             // 检测并保存异常数据
-            checkAndSaveAlerts(vehicleId, velocityGNSS, timestamp);
+            checkAndSaveAlerts(vehicleId, velocityGNSS, effectiveTimestamp);
 
             // 更新车辆在线时间
             updateVehicleOnlineTime(vehicleId);
@@ -149,6 +169,26 @@ public class MqttMessageListener {
         }
         double result = (obj instanceof Number) ? ((Number) obj).doubleValue() : 0.0;
         logger.debug("解析对象 {} 为double值: {}", obj, result);
+        return result;
+    }
+
+    private long parseLong(Object obj) {
+        if (obj == null) {
+            logger.warn("解析空对象为long值");
+            return System.currentTimeMillis();
+        }
+        long result = (obj instanceof Number) ? ((Number) obj).longValue() : System.currentTimeMillis();
+        logger.debug("解析对象 {} 为long值: {}", obj, result);
+        return result;
+    }
+
+    private int parseInt(Object obj) {
+        if (obj == null) {
+            logger.warn("解析空对象为int值");
+            return 0;
+        }
+        int result = (obj instanceof Number) ? ((Number) obj).intValue() : 0;
+        logger.debug("解析对象 {} 为int值: {}", obj, result);
         return result;
     }
 
@@ -311,7 +351,6 @@ public class MqttMessageListener {
         vehicleOnlineTime.put(vehicleId, newTime);
 
         logger.debug("更新车辆 {} 在线时间: {} -> {}", vehicleId, prevTime, newTime);
-
         // 模拟一些初始数据，确保有数据可以展示，但最多只添加5辆车
         if (vehicleOnlineTime.size() < 5) {
             for (int i = 1; i <= 5; i++) {
@@ -388,3 +427,4 @@ public class MqttMessageListener {
         pushStatistics();
     }
 }
+
