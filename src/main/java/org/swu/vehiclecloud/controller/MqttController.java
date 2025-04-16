@@ -46,11 +46,7 @@ public class MqttController {
         if (connect) {
             return mqttService.connect();
         } else {
-            mqttService.close();
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "200");
-            response.put("message", "MQTT connected closed");
-            return ResponseEntity.ok(response);
+            return mqttService.close();
         }
     }
 
@@ -76,7 +72,7 @@ public class MqttController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("status", "200");
-        response.put("message", "MQTT connected closed");
+        response.put("message", "MQTT config updated");
         response.put("config", config);
         return ResponseEntity.ok(response);
     }

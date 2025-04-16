@@ -13,7 +13,7 @@ public interface MqttService {
     void reinitialize(String brokerUrl, String clientId, String username, String password, List<String> topic) throws MqttException;
     void subscribeToDefaultTopics() throws MqttException;
     ResponseEntity<Map<String, Object>> connect() throws MqttException;
-    void close() throws Exception;
+    ResponseEntity<Map<String, Object>> close() throws Exception;
     Map<String, Object> parsePayload(byte[] payload) throws Exception;
     boolean isConnected();
 }
