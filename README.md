@@ -10,7 +10,7 @@
 - **后端：** Spring Boot 3.0.2（JDK 17）
 - **数据持久层：** MyBatis，MySQL 数据库
 - **消息通信：** MQTT（支持 EMQX 等 Broker）
-- **其他：** RESTful API、WebSocket（实时数据推送，可选）
+- **其他：** RESTful API、SSE（实时数据推送，可选）
 
 ## 项目背景
 

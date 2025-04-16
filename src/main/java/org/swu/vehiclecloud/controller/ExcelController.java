@@ -26,7 +26,7 @@ public class ExcelController {
      * @return 包含Excel文件的HTTP响应
      */
     @GetMapping("/business/tables/{tableName}/export")
-    @PreAuthorizeRole(roles = {"BIZ_ADMIN"})
+    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN"})
     public ResponseEntity<Resource> exportExcel(@PathVariable String tableName) {
         return excelService.exportExcel(tableName);
     }
@@ -37,7 +37,7 @@ public class ExcelController {
      * @return 包含组合数据Excel文件的HTTP响应
      */
     @PostMapping("/business/tables/combined-export")
-    @PreAuthorizeRole(roles = {"BIZ_ADMIN"})
+    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN"})
     public ResponseEntity<Resource> exportCombinedExcel(
             @RequestBody ExcelExportRequest request) {
         return excelService.exportCombinedExcel(
@@ -55,7 +55,7 @@ public class ExcelController {
      * @return 包含Excel文件的HTTP响应
      */
     @PostMapping("/business/tables/all-vehicles-exceptions-export")
-    @PreAuthorizeRole(roles = {"BIZ_ADMIN"})
+    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN"})
     public ResponseEntity<Resource> exportAllVehiclesExceptions(
             @RequestBody ExcelExportAllVehiclesRequest request) {
         return excelService.exportAllVehiclesExceptions(

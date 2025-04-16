@@ -5,7 +5,7 @@
                 <el-card shadow="hover" body-class="card-body">
                     <img src="@/assets/img/card1.png" alt="在线数量" class="card-icon bg-blue" />
                     <div class="card-content">
-                        <div class="card-num color1"  >6666</div>
+                        <div class="card-num color1"  >{{onlineCount}}</div>
                         <div>在线数量</div>
                     </div>
                 </el-card>
@@ -14,7 +14,7 @@
                 <el-card shadow="hover" body-class="card-body">
                     <img src="@/assets/img/card2.png" alt="活跃数量" class="card-icon bg-green" />
                     <div class="card-content">
-                        <div class="card-num color2"  >6666</div>
+                        <div class="card-num color2"  >{{activeCount}}</div>
                         <div>活跃数量</div>
                     </div>
                 </el-card>
@@ -23,7 +23,7 @@
                 <el-card shadow="hover" body-class="card-body">
                     <img src="@/assets/img/card3.png" alt="异常数量" class="card-icon bg-red" />
                     <div class="card-content">
-                        <div class="card-num color3"  >{{ message }}</div>
+                        <div class="card-num color3"  >{{ exceptionCount }}</div>
                         <div>异常数量</div>
                     </div>
                 </el-card>
@@ -54,39 +54,92 @@
                         <el-card shadow="hover" :body-style="{ height: '420px',backgroundColor:'#c0dbf8'}">
                             <div class="card-header">
                                 <div class="card-header-left">
-                                    <p class="card-header-title">车辆状态</p>
-                                    <p class="card-header-desc">实时监测的车辆状态</p>
+                                    <p class="card-header-title">数据解析</p>
+                                    <p class="card-header-desc">输入数据并解析为JSON</p>
                                 </div>
-                                <!-- 添加按钮 -->
-                                <el-button size="mini" type="primary" @click="showList = true">选择车辆</el-button>
                             </div>
-                            <!-- 图表区域 -->
-                            <div v-if="!showList">
-                                <v-chart class="chart" :option="dashOpt2" />
+                            <div class="data-parser">
+                                <el-input
+                                    v-model="inputData"
+                                    type="textarea"
+                                    placeholder="输入待解析数据"
+                                    size="small"
+                                    class="parser-input"
+                                />
+                                <el-button
+                                    type="primary"
+                                    size="small"
+                                    @click="parseData"
+                                    class="parser-button"
+                                >
+                                    解析
+                                </el-button>
                             </div>
-                            <!-- 列表区域 -->
-                            <div v-else class="list-container">
-                                <el-checkbox-group v-model="selectedOptions" class="scrollable-list">
-                                    <el-checkbox
-                                        v-for="(option, index) in options"
-                                        :key="index"
-                                        :label="option"
-                                        class="checkbox-item"
-                                    >
-                                        {{ option }}
-                                    </el-checkbox>
-                                </el-checkbox-group>
-                                <div class="list-buttons">
-                                    <el-button size="mini" type="primary" @click="showList = false">返回</el-button>
-                                    <el-button size="mini" type="success" @click="printSelections">打印</el-button>
+                            <div v-if="parsedData" class="parser-result">
+                                <p>解析结果：</p>
+                                <el-table
+                                    :data="parsedTableData"
+                                    border
+                                    style="width: 100%; max-height: 250px; overflow-y: auto;"
+                                >
+                                    <el-table-column
+                                        prop="key"
+                                        label="字段"
+                                        width="150"
+                                    />
+                                    <el-table-column
+                                        prop="value"
+                                        label="值"
+                                    />
+                                </el-table>
+                            </div>
+                            <div class="card-header">
+                                <div class="card-header-left">
+                                    <p class="card-header-title">机械学习检测</p>
+                                    <p class="card-header-desc">输入车辆信息并检测是否存在异常</p>
                                 </div>
+                            </div>
+                            <div class="data-parser">
+                                <el-input
+                                    v-model="vehicleInfo"
+                                    type="textarea"
+                                    placeholder="输入车辆信息（JSON格式）"
+                                    size="small"
+                                    class="parser-input"
+                                />
+                                <el-button
+                                    type="primary"
+                                    size="small"
+                                    @click="detectAnomalies"
+                                    class="parser-button"
+                                >
+                                    检测
+                                </el-button>
+                            </div>
+                            <div v-if="detectionResult" class="parser-result">
+                                <p>检测结果：</p>
+                                <el-table
+                                    :data="detectionTableData"
+                                    border
+                                    style="width: 100%; max-height: 250px; overflow-y: auto;"
+                                >
+                                    <el-table-column
+                                        prop="key"
+                                        label="字段"
+                                        width="150"
+                                    />
+                                    <el-table-column
+                                        prop="value"
+                                        label="值"
+                                    />
+                                </el-table>
                             </div>
                         </el-card>
                     </el-col>
                     <el-col :span="12">
                         <el-card shadow="hover" :body-style="{ height: '420px', backgroundColor: '#76A9F7' }">
                             <div class="card-header">
-                                <p class="card-header-title">时间线</p>
+                                <p class="card-header-title">通知</p>
                             </div>
                             <div class="notification-input">
                                 <el-input 
@@ -171,13 +224,18 @@ import {
 } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import VChart from 'vue-echarts';
-import { dashOpt1, dashOpt2, mapOptions } from './chart/options';
+import { dashOpt2, mapOptions } from './chart/options';
 import chinaMap from '@/utils/china';
 import { ref ,onMounted,onUnmounted} from 'vue';
+import axios from 'axios';
 import { createSSEConnection } from '../utils/sse'; // 假设封装的工具函数放在 utils/sse.ts
+import { graphic } from 'echarts/core';
 
-const message = ref<string>('');
+const activeCount = ref<string>('');
+const onlineCount = ref<string>('');
+const exceptionCount = ref<string>('');
 let sseConnection: { close: () => void } | null = null;
+let sseConnection1: { close: () => void } | null = null;
 
 const token = localStorage.getItem('token') || ''; // 假设 token 存储在 localStorage 中
 
@@ -187,7 +245,21 @@ onMounted(() => {
       console.log('SSE连接已建立');
     },
     onMessage: (data) => {
-      message.value = data;
+        console.log('收到SSE活跃度消息:', data);
+        activeCount.value = data.activeCount;
+        onlineCount.value = data.onlineCount;
+    },
+    onError: (error) => {
+      console.error('SSE连接错误:', error);
+    }
+  });
+  sseConnection1 = createSSEConnection('/abc/api/datacontroller/public/ssestream/2', token, {
+    onOpen: () => {
+      console.log('SSE连接已建立');
+    },
+    onMessage: (data) => {
+        console.log('收到SSE异常消息:', data);
+        exceptionCount.value = data.numOfExp;
     },
     onError: (error) => {
       console.error('SSE连接错误:', error);
@@ -197,8 +269,82 @@ onMounted(() => {
 
 onUnmounted(() => {
   sseConnection?.close();
+  sseConnection1?.close();
 });
 
+const dashOpt1 = ref({
+    xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: [], // 初始为空，后续通过接口更新
+    },
+    yAxis: {
+        type: 'value',
+    },
+    legend: {
+          data: ["活跃数量", "在线数量"],
+        },
+    grid: {
+        top: '2%',
+        left: '2%',
+        right: '3%',
+        bottom: '2%',
+        containLabel: true,
+    },
+    color: ['#009688', '#f44336'], // 每条线的颜色
+    series: [
+        {
+            name: '在线数量', // 第一条线的名称
+            type: 'line',
+            areaStyle: {
+                color: new graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(0, 150, 136, 0.8)' },
+                    { offset: 1, color: 'rgba(0, 150, 136, 0.2)' },
+                ]),
+            },
+            smooth: true,
+            data: [], // 数据
+        },
+        {
+            name: '活跃数量', // 第二条线的名称
+            type: 'line',
+            areaStyle: {
+                color: new graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(244, 67, 54, 0.8)' },
+                    { offset: 1, color: 'rgba(244, 67, 54, 0.2)' },
+                ]),
+            },
+            smooth: true,
+            data: [], // 数据
+        },
+    ],
+});
+// 获取后端数据的方法
+const fetchChartData = async () => {
+  try {
+    const response = await axios.get('/abc/api/datacontroller/public/activity/seven-days', {
+      headers: {
+        Authorization: `Bearer ${token}`, // 添加 token
+      },
+    });
+
+    const chartData = response.data;
+
+    dashOpt1.value.xAxis.data = chartData.xAxis; // 更新 X 轴数据
+    dashOpt1.value.series[0].data = chartData.onlineData; // 更新第一个折线的数据
+    dashOpt1.value.series[1].data = chartData.activeData; // 更新第二个折线的数据
+    console.log('图表数据更新成功:', chartData);
+  } catch (error) {
+    console.error('获取图表数据失败:', error);
+    return null;
+  }
+};
+
+// 动态更新图表数据
+onMounted( () => {
+    fetchChartData(); // 获取图表数据
+
+});
 
 use([
     CanvasRenderer,
@@ -278,6 +424,7 @@ const ranks = [
         value: 8000,
         percent: 70,
         color: '#00bcd4',
+        
     },
     {
         title: '加速度异常',
@@ -315,6 +462,66 @@ const printSelections = () => {
         alert(`选中的选项是：${selectedOptions.value.join(', ')}`);
     } else {
         alert('请先选择一个或多个选项！');
+    }
+};
+
+const inputData = ref(''); // 输入数据
+const parsedData = ref(''); // 解析结果
+const parsedTableData = ref([]); // 表格数据
+
+const parseData = async () => {
+    if (!inputData.value.trim()) {
+        alert('请输入数据！');
+        return;
+    }
+    try {
+        // 调用后端接口，替换为实际接口地址
+        const response = await fetch('/api/parse', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ data: inputData.value }),
+        });
+        const result = await response.json();
+        parsedData.value = JSON.stringify(result, null, 2); // 格式化 JSON
+        parsedTableData.value = Object.entries(result).map(([key, value]) => ({
+            key,
+            value: typeof value === 'object' ? JSON.stringify(value) : value,
+        }));
+    } catch (error) {
+        console.error('解析失败:', error);
+        alert('解析失败，请检查输入或稍后重试！');
+    }
+};
+
+const vehicleInfo = ref(''); // 输入的车辆信息
+const detectionResult = ref(''); // 检测结果
+const detectionTableData = ref([]); // 表格数据
+
+const detectAnomalies = async () => {
+    if (!vehicleInfo.value.trim()) {
+        alert('请输入车辆信息！');
+        return;
+    }
+    try {
+        // 调用后端接口，替换为实际接口地址
+        const response = await fetch('/api/detect-anomalies', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ data: vehicleInfo.value }),
+        });
+        const result = await response.json();
+        detectionResult.value = JSON.stringify(result, null, 2); // 格式化 JSON
+        detectionTableData.value = Object.entries(result).map(([key, value]) => ({
+            key,
+            value: typeof value === 'object' ? JSON.stringify(value) : value,
+        }));
+    } catch (error) {
+        console.error('检测失败:', error);
+        alert('检测失败，请检查输入或稍后重试！');
     }
 };
 </script>
@@ -530,5 +737,35 @@ const printSelections = () => {
     flex-shrink: 0;
     height: 30px; /* 调高按钮高度 */
     font-size: 16px; /* 放大字体 */
+}
+
+.data-parser {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+
+.parser-input {
+    flex: 1;
+    margin-right: 10px;
+    height: 100px; /* 增大输入框高度 */
+    
+}
+
+.parser-button {
+    flex-shrink: 0;
+    height: 40px; /* 调整按钮高度 */
+}
+
+.parser-result {
+    background-color: #f5f5f5;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #333;
+    white-space: pre-wrap; /* 保留换行 */
+    word-wrap: break-word; /* 自动换行 */
+    overflow-y: auto; /* 启用滚动 */
+    max-height: 250px; /* 限制最大高度 */
 }
 </style>

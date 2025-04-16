@@ -2,13 +2,13 @@ package org.swu.vehiclecloud.config;
 
 import lombok.Data;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.integration.mqtt.core.DefaultMqttPahoClientFactory;
 import org.springframework.integration.mqtt.core.MqttPahoClientFactory;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Data
 @ConfigurationProperties(prefix = "spring.mqtt")
@@ -22,7 +22,7 @@ public class MqttConfigProperties {
     @Bean
     public MqttPahoClientFactory mqttClientFactory() {
         DefaultMqttPahoClientFactory mqttClientFactory = new DefaultMqttPahoClientFactory();
-      
+
         MqttConnectOptions options = new MqttConnectOptions();
         options.setCleanSession(true);
         options.setUserName(username);
