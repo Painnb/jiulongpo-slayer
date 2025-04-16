@@ -3,6 +3,7 @@ package org.swu.vehiclecloud.mapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.swu.vehiclecloud.entity.MlExpcetion;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -118,4 +119,18 @@ public interface DataMapper {
             ") t GROUP BY vehicleId")
     List<Map<String, Object>> countExceptionsByVehicle();
 
+    /**
+     * 获取机器学习异常数量统计
+     * @return 机器学习检测的车辆异常数量统计列表
+     */
+    @Select("SELECT t1.* " +
+            "FROM ml_exp t1 " +
+            "JOIN ( " +
+            "    SELECT vehicleId, MAX(mse) AS max_mse " +
+            "    FROM ml_exp " +
+            "    GROUP BY vehicleId " +
+            ") t2 " +
+            "ON t1.vehicleId = t2.vehicleId " +
+            "AND t1.mse = t2.max_mse")
+    List<MlExpcetion> selectMlExceptionData();
 }
