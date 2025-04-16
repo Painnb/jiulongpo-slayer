@@ -26,7 +26,7 @@
           <el-select
             v-model="filters.selectedTables"
             multiple
-            placeholder="请选择表名"
+            placeholder="请选择异常"
             style="width: 100%;"
           >
             <el-option label="发动机异常" value="engine_exp" />

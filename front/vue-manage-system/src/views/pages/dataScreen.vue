@@ -27,43 +27,122 @@ import * as echarts from "echarts";
 import chinaJson from "@/utils/china"; // 引入中国地图数据
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import axios from 'axios';
+import axios from "axios";
 export default {
   name: "DataVisualization",
   mounted() {
     this.initCharts();
     this.fetchPieChartData(); // 调用后端接口获取饼图数据
+    this.fetchLineChartData();
+    this.fetchbarChartData1();
   },
   methods: {
     async fetchPieChartData() {
-    try {
-      // 获取 token
-      const token = localStorage.getItem('token');
+      try {
+        // 获取 token
+        const token = localStorage.getItem("token");
 
-      // 调用后端接口
-      const response = await axios.get('/abc/api/datacontroller/public/exceptionpie', {
-        headers: {
-          Authorization: `Bearer ${token}`, // 在请求头中传入 token
-        },
-      });
-
-      const pieData = response.data || [];
-
-      // 更新 pieChart1 的数据
-      const pieChart1 = echarts.getInstanceByDom(this.$refs.pieChart1);
-      pieChart1.setOption({
-        series: [
+        // 调用后端接口
+        const response = await axios.get(
+          "/abc/api/datacontroller/public/exceptionpie",
           {
-            data: pieData, // 使用后端返回的数据
-          },
-        ],
-      });
+            headers: {
+              Authorization: `Bearer ${token}`, // 在请求头中传入 token
+            },
+          }
+        );
 
-      console.log('饼图数据更新成功:', pieData);
-    } catch (error) {
-      console.error('获取饼图数据失败:', error);
-    }
-  },
+        const pieData = response.data || [];
+
+        // 更新 pieChart1 的数据
+        const pieChart1 = echarts.getInstanceByDom(this.$refs.pieChart1);
+        pieChart1.setOption({
+          series: [
+            {
+              data: pieData, // 使用后端返回的数据
+            },
+          ],
+        });
+
+        console.log("饼图数据更新成功:", pieData);
+      } catch (error) {
+        console.error("获取饼图数据失败:", error);
+      }
+    },
+    async fetchLineChartData() {
+      try {
+        // 获取 token
+        const token = localStorage.getItem("token");
+
+        // 调用后端接口
+        const response = await axios.get(
+          "/abc/api/datacontroller/public/activity/seven-days",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`, // 在请求头中传入 token
+            },
+          }
+        );
+
+        const lineData = response.data || [];
+
+        const lineChart = echarts.getInstanceByDom(this.$refs.lineChart);
+        lineChart.setOption({
+          series: [
+            {
+              data: lineData.onlineData, // 使用后端返回的数据
+            },
+            {
+              data: lineData.activeData, // 使用后端返回的数据
+            },
+          ],
+        });
+
+        console.log("折线图数据更新成功:", lineData);
+      } catch (error) {
+        console.error("获取折线图数据失败:", error);
+      }
+    },
+    async fetchbarChartData1() {
+      try {
+        // 获取 token
+        const token = localStorage.getItem("token");
+
+        // 调用后端接口
+        const response = await axios.get(
+          "/abc/api/datacontroller/public/activity/online-time-ranking",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`, // 在请求头中传入 token
+            },
+          }
+        );
+
+        const Data = response.data || [];
+        const formattedData = Data.map((item) => [
+          item.onlineTime,
+          item.vehicleId,
+        ]);
+
+        // 在开头添加 ["count", "id"]
+        formattedData.unshift(["count", "id"]);
+
+        console.log(formattedData);
+
+        const barChartVertical1 = echarts.getInstanceByDom(
+          this.$refs.barChartVertical1
+        );
+        barChartVertical1.setOption({
+          dataset: {
+            source: formattedData,
+          },
+        });
+
+        console.log("在线数量图数据更新成功:", Data);
+      } catch (error) {
+        console.error("获取在线数量图数据失败:", error);
+      }
+    },
 
     async exportChartsToPDF() {
       const charts = [
@@ -140,7 +219,6 @@ export default {
 
       // 模拟数据
 
-
       const barDataVertical = [
         { name: "类别1", value: 120 },
         { name: "类别2", value: 200 },
@@ -210,7 +288,7 @@ export default {
           ],
         },
         title: {
-          text: "横向条形图",
+          text: "活跃时长",
           left: "center",
           textStyle: {
             color: "#00FBFF",
@@ -386,6 +464,8 @@ export default {
           axisLabel: {
             color: "#00FBFF",
           },
+          min: null,
+          max: null,
         },
         series: [
           {
@@ -394,7 +474,7 @@ export default {
             stack: "Total",
             areaStyle: {},
             smooth: true,
-            data: [120, 132, 101, 134, 90, 230, 210],
+            data: [],
           },
           {
             name: "在线数量",
@@ -402,58 +482,58 @@ export default {
             stack: "Total",
             areaStyle: {},
             smooth: true,
-            data: [220, 182, 191, 234, 290, 330, 310],
+            data: [],
           },
         ],
       });
 
-// 环形条形图
-barChartHorizontal.setOption({
-  title: [
-    {
-      text: "机器学习MSE",
-      textStyle: {
-        color: "#00FBFF",
-      },
-    },
-  ],
-  polar: {
-    radius: [30, "80%"],
-  },
-  angleAxis: {
-    max: 4,
-    startAngle: 75,
-    axisLabel: {
-      color: "#00FBFF", // 设置角度轴标签字体颜色
-    },
-  },
-  radiusAxis: {
-    type: "category",
-    data: ["a", "b", "c", "d"],
-    axisLabel: {
-      color: "#00FBFF", // 设置半径轴标签字体颜色
-    },
-  },
-  tooltip: {
-    trigger: "item",
-  },
-  series: {
-    type: "bar",
-    data: [2, 1.2, 2.4, 3.6],
-    coordinateSystem: "polar",
-    label: {
-      show: true,
-      position: "middle",
-      formatter: "{b}: {c}",
-      color: "#00FBFF", // 设置标签字体颜色
-    },
-  },
-});
+      // 环形条形图
+      barChartHorizontal.setOption({
+        title: [
+          {
+            text: "机器学习MSE",
+            textStyle: {
+              color: "#00FBFF",
+            },
+          },
+        ],
+        polar: {
+          radius: [30, "80%"],
+        },
+        angleAxis: {
+          max: 4,
+          startAngle: 75,
+          axisLabel: {
+            color: "#00FBFF", // 设置角度轴标签字体颜色
+          },
+        },
+        radiusAxis: {
+          type: "category",
+          data: ["a", "b", "c", "d"],
+          axisLabel: {
+            color: "#00FBFF", // 设置半径轴标签字体颜色
+          },
+        },
+        tooltip: {
+          trigger: "item",
+        },
+        series: {
+          type: "bar",
+          data: [2, 1.2, 2.4, 3.6],
+          coordinateSystem: "polar",
+          label: {
+            show: true,
+            position: "middle",
+            formatter: "{b}: {c}",
+            color: "#00FBFF", // 设置标签字体颜色
+          },
+        },
+      });
 
       // 竖向条形图
       barChartVertical.setOption({
         title: {
-          text: "车异常表",
+          text: "车辆异常",
           left: "center",
           textStyle: {
             color: "#00FBFF",
@@ -499,20 +579,20 @@ barChartHorizontal.setOption({
       barChartVertical1.setOption({
         dataset: {
           source: [
-            ["amount", "product"],
-            [58212, "Matcha Latte"],
-            [78254, "Milk Tea"],
-            [41032, "Cheese Cocoa"],
-            [12755, "Cheese Brownie"],
-            [20145, "Matcha Cocoa"],
-            [79146, "Tea"],
-            [91852, "Orange Juice"],
-            [101852, "Lemon Juice"],
-            [20112, "Walnut Brownie"],
+            // ["amount", "product"],
+            // [58212, "Matcha Latte"],
+            // [78254, "Milk Tea"],
+            // [41032, "Cheese Cocoa"],
+            // [12755, "Cheese Brownie"],
+            // [20145, "Matcha Cocoa"],
+            // [79146, "Tea"],
+            // [91852, "Orange Juice"],
+            // [101852, "Lemon Juice"],
+            // [20112, "Walnut Brownie"],
           ],
         },
         title: {
-          text: "横向条形图",
+          text: "在线时长",
           left: "center",
           textStyle: {
             color: "#00FBFF",
@@ -520,7 +600,7 @@ barChartHorizontal.setOption({
         },
         grid: { containLabel: true },
         xAxis: {
-          name: "amount",
+          name: "count",
           axisLine: {
             lineStyle: {
               color: "#FFFFFF",
