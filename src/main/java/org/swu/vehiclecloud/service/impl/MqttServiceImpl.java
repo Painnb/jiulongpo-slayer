@@ -6,6 +6,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.swu.vehiclecloud.config.MqttConfigProperties;
 import org.swu.vehiclecloud.service.MqttService;
@@ -189,18 +190,20 @@ public class MqttServiceImpl implements MqttService {
         }
         Map<String, Object> result = new LinkedHashMap<>();
         ByteBuffer buffer = ByteBuffer.wrap(payload).order(ByteOrder.BIG_ENDIAN);
+        Map<String, Object> headerMap = new LinkedHashMap<>();
         // 批量读取头部固定字段 (1+4+1+1+8+1 = 16字节)
         byte[] header = new byte[16];
         buffer.get(header);
         ByteBuffer headerBuffer = ByteBuffer.wrap(header).order(ByteOrder.BIG_ENDIAN);
-        result.put("prefix", headerBuffer.get() & 0xFF);
-        result.put("dataLen", headerBuffer.getInt());
-        result.put("dataCategory", headerBuffer.get() & 0xFF);
-        result.put("ver", headerBuffer.get() & 0xFF);
-        result.put("timestamp", headerBuffer.getLong());
-        result.put("ctl", headerBuffer.get() & 0xFF);
+        headerMap.put("prefix", headerBuffer.get() & 0xFF);
+        headerMap.put("dataLen", headerBuffer.getInt());
+        headerMap.put("dataCategory", headerBuffer.get() & 0xFF);
+        headerMap.put("ver", headerBuffer.get() & 0xFF);
+        headerMap.put("timestamp", headerBuffer.getLong());
+        headerMap.put("ctl", headerBuffer.get() & 0xFF);
+        result.put("header", headerMap);
         // 解析数据内容
-        int dataLength = (int) result.get("dataLen");
+        int dataLength = (int) headerMap.get("dataLen");
         //System.out.println("dataLength: " + dataLength);
         if (dataLength > 0) {
             if (buffer.remaining() < dataLength) {
@@ -297,16 +300,16 @@ public class MqttServiceImpl implements MqttService {
         }
          */
 
-        result.put("dataContent", content);
+        result.put("body", content);
     }
 
 
 
     // 延时初始化
-    public void connect() throws MqttException {
+    public ResponseEntity<Map<String, Object>> connect() throws MqttException {
         if (mqttClient == null) {
             initClient();
-            return;
+            return ResponseEntity.of(Optional.of(Map.of("status", "error", "message", "MQTT initialization failed")));
         }
 
         try {
@@ -314,11 +317,13 @@ public class MqttServiceImpl implements MqttService {
                 mqttClient.connect(currentConnectOptions);
                 logger.info("MQTT connected to {}", config.getBrokerUrl());
                 subscribeToDefaultTopics();
+                return ResponseEntity.ok(Map.of("status", "200", "message", "MQTT connected"));
             }
         } catch (MqttException e) {
             logger.error("Failed to connect: {}", e.getMessage());
             throw e; // 抛出异常让调用方处理
         }
+        return ResponseEntity.ok(Map.of("status", "error", "message", "MQTT connected missing"));
     }
 
     public void subscribe(String topic, int qos) throws MqttException {
