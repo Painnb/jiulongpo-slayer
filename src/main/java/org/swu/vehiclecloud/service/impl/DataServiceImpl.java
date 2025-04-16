@@ -321,6 +321,8 @@ public class DataServiceImpl implements DataService {
         return stats;
 
     }
+
+
     @Override
     public List<VehicleExceptionCount> getVehicleExceptionCounts() {
         // 1. 从数据库获取各车辆异常数量统计（现在包含7个表）
@@ -336,13 +338,14 @@ public class DataServiceImpl implements DataService {
         }
 
         // 3. 确保所有5种车辆都有数据（即使异常数为0）
-        ensureAllVehiclesPresent(result);
+       // ensureAllVehiclesPresent(result);
 
         // 4. 按异常数量从大到小排序
         result.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
 
         return result;
     }
+
     /**
      * 确保结果中包含所有5种车辆（111,222,333,444,555），即使异常数为0
      */
@@ -359,13 +362,9 @@ public class DataServiceImpl implements DataService {
         }
 
 
-
-
-
-
-
+    }
     @Override
-    public List<Map<String, Object>> getExceptionStatistics() {
+    public List<Map<String, Object>> getExceptionStatistics () {
         List<Map<String, Object>> result = new ArrayList<>();
 
         // 获取所有异常表名
@@ -384,24 +383,24 @@ public class DataServiceImpl implements DataService {
     /**
      * 获取指定时间范围内的异常数据
      */
-    public List<Map<String, Object>> getExceptionDataWithTimeRange(
+    public List<Map<String, Object>> getExceptionDataWithTimeRange (
             String tableName,
             LocalDateTime startTime,
-            LocalDateTime endTime) {
+            LocalDateTime endTime){
         return dataMapper.selectExceptionDataWithTimeRange(tableName, startTime, endTime);
     }
 
     /**
      * 获取指定车辆和时间范围内的异常数据
      */
-    public List<Map<String, Object>> getExceptionDataWithFilter(
+    public List<Map<String, Object>> getExceptionDataWithFilter (
             String tableName,
             String vehicleId,
             LocalDateTime startTime,
-            LocalDateTime endTime) {
+            LocalDateTime endTime){
         return dataMapper.selectExceptionDataWithFilter(tableName, vehicleId, startTime, endTime);
     }
-
 }
+
 
 
