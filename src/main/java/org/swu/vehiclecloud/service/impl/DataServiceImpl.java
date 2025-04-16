@@ -357,6 +357,7 @@ public class DataServiceImpl implements DataService {
                 result.add(new VehicleExceptionCount("车辆" + vehicleId, 0));
             }
         }
+    }
 
 
 
