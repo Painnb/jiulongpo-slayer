@@ -1,11 +1,15 @@
 package org.swu.vehiclecloud.service;
 
 import org.springframework.http.codec.ServerSentEvent;
+import org.swu.vehiclecloud.dto.AnomalyStat;
+import org.swu.vehiclecloud.dto.VehicleExceptionCount;
 import reactor.core.publisher.Flux;
+
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+
 
 /**
  * 使用WebFlux处理服务器发送事件(SSE)数据流的服务接口。
@@ -36,6 +40,7 @@ public interface DataService {
      */
     void setPushContent(String id, String content);
 
+
     /**
      * 获取所有异常类型的统计信息
      * @return 包含异常类型和数量的列表
@@ -65,5 +70,17 @@ public interface DataService {
             String vehicleId,
             LocalDateTime startTime,
             LocalDateTime endTime);
+  
+        /**
+         * 获取异常统计信息（按value从大到小排序）
+         * @return 包含标题、数值、百分比和颜色值的数组
+         */
+        List<AnomalyStat> getExceptionPieData();
+    /**
+     * 获取各车辆异常数量统计
+     * @return 车辆异常数量列表
+     */
+    List<VehicleExceptionCount> getVehicleExceptionCounts();
 
 }
+
