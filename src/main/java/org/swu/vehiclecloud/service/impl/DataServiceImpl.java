@@ -386,6 +386,43 @@ public class DataServiceImpl implements DataService {
         return dataMapper.selectExceptionDataWithFilter(tableName, vehicleId, startTime, endTime);
     }
 
+        /**
+      * 获取机器学习异常数量统计
+      * @return 机器学习检测的车辆异常数量统计列表
+      */
+      @Override
+      public ApiResult<Map<String, Object>> getMlExceptionData() {
+          try{
+              List<MlExpcetion> mlExceptionData = dataMapper.selectMlExceptionData();
+  
+              if(!StrUtil.isEmptyIfStr(mlExceptionData)) {
+                  // 存储 vehicleId 和 mse 的列表
+                  List<String> vehicleIds = new ArrayList<>();
+                  List<Double> mseValues = new ArrayList<>();
+  
+                  // 遍历 mlExceptionData，将每个 vehicleId 和 mse 添加到对应的列表
+                  for (MlExpcetion exception : mlExceptionData) {
+                      vehicleIds.add(exception.getVehicleId());
+                      mseValues.add(exception.getMse());
+                  }
+  
+                  // 将数据封装成需要的结构
+                  Map<String, Object> resultData = new HashMap<>();
+                  resultData.put("data", Arrays.asList(vehicleIds, mseValues));
+  
+                  // 返回包含 data 的 ApiResult
+                  return ApiResult.of(200, "OK", resultData);
+              }else{
+                  return ApiResult.of(400, "Bad Request: No mlException data found", null);
+              }
+          }catch(NullPointerException e){
+              throw new NullPointerException("Bad request. Missing required fields.");
+          }catch (Exception e) {
+              // 捕获其他异常并返回 500 错误
+              return ApiResult.of(500, "Internal server error: " + e.getMessage(), null);
+          }
+      }
+
 }
 
 
