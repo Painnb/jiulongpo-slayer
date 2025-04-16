@@ -227,7 +227,7 @@ export const dashOpt1 = {
     xAxis: {
         type: 'category',
         boundaryGap: false,
-        data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        data: [], // 初始为空，后续通过接口更新
     },
     yAxis: {
         type: 'value',
@@ -239,30 +239,31 @@ export const dashOpt1 = {
         bottom: '2%',
         containLabel: true,
     },
-    color: ['#009688', '#f44336'],
+    color: ['#009688', '#f44336'], // 每条线的颜色
     series: [
         {
+            name: '第一条线', // 第一条线的名称
             type: 'line',
             areaStyle: {
                 color: new graphic.LinearGradient(0, 0, 0, 1, [
-                    {
-                        offset: 0,
-                        color: 'rgba(0, 150, 136,0.8)',
-                        
-                    },
-                    {
-                        offset: 1,
-                        color: 'rgba(0, 150, 136,0.2)',
-                    },
+                    { offset: 0, color: 'rgba(0, 150, 136, 0.8)' },
+                    { offset: 1, color: 'rgba(0, 150, 136, 0.2)' },
                 ]),
             },
             smooth: true,
-            data: [120, 132, 301, 134, 90, 230, 210],
+            data: [], // 数据
         },
         {
+            name: '第二条线', // 第二条线的名称
             type: 'line',
+            areaStyle: {
+                color: new graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(244, 67, 54, 0.8)' },
+                    { offset: 1, color: 'rgba(244, 67, 54, 0.2)' },
+                ]),
+            },
             smooth: true,
-            data: [220, 122, 191, 234, 190, 130, 310],
+            data: [], // 数据
         },
     ],
 };
