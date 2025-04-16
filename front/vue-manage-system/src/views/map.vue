@@ -405,8 +405,8 @@ const updateTime = () => {
 const vehicleStatus = computed(() => {
   const allOk = Object.values(statuses.value).every((v) => v);
   return {
-    class: allOk ? "status-ok" : "status-warning",
-    text: allOk ? "正常" : "警告",
+    class: allOk ? "status-warning" : "status-ok",
+    text: allOk ? "警告" : "正常",
   };
 });
 
