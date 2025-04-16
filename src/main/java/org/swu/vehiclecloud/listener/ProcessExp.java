@@ -84,6 +84,11 @@ public class ProcessExp {
                 double longitude = (double) position.get("longitude");
                 double latitude = (double) position.get("latitude");
 
+                // 打印成一排
+                System.err.println("vehicleId: " + vehicleId + ", steeringAngle: " + steeringAngle +
+                        ", velocityGNSS: " + velocityGNSS + ", timestampGNSS: " + timestampGNSS +
+                        ", timestamp: " + timestamp + ", longitude: " + longitude + ", latitude: " + latitude);
+
 //                JsonNode headerNode = messageNode.get("header");
 //                JsonNode bodyNode = messageNode.get("body");
 //
@@ -149,8 +154,9 @@ public class ProcessExp {
                     // 启动一个任务，如果10秒之内没有收到该车辆的新数据，则从缓存中删除该车辆数据
                     scheduler.schedule(() -> {
                         Map<String, Object> cachedData = vehicleDataCache.get(vehicleId);
-                        if (cachedData == null)
+                        if (StrUtil.isEmptyIfStr(cachedData)) {
                             vehicleDataCache.remove(vehicleId);
+                        }
                     }, 10, TimeUnit.SECONDS);
                 } else {
                     if (Math.abs(timestamp - (Long) previousVehicleData.get("timestamp")) > Math.pow(10, 4)) {
@@ -237,7 +243,7 @@ public class ProcessExp {
             numOfExp = 1;
 
             // 创建速度异常对象
-            SpeedExp speedExp = new SpeedExp(vehicleId, velocityGNSS, timestamp);
+            SpeedExp speedExp = new SpeedExp(vehicleId, velocityGNSS / 100, timestamp);
 
             // 插入速度异常对象
             vehicleExpMapper.insertSpeedExp(speedExp);
@@ -401,7 +407,7 @@ public class ProcessExp {
 //    }
 //
     private boolean isSpeedExp(double velocityGNSS) {
-        return velocityGNSS > 80;
+        return velocityGNSS / 100 > 10;
     }
 //
 //    private boolean isEngineExp(double engineSpeed, double engineTorque) {
@@ -479,6 +485,7 @@ public class ProcessExp {
 
             // Clear the map after sending the data
             numOfExpCar.clear();
+            System.err.println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa");
         } catch (JsonProcessingException e) {
             // Log the exception or handle it in another way
             logger.error("Error while processing JSON for push data: {}", e.getMessage());
