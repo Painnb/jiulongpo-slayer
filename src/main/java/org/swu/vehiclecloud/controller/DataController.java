@@ -122,6 +122,7 @@ public class DataController {
 
         return ResponseEntity.ok(result);
     }
+
     /**
      * 获取异常数据统计
      * API路径遵循统一规范：/api/datacontroller/public/exceptiondata
