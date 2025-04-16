@@ -44,11 +44,7 @@ public class MqttController {
     public ResponseEntity<Map<String, Object>> Connection(@RequestParam boolean connect) throws Exception {
         // 根据connect参数决定是启动还是关闭MQTT连接
         if (connect) {
-            mqttService.connect();
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "200");
-            response.put("message", "MQTT connected started");
-            return ResponseEntity.ok(response);
+            return mqttService.connect();
         } else {
             mqttService.close();
             Map<String, Object> response = new HashMap<>();
