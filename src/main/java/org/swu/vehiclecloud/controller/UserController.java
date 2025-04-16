@@ -72,7 +72,7 @@ public class UserController {
      * 请求体需要包含用户DTO对象，包含用户ID
      *
      * @param id 用户ID
-     * @param userDTO 用户DTO对象，包含用户信息
+     * @param user 用户DTO对象，包含用户信息
      * @return 包含更新后的用户信息的响应实体
      */
     @PutMapping("/public/{id}")
