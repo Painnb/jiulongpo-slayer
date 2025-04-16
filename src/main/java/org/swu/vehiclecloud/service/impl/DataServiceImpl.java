@@ -1,13 +1,16 @@
 package org.swu.vehiclecloud.service.impl;
 
+import cn.hutool.core.util.StrUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
+import org.swu.vehiclecloud.controller.template.ApiResult;
 import org.swu.vehiclecloud.dto.AnomalyStat;
 import org.swu.vehiclecloud.dto.VehicleExceptionCount;
 
+import org.swu.vehiclecloud.entity.MlExpcetion;
 import org.swu.vehiclecloud.mapper.DataMapper;
 import org.swu.vehiclecloud.service.DataService;
 import reactor.core.publisher.Flux;
@@ -17,9 +20,7 @@ import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -346,6 +347,7 @@ public class DataServiceImpl implements DataService {
     }
 
 
+
     @Override
     public List<Map<String, Object>> getExceptionStatistics () {
         List<Map<String, Object>> result = new ArrayList<>();
@@ -383,6 +385,7 @@ public class DataServiceImpl implements DataService {
             LocalDateTime endTime){
         return dataMapper.selectExceptionDataWithFilter(tableName, vehicleId, startTime, endTime);
     }
+
 }
 
 
