@@ -322,6 +322,8 @@ public class DataServiceImpl implements DataService {
         return stats;
 
     }
+
+
     @Override
     public List<VehicleExceptionCount> getVehicleExceptionCounts() {
         // 1. 从数据库获取各车辆异常数量统计（现在包含7个表）
@@ -336,8 +338,7 @@ public class DataServiceImpl implements DataService {
             result.add(new VehicleExceptionCount("车辆" + vehicleId, (int) count));
         }
 
-        // 3. 确保所有5种车辆都有数据（即使异常数为0）
-        ensureAllVehiclesPresent(result);
+          
 
         // 4. 按异常数量从大到小排序
         result.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
@@ -345,30 +346,10 @@ public class DataServiceImpl implements DataService {
         return result;
     }
 
-    /**
-     * 确保结果中包含所有5种车辆（111,222,333,444,555），即使异常数为0
-     */
-    private void ensureAllVehiclesPresent(List<VehicleExceptionCount> result) {
-        String[] allVehicleIds = {"111", "222", "333", "444", "555"};
-
-        for (String vehicleId : allVehicleIds) {
-            boolean exists = result.stream()
-                    .anyMatch(item -> item.getName().equals("车辆" + vehicleId));
-
-            if (!exists) {
-                result.add(new VehicleExceptionCount("车辆" + vehicleId, 0));
-            }
-        }
-    }
-
-
-
-
-
 
 
     @Override
-    public List<Map<String, Object>> getExceptionStatistics() {
+    public List<Map<String, Object>> getExceptionStatistics () {
         List<Map<String, Object>> result = new ArrayList<>();
 
         // 获取所有异常表名
@@ -387,60 +368,25 @@ public class DataServiceImpl implements DataService {
     /**
      * 获取指定时间范围内的异常数据
      */
-    public List<Map<String, Object>> getExceptionDataWithTimeRange(
+    public List<Map<String, Object>> getExceptionDataWithTimeRange (
             String tableName,
             LocalDateTime startTime,
-            LocalDateTime endTime) {
+            LocalDateTime endTime){
         return dataMapper.selectExceptionDataWithTimeRange(tableName, startTime, endTime);
     }
 
     /**
      * 获取指定车辆和时间范围内的异常数据
      */
-    public List<Map<String, Object>> getExceptionDataWithFilter(
+    public List<Map<String, Object>> getExceptionDataWithFilter (
             String tableName,
             String vehicleId,
             LocalDateTime startTime,
-            LocalDateTime endTime) {
+            LocalDateTime endTime){
         return dataMapper.selectExceptionDataWithFilter(tableName, vehicleId, startTime, endTime);
     }
 
-    /**
-     * 获取机器学习异常数量统计
-     * @return 机器学习检测的车辆异常数量统计列表
-     */
-    @Override
-    public ApiResult<Map<String, Object>> getMlExceptionData() {
-        try{
-            List<MlExpcetion> mlExceptionData = dataMapper.selectMlExceptionData();
-
-            if(!StrUtil.isEmptyIfStr(mlExceptionData)) {
-                // 存储 vehicleId 和 mse 的列表
-                List<String> vehicleIds = new ArrayList<>();
-                List<Double> mseValues = new ArrayList<>();
-
-                // 遍历 mlExceptionData，将每个 vehicleId 和 mse 添加到对应的列表
-                for (MlExpcetion exception : mlExceptionData) {
-                    vehicleIds.add(exception.getVehicleId());
-                    mseValues.add(exception.getMse());
-                }
-
-                // 将数据封装成需要的结构
-                Map<String, Object> resultData = new HashMap<>();
-                resultData.put("data", Arrays.asList(vehicleIds, mseValues));
-
-                // 返回包含 data 的 ApiResult
-                return ApiResult.of(200, "OK", resultData);
-            }else{
-                return ApiResult.of(400, "Bad Request: No mlException data found", null);
-            }
-        }catch(NullPointerException e){
-            throw new NullPointerException("Bad request. Missing required fields.");
-        }catch (Exception e) {
-            // 捕获其他异常并返回 500 错误
-            return ApiResult.of(500, "Internal server error: " + e.getMessage(), null);
-        }
-    }
 }
+
 
 
