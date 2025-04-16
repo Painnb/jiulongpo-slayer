@@ -185,7 +185,7 @@ public class MqttServiceImpl implements MqttService {
 
     public Map<String, Object> parsePayload(byte[] payload) throws Exception {
         if (payload == null || payload.length < 16) { // 最小长度检查
-            throw new IllegalArgumentException("无效的数据长度");
+            throw new IllegalArgumentException("Invalid data content length");
         }
         Map<String, Object> result = new LinkedHashMap<>();
         ByteBuffer buffer = ByteBuffer.wrap(payload).order(ByteOrder.BIG_ENDIAN);
@@ -204,7 +204,7 @@ public class MqttServiceImpl implements MqttService {
         //System.out.println("dataLength: " + dataLength);
         if (dataLength > 0) {
             if (buffer.remaining() < dataLength) {
-                throw new IllegalArgumentException("数据长度不匹配");
+                throw new IllegalArgumentException("The data length does not match");
             }
             byte[] dataContent = new byte[dataLength];
             buffer.get(dataContent);
@@ -215,7 +215,7 @@ public class MqttServiceImpl implements MqttService {
 
     private void parseDataContent(byte[] dataContent, Map<String, Object> result) throws Exception {
         if (dataContent == null || dataContent.length < 8 + 8 + 8 + 2) { // 最小长度检查
-            throw new IllegalArgumentException("无效的数据内容长度");
+            throw new IllegalArgumentException("Invalid data content length");
         }
         ByteBuffer buffer = ByteBuffer.wrap(dataContent).order(ByteOrder.BIG_ENDIAN);
         Map<String, Object> content = new LinkedHashMap<>(24); // 预分配足够容量
@@ -316,7 +316,7 @@ public class MqttServiceImpl implements MqttService {
                 subscribeToDefaultTopics();
             }
         } catch (MqttException e) {
-            logger.error("连接失败: {}", e.getMessage());
+            logger.error("Failed to connect: {}", e.getMessage());
             throw e; // 抛出异常让调用方处理
         }
     }
