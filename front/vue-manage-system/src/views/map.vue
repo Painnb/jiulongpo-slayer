@@ -13,13 +13,13 @@
         <bm-navigation anchor="BMAP_ANCHOR_TOP_RIGHT"></bm-navigation>
         <bm-marker
           v-for="(point, index) in markers"
-          :key="index"
-          :position="point"
+          :key="point.vehicleId"
+          :position="{ lng: point.longitude, lat: point.latitude }"
           :icon="customIcon"
           @click="showVehicleInfo(point, index)"
         >
           <bm-label
-            :content="`车辆${index + 1}`"
+            :content="`${point.vehicleId}`"
             :labelStyle="{
               color: '#fff',
               fontSize: '12px',
@@ -59,19 +59,9 @@
         style="width: 100%"
         @row-click="handleRowClick"
       >
-        <el-table-column prop="index" label="编号" width="80">
-          <template #default="scope"> 车辆{{ scope.row.index + 1 }} </template>
-        </el-table-column>
-        <el-table-column prop="lng" label="经度">
-          <template #default="scope">
-            {{ scope.row.lng.toFixed(4) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="lat" label="纬度">
-          <template #default="scope">
-            {{ scope.row.lat.toFixed(4) }}
-          </template>
-        </el-table-column>
+        <el-table-column prop="vehicleId" label="车辆ID" />
+        <el-table-column prop="longitude" label="经度" />
+        <el-table-column prop="latitude" label="纬度" />
       </el-table>
       <el-pagination
         background
@@ -101,13 +91,13 @@
         <div class="info-row">
           <span class="info-label">坐标：</span>
           <span class="info-value"
-            >{{ selectedPoint.lng.toFixed(6) }},
-            {{ selectedPoint.lat.toFixed(6) }}</span
+            >{{ selectedPoint.longitude }},
+            {{ selectedPoint.latitude }}</span
           >
         </div>
         <div class="info-row">
           <span class="info-label">编号：</span>
-          <span class="info-value">V-{{ hoveredMarkerIndex + 1 }}</span>
+          <span class="info-value">{{ selectedPoint.vehicleId }}</span>
         </div>
         <div class="info-row">
           <span class="info-label">状态：</span>
@@ -121,25 +111,25 @@
             <span class="status-icon" :class="getStatusClass('steering')">{{
               getStatusIcon("steering")
             }}</span>
-            <span class="status-name">方向盘</span>
+            <span class="status-name">转向</span>
           </div>
           <div class="status-item">
-            <span class="status-icon" :class="getStatusClass('acceleration')">{{
-              getStatusIcon("acceleration")
+            <span class="status-icon" :class="getStatusClass('timestamp')">{{
+              getStatusIcon("timestamp")
             }}</span>
-            <span class="status-name">加速度</span>
+            <span class="status-name">时间戳</span>
           </div>
           <div class="status-item">
-            <span class="status-icon" :class="getStatusClass('brake')">{{
-              getStatusIcon("brake")
+            <span class="status-icon" :class="getStatusClass('geoLocation')">{{
+              getStatusIcon("geoLocation")
             }}</span>
-            <span class="status-name">制动</span>
+            <span class="status-name">经纬度</span>
           </div>
           <div class="status-item">
-            <span class="status-icon" :class="getStatusClass('tire')">{{
-              getStatusIcon("tire")
+            <span class="status-icon" :class="getStatusClass('speed')">{{
+              getStatusIcon("speed")
             }}</span>
-            <span class="status-name">轮胎</span>
+            <span class="status-name">速度</span>
           </div>
         </div>
       </div>
@@ -147,16 +137,199 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import * as echarts from "echarts";
 import { ref, computed, onMounted, onUnmounted } from "vue";
+import { createSSEConnection } from '../utils/sse'; 
 
+let sseConnection: { close: () => void } | null = null;
+let sseConnection1: { close: () => void } | null = null;
+let sseConnection2: { close: () => void } | null = null;
+let sseConnection3: { close: () => void } | null = null;
+let sseConnection4: { close: () => void } | null = null;
+
+const vehicleMap = new Map(); // 存储车辆数据
+const token = localStorage.getItem('token') || ''; // 假设 token 存储在 localStorage 中
+
+onMounted(() => {
+  sseConnection = createSSEConnection('/abc/api/datacontroller/public/ssestream/1', token, {
+    onOpen: () => {
+      console.log('SSE连接已建立');
+    },
+    onMessage: (data) => {
+      try {
+        console.log('收到SSE数据:', data);
+        const { vehicleId, longitude, latitude } = data;
+  
+        if (!vehicleId || !longitude || !latitude) {
+          console.warn('收到无效数据:', data);
+          return;
+        }
+  
+        // 更新或添加车辆数据
+        if (vehicleMap.has(vehicleId)) {
+          // 更新经纬度
+          const marker = vehicleMap.get(vehicleId);
+          marker.longitude = longitude;
+          marker.latitude = latitude;
+        } else {
+          // 添加新车辆
+          vehicleMap.set(vehicleId, { vehicleId, longitude, latitude });
+        }
+  
+        // 更新地图上的标记
+        updateMarkersOnMap();
+      } catch (error) {
+        console.error('解析 SSE 数据失败:', error);
+      }
+    },
+    onError: (error) => {
+      console.error('SSE连接错误:', error);
+    },
+  });
+  // 创建转向异常数据SSE连接
+  sseConnection1 = createSSEConnection('/abc/api/datacontroller/public/ssestream/3', token, {
+    onOpen: () => {
+      console.log('SSE连接1已建立');
+    },
+    onMessage: (data) => {
+      try {
+        console.log('收到SSE转向异常数据:', data);
+        const { vehicleId, steeringExp } = data;
+  
+        if (!vehicleId || steeringExp === undefined) {
+          console.warn('收到无效数据:', data);
+          return;
+        }
+  
+        // 更新或添加车辆数据
+        if (vehicleMap.has(vehicleId)) {
+          const marker = vehicleMap.get(vehicleId);
+          marker.steeringExp = steeringExp;
+        } else {
+          vehicleMap.set(vehicleId, { vehicleId, steeringExp });
+        }
+      } catch (error) {
+        console.error('解析 SSE 数据失败:', error);
+      }
+    },
+    onError: (error) => {
+      console.error('SSE连接错误:', error);
+    },
+  });
+  // 创建时间戳异常数据 SSE 连接
+  sseConnection2 = createSSEConnection('/abc/api/datacontroller/public/ssestream/4', token, {
+    onOpen: () => {
+      console.log('SSE连接2已建立');
+    },
+    onMessage: (data) => {
+      try {
+        console.log('收到SSE时间戳异常数据:', data);
+        const { vehicleId, timestampExp } = data;
+  
+        if (!vehicleId || timestampExp === undefined) {
+          console.warn('收到无效数据:', data);
+          return;
+        }
+  
+        // 更新或添加车辆数据
+        if (vehicleMap.has(vehicleId)) {
+          const marker = vehicleMap.get(vehicleId);
+          marker.timestampExp = timestampExp;
+        } else {
+          vehicleMap.set(vehicleId, { vehicleId, timestampExp });
+        }
+      } catch (error) {
+        console.error('解析 SSE 数据失败:', error);
+      }
+    },
+    onError: (error) => {
+      console.error('SSE连接错误:', error);
+    },
+  });
+  // 创建经纬度异常数据 SSE 连接
+  sseConnection3 = createSSEConnection('/abc/api/datacontroller/public/ssestream/5', token, {
+    onOpen: () => {
+      console.log('SSE连接3已建立');
+    },
+    onMessage: (data) => {
+      try {
+        console.log('收到SSE经纬度异常数据:', data);
+        const { vehicleId, geoLocationExp } = data;
+  
+        if (!vehicleId || geoLocationExp === undefined) {
+          console.warn('收到无效数据:', data);
+          return;
+        }
+  
+        // 更新或添加车辆数据
+        if (vehicleMap.has(vehicleId)) {
+          const marker = vehicleMap.get(vehicleId);
+          marker.geoLocationExp = geoLocationExp;
+        } else {
+          vehicleMap.set(vehicleId, { vehicleId, geoLocationExp });
+        }
+      } catch (error) {
+        console.error('解析 SSE 数据失败:', error);
+      }
+    },
+    onError: (error) => {
+      console.error('SSE连接错误:', error);
+    },
+  });
+  // 创建经纬度异常数据 SSE 连接
+  sseConnection4 = createSSEConnection('/abc/api/datacontroller/public/ssestream/6', token, {
+    onOpen: () => {
+      console.log('SSE连接4已建立');
+    },
+    onMessage: (data) => {
+      try {
+        console.log('收到SSE速度异常数据:', data);
+        const { vehicleId, speedExp } = data;
+  
+        if (!vehicleId || speedExp === undefined) {
+          console.warn('收到无效数据:', data);
+          return;
+        }
+  
+        // 更新或添加车辆数据
+        if (vehicleMap.has(vehicleId)) {
+          const marker = vehicleMap.get(vehicleId);
+          marker.speedExp = speedExp;
+        } else {
+          vehicleMap.set(vehicleId, { vehicleId, speedExp });
+        }
+      } catch (error) {
+        console.error('解析 SSE 数据失败:', error);
+      }
+    },
+    onError: (error) => {
+      console.error('SSE连接错误:', error);
+    },
+  });
+});
+onUnmounted(() => {
+  sseConnection?.close();
+  sseConnection1?.close();
+  sseConnection2?.close();
+  sseConnection3?.close();
+  sseConnection4?.close();
+});
+
+const updateMarkersOnMap = () => {
+  // 清空现有的 markers
+  markers.value = [];
+
+  // 遍历 vehicleMap，将数据添加到 markers
+  for (const [vehicleId, { longitude, latitude }] of vehicleMap.entries()) {
+    markers.value.push({ vehicleId, longitude, latitude });
+  }
+
+  //console.log('地图标记已更新:', markers.value);
+};
 // 地图中心点和标点
 const center = ref({ lng: 106.3852, lat: 29.5384 });
 const markers = ref([
-  { lng: 106.385, lat: 29.538 },
-  { lng: 106.395, lat: 29.548 },
-  { lng: 106.375, lat: 29.548 },
   // 添加更多车辆数据
 ]);
 const showMarkerList = ref(false);
@@ -176,17 +349,12 @@ const contextMenuStyle = computed(() => ({
   top: `${contextMenuPosition.value.y}px`,
 }));
 
-// 图表相关
-const visibleCharts = ref([]);
-const expandedChart = ref(null);
-const chartInstances = ref({});
-
 // 车辆状态数据
 const statuses = ref({
-  steering: true,
-  acceleration: false,
-  brake: true,
-  tire: true,
+  steering: false, // 默认正常
+  timestamp: false, // 默认正常
+  geoLocation: false, // 默认正常
+  speed: false, // 默认正常
 });
 
 const carImages = ref([
@@ -237,8 +405,8 @@ const updateTime = () => {
 const vehicleStatus = computed(() => {
   const allOk = Object.values(statuses.value).every((v) => v);
   return {
-    class: allOk ? "status-ok" : "status-warning",
-    text: allOk ? "正常" : "警告",
+    class: allOk ? "status-warning" : "status-ok",
+    text: allOk ? "警告" : "正常",
   };
 });
 
@@ -306,7 +474,7 @@ const removeMarkerAtContextMenu = () => {
 
 // 显示车辆信息
 const showVehicleInfo = (point, index) => {
-  selectedPoint.value = point;
+  selectedPoint.value = vehicleMap.get(point.vehicleId) || point;
   hoveredMarkerIndex.value = index;
   infoPanelVisible.value = true;
   infoPanelStyle.value = {
@@ -316,10 +484,10 @@ const showVehicleInfo = (point, index) => {
 
   // 随机生成车辆状态（演示用）
   statuses.value = {
-    steering: Math.random() > 0.3,
-    acceleration: Math.random() > 0.3,
-    brake: Math.random() > 0.3,
-    tire: Math.random() > 0.3,
+    steering: selectedPoint.value.steeringExp ?? false, // 默认为正常
+    timestamp: selectedPoint.value.timestampExp ?? false, // 默认为正常
+    geoLocation: selectedPoint.value.geoLocationExp ?? false, // 默认为正常
+    speed: selectedPoint.value.speedExp ?? false, // 默认为正常
   };
 
   // 更新当前时间
@@ -337,11 +505,11 @@ const closeInfoPanel = () => {
 
 // 状态样式和图标
 const getStatusClass = (type) => {
-  return statuses.value[type] ? "status-ok" : "status-error";
+  return statuses.value[type] ? "status-error" : "status-ok"; // true 表示异常
 };
 
 const getStatusIcon = (type) => {
-  return statuses.value[type] ? "✓" : "✗";
+  return statuses.value[type] ? "✗" : "✓"; // true 表示异常
 };
 
 // 定时更新时间
@@ -399,7 +567,7 @@ const handlePageChange = (page) => {
 };
 
 const handleRowClick = (row) => {
-  center.value = { lng: row.lng, lat: row.lat };
+  center.value = { lng: row.longitude, lat: row.latitude };
 };
 </script>
 

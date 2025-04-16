@@ -13,24 +13,20 @@ import java.sql.Timestamp;
 @Setter
 @ToString
 @NoArgsConstructor
-@TableName("speed_exp")
-public class SpeedExp {
+@TableName("ml_exp")
+public class MlExpcetion {
     @TableId
     private Integer id; // 自增id
 
     private String vehicleId; // 车辆id
 
-    private double velocityGNSS; // GNSS速度
-
-//    private double velocityCAN; // 当前车速
-
     private Timestamp timestamp; // 时间戳
 
-    public SpeedExp(String vehicleId, double velocityGNSS,
-                    Timestamp timestamp) {
+    private double mse; // mean squared error 平均平方误差，大于0.1表示异常
+
+    public MlExpcetion(String vehicleId, Timestamp timestamp, double mse) {
         this.vehicleId = vehicleId;
-        this.velocityGNSS = velocityGNSS;
-//        this.velocityCAN = velocityCAN;
         this.timestamp = timestamp;
+        this.mse = mse;
     }
 }

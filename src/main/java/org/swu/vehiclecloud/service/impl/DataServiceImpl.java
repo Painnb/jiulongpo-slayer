@@ -1,10 +1,16 @@
 package org.swu.vehiclecloud.service.impl;
 
+import cn.hutool.core.util.StrUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
+import org.swu.vehiclecloud.controller.template.ApiResult;
+import org.swu.vehiclecloud.dto.AnomalyStat;
+import org.swu.vehiclecloud.dto.VehicleExceptionCount;
+
+import org.swu.vehiclecloud.entity.MlExpcetion;
 import org.swu.vehiclecloud.mapper.DataMapper;
 import org.swu.vehiclecloud.service.DataService;
 import reactor.core.publisher.Flux;
@@ -14,9 +20,7 @@ import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -288,15 +292,64 @@ public class DataServiceImpl implements DataService {
         return activeStreams.containsKey(id);
     }
 
-
-
-
-    //异常处理
     @Autowired
     private DataMapper dataMapper;
 
     @Override
-    public List<Map<String, Object>> getExceptionStatistics() {
+    public List<AnomalyStat> getExceptionPieData() {
+        // 1. 从数据库获取各异常类型统计数
+        List<AnomalyStat> stats = new ArrayList<>();
+        stats.add(new AnomalyStat("方向盘异常", dataMapper.countSteeringAnomalies(), "#f25e43"));
+        stats.add(new AnomalyStat("车速异常", dataMapper.countSpeedAnomalies(), "#00bcd4"));
+        stats.add(new AnomalyStat("加速度异常", dataMapper.countAccelerationAnomalies(), "#64d572"));
+        stats.add(new AnomalyStat("油门异常", dataMapper.countBrakeAnomalies(), "#ffeb3b"));
+        stats.add(new AnomalyStat("发动机异常", dataMapper.countEngineAnomalies(), "#ff5722"));
+        stats.add(new AnomalyStat("地理位置异常", dataMapper.countGeolocationAnomalies(), "#ff5722"));
+        stats.add(new AnomalyStat("时间戳异常", dataMapper.countTimestampAnomalies(), "#ff5722"));
+
+        // 2. 计算总异常数用于百分比计算
+        int total = stats.stream().mapToInt(AnomalyStat::getValue).sum();
+
+        // 3. 设置每个异常项的百分比（四舍五入）
+        stats.forEach(stat -> {
+            double percent = (total > 0) ? (stat.getValue() * 100.0 / total) : 0;
+            stat.setPercent((int) Math.round(percent));
+        });
+
+        // 4. 按value从大到小排序
+        stats.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+
+        return stats;
+
+    }
+
+
+    @Override
+    public List<VehicleExceptionCount> getVehicleExceptionCounts() {
+        // 1. 从数据库获取各车辆异常数量统计（现在包含7个表）
+        List<Map<String, Object>> rawData = dataMapper.countExceptionsByVehicle();
+
+        // 2. 转换为VehicleExceptionCount对象列表
+        List<VehicleExceptionCount> result = new ArrayList<>();
+        for (Map<String, Object> item : rawData) {
+            String vehicleId = (String) item.get("name");
+            // 处理可能的null值
+            long count = item.get("value") == null ? 0 : ((Number) item.get("value")).longValue();
+            result.add(new VehicleExceptionCount("车辆" + vehicleId, (int) count));
+        }
+
+          
+
+        // 4. 按异常数量从大到小排序
+        result.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+
+        return result;
+    }
+
+
+
+    @Override
+    public List<Map<String, Object>> getExceptionStatistics () {
         List<Map<String, Object>> result = new ArrayList<>();
 
         // 获取所有异常表名
@@ -315,24 +368,62 @@ public class DataServiceImpl implements DataService {
     /**
      * 获取指定时间范围内的异常数据
      */
-    public List<Map<String, Object>> getExceptionDataWithTimeRange(
+    public List<Map<String, Object>> getExceptionDataWithTimeRange (
             String tableName,
             LocalDateTime startTime,
-            LocalDateTime endTime) {
+            LocalDateTime endTime){
         return dataMapper.selectExceptionDataWithTimeRange(tableName, startTime, endTime);
     }
 
     /**
      * 获取指定车辆和时间范围内的异常数据
      */
-    public List<Map<String, Object>> getExceptionDataWithFilter(
+    public List<Map<String, Object>> getExceptionDataWithFilter (
             String tableName,
             String vehicleId,
             LocalDateTime startTime,
-            LocalDateTime endTime) {
+            LocalDateTime endTime){
         return dataMapper.selectExceptionDataWithFilter(tableName, vehicleId, startTime, endTime);
     }
 
+        /**
+      * 获取机器学习异常数量统计
+      * @return 机器学习检测的车辆异常数量统计列表
+      */
+      @Override
+      public ApiResult<Map<String, Object>> getMlExceptionData() {
+          try{
+              List<MlExpcetion> mlExceptionData = dataMapper.selectMlExceptionData();
+  
+              if(!StrUtil.isEmptyIfStr(mlExceptionData)) {
+                  // 存储 vehicleId 和 mse 的列表
+                  List<String> vehicleIds = new ArrayList<>();
+                  List<Double> mseValues = new ArrayList<>();
+  
+                  // 遍历 mlExceptionData，将每个 vehicleId 和 mse 添加到对应的列表
+                  for (MlExpcetion exception : mlExceptionData) {
+                      vehicleIds.add(exception.getVehicleId());
+                      mseValues.add(exception.getMse());
+                  }
+  
+                  // 将数据封装成需要的结构
+                  Map<String, Object> resultData = new HashMap<>();
+                  resultData.put("data", Arrays.asList(vehicleIds, mseValues));
+  
+                  // 返回包含 data 的 ApiResult
+                  return ApiResult.of(200, "OK", resultData);
+              }else{
+                  return ApiResult.of(400, "Bad Request: No mlException data found", null);
+              }
+          }catch(NullPointerException e){
+              throw new NullPointerException("Bad request. Missing required fields.");
+          }catch (Exception e) {
+              // 捕获其他异常并返回 500 错误
+              return ApiResult.of(500, "Internal server error: " + e.getMessage(), null);
+          }
+      }
+
 }
+
 
 

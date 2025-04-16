@@ -6,13 +6,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
+import org.swu.vehiclecloud.controller.template.ApiResult;
+import org.swu.vehiclecloud.dto.AnomalyStat;
+import org.swu.vehiclecloud.dto.VehicleExceptionCount;
 import org.swu.vehiclecloud.service.DataService;
 import org.swu.vehiclecloud.annotations.PreAuthorizeRole;
 import org.swu.vehiclecloud.listener.MqttMessageListener;
 import reactor.core.publisher.Flux;
 
+
 import java.time.LocalDateTime;
 import java.util.*;
+
 
 /**
  * 数据控制器 (WebFlux版本)，提供SSE数据流相关的REST接口。
@@ -32,8 +37,8 @@ public class DataController {
     /**
      * 获取SSE数据流 (WebFlux)
      */
-    @GetMapping(value = "/public/ssestream/{ID}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"})
+    @GetMapping(value = "/public/ssestream/{ID}", produces = MediaType.TEXT_EVENT_STREAM_VALUE) // 指定流式响应类型
+    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN", "USER"})
     public Flux<ServerSentEvent<String>> streamData(@PathVariable("ID") String id) {
         return dataService.streamData(id);
     }
@@ -42,18 +47,20 @@ public class DataController {
      * 设置推送内容 (WebFlux)
      */
     @PostMapping("/public/setpushcontent/{ID}")
-    @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"})
+    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN", "USER"})
     public void setPushContent(@PathVariable("ID") String id, @RequestBody String content) {
         dataService.setPushContent(id, content);
     }
 
     @GetMapping("public/exceptionpie")
+    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN"})
     public ResponseEntity<List<Map<String, Object>>> getExceptionStatistics() {
         List<Map<String, Object>> statistics = dataService.getExceptionStatistics();
         return ResponseEntity.ok(statistics);
     }
 
     @GetMapping("public/exception-data")
+    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN"})
     public ResponseEntity<List<Map<String, Object>>> getExceptionData(
             @RequestParam String tableName,
             @RequestParam(required = false) String vehicleId,
@@ -74,7 +81,7 @@ public class DataController {
      * 获取七天内车辆活跃度统计 - 完全硬编码的版本
      */
     @GetMapping("public/activity/seven-days")
-    @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"})
+    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN"})
     public ResponseEntity<Map<String, Object>> getSevenDaysActivityData() {
         // 直接硬编码返回你需要的格式
         Map<String, Object> result = new HashMap<>();
@@ -99,7 +106,7 @@ public class DataController {
      * 获取车辆在线时间排行榜 - 硬编码示例数据
      */
     @GetMapping("public/activity/online-time-ranking")
-    @PreAuthorizeRole(roles = {"BIZ_ADMIN", "USER", "ADMIN"})
+    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN"})
     public ResponseEntity<List<Map<String, Object>>> getVehicleOnlineTimeRanking(
             @RequestParam(value = "limit", defaultValue = "10") int limit) {
 
@@ -115,5 +122,4 @@ public class DataController {
 
         return ResponseEntity.ok(result);
     }
-
 }

@@ -140,6 +140,9 @@ public class MqttMessageListener {
             logger.debug("解析消息: 车辆ID={}, GNSS速度={}, 时间戳={}",
                     vehicleId, velocityGNSS, new Date(effectiveTimestamp));
 
+            logger.debug("解析消息: 车辆ID={}, GNSS速度={}, 时间戳={}",
+                    vehicleId, velocityGNSS, new Date(timestamp));
+
             // 更新车辆状态缓存
             updateVehicleStatus(vehicleId, velocityGNSS, effectiveTimestamp);
 
@@ -348,7 +351,6 @@ public class MqttMessageListener {
         vehicleOnlineTime.put(vehicleId, newTime);
 
         logger.debug("更新车辆 {} 在线时间: {} -> {}", vehicleId, prevTime, newTime);
-
         // 模拟一些初始数据，确保有数据可以展示，但最多只添加5辆车
         if (vehicleOnlineTime.size() < 5) {
             for (int i = 1; i <= 5; i++) {
@@ -425,3 +427,4 @@ public class MqttMessageListener {
         pushStatistics();
     }
 }
+

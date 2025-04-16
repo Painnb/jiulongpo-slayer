@@ -12,8 +12,8 @@ const app = createApp(App);
 app.use(createPinia());
 app.use(router);
 app.use(BaiduMap, {
-    ak: '0zdcQHC3gQWhS7BVF39DhQ8AouTB5Iq5', // 必填
-    plugins: ['NavigationControl'] // 按需加载插件
+    ak: '0zdcQHC3gQWhS7BVF39DhQ8AouTB5Iq5', // 百度地图ak
+    plugins: ['NavigationControl'] 
   });
   
 

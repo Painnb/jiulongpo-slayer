@@ -1,4 +1,4 @@
-<template>
+<template> 
     <div class="dashboard">
         <el-row :gutter="20" class="mgb20" >
             <el-col :span="6">
@@ -42,8 +42,8 @@
             <el-col :span="12">
                 <el-card shadow="hover" :body-style="{height: '420px',backgroundColor:'#eef5ff'}">
                     <div class="card-header">
-                        <p class="card-header-title">动态数据</p>
-                        <p class="card-header-desc">实时监测的车辆数据</p>
+                        <p class="card-header-title">历史数据</p>
+                        <p class="card-header-desc">监测到的车辆活跃与在线数据</p>
                     </div>
                     <v-chart class="chart" :option="dashOpt1" />
                 </el-card>
@@ -58,7 +58,7 @@
                                     <p class="card-header-desc">输入数据并解析为JSON</p>
                                 </div>
                             </div>
-                            <div class="data-parser">
+                            <div class="data-parser" v-if="showInitialParser">
                                 <el-input
                                     v-model="inputData"
                                     type="textarea"
@@ -75,23 +75,69 @@
                                     解析
                                 </el-button>
                             </div>
-                            <div v-if="parsedData" class="parser-result">
-                                <p>解析结果：</p>
-                                <el-table
-                                    :data="parsedTableData"
-                                    border
-                                    style="width: 100%; max-height: 250px; overflow-y: auto;"
+
+                            <!-- 修改后的解析结果区域 -->
+                            <div v-else class="parser-result-container">
+                                <div class="result-header">
+                                    <span>解析结果：</span>
+                                    <div>
+                                        <el-button
+                                            type="text"
+                                            size="small"
+                                            @click="copyParsedData"
+                                            class="copy-button"
+                                        >
+                                            <el-icon><DocumentCopy /></el-icon> 一键复制
+                                        </el-button>
+                                        <el-button
+                                            type="primary"
+                                            size="small"
+                                            @click="resetParser"
+                                            class="parser-button"
+                                        >
+                                            返回
+                                        </el-button>
+                                    </div>
+                                </div>
+                                <pre class="json-display">{{ parsedData }}</pre>
+                            </div>
+
+                            <div class="card-header">
+                                <div class="card-header-left">
+                                    <p class="card-header-title">机器学习检测</p>
+                                    <p class="card-header-desc">输入车辆信息并检测是否存在异常</p>
+                                </div>
+                            </div>
+                            <div class="data-parser" v-if="!showDetectionResult">
+                                <el-input
+                                    v-model="vehicleInfo"
+                                    type="textarea"
+                                    placeholder="输入车辆信息（JSON格式）"
+                                    size="small"
+                                    class="parser-input"
+                                />
+                                <el-button
+                                    type="primary"
+                                    size="small"
+                                    @click="detectAnomalies"
+                                    class="parser-button"
                                 >
-                                    <el-table-column
-                                        prop="key"
-                                        label="字段"
-                                        width="150"
-                                    />
-                                    <el-table-column
-                                        prop="value"
-                                        label="值"
-                                    />
-                                </el-table>
+                                    检测
+                                </el-button>
+                            </div>
+                            <div v-else class="parser-result-container">
+                                <div class="result-header">
+                                    <span>检测结果：</span>
+                                    <el-button
+                                        type="primary"
+                                        size="small"
+                                        @click="resetDetection"
+                                        class="parser-button"
+                                    >
+                                        返回
+                                    </el-button>
+                                </div>
+                                <pre class="json-display">{{ detectionResult }}</pre>
                             </div>
                         </el-card>
                     </el-col>
@@ -144,7 +190,7 @@
             <el-col :span="12">
                 <el-card shadow="hover" :body-style="{ height: '390px', backgroundColor: '#BFD5F8' }">
                     <div class="card-header">
-                        <p class="card-header-title">异常统计</p>
+                        <p class="card-header-title">历史异常统计</p>
                     </div>
                     <div>
                         <div class="rank-item" v-for="(rank, index) in ranks">
@@ -183,17 +229,22 @@ import {
 } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import VChart from 'vue-echarts';
-import { dashOpt1, dashOpt2, mapOptions } from './chart/options';
+import { dashOpt2, mapOptions } from './chart/options';
 import chinaMap from '@/utils/china';
 import { ref ,onMounted,onUnmounted} from 'vue';
-import { createSSEConnection } from '../utils/sse'; // 假设封装的工具函数放在 utils/sse.ts
+import axios from 'axios';
+import { createSSEConnection } from '../utils/sse';
+import { graphic } from 'echarts/core';
+import { DocumentCopy } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
 
 const activeCount = ref<string>('');
 const onlineCount = ref<string>('');
 const exceptionCount = ref<string>('');
 let sseConnection: { close: () => void } | null = null;
+let sseConnection1: { close: () => void } | null = null;
 
-const token = localStorage.getItem('token') || ''; // 假设 token 存储在 localStorage 中
+const token = localStorage.getItem('token') || '';
 
 onMounted(() => {
   sseConnection = createSSEConnection('/abc/api/datacontroller/public/ssestream/activity_alerts', token, {
@@ -201,9 +252,21 @@ onMounted(() => {
       console.log('SSE连接已建立');
     },
     onMessage: (data) => {
-        console.log('收到SSE消息:', data);
+        console.log('收到SSE活跃度消息:', data);
         activeCount.value = data.activeCount;
         onlineCount.value = data.onlineCount;
+    },
+    onError: (error) => {
+      console.error('SSE连接错误:', error);
+    }
+  });
+  sseConnection1 = createSSEConnection('/abc/api/datacontroller/public/ssestream/2', token, {
+    onOpen: () => {
+      console.log('SSE连接已建立');
+    },
+    onMessage: (data) => {
+        console.log('收到SSE异常消息:', data);
+        exceptionCount.value = data.numOfExp;
     },
     onError: (error) => {
       console.error('SSE连接错误:', error);
@@ -213,8 +276,81 @@ onMounted(() => {
 
 onUnmounted(() => {
   sseConnection?.close();
+  sseConnection1?.close();
 });
 
+const dashOpt1 = ref({
+    xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: [],
+    },
+    yAxis: {
+        type: 'value',
+    },
+    legend: {
+          data: ["活跃数量", "在线数量"],
+        },
+    grid: {
+        top: '2%',
+        left: '2%',
+        right: '3%',
+        bottom: '2%',
+        containLabel: true,
+    },
+    color: ['#009688', '#f44336'],
+    series: [
+        {
+            name: '在线数量',
+            type: 'line',
+            areaStyle: {
+                color: new graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(0, 150, 136, 0.8)' },
+                    { offset: 1, color: 'rgba(0, 150, 136, 0.2)' },
+                ]),
+            },
+            smooth: true,
+            data: [],
+        },
+        {
+            name: '活跃数量',
+            type: 'line',
+            areaStyle: {
+                color: new graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(244, 67, 54, 0.8)' },
+                    { offset: 1, color: 'rgba(244, 67, 54, 0.2)' },
+                ]),
+            },
+            smooth: true,
+            data: [],
+        },
+    ],
+});
+
+const fetchChartData = async () => {
+  try {
+    const response = await axios.get('/abc/api/datacontroller/public/activity/seven-days', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const chartData = response.data;
+
+    dashOpt1.value.xAxis.data = chartData.xAxis;
+    dashOpt1.value.series[0].data = chartData.onlineData;
+    dashOpt1.value.series[1].data = chartData.activeData;
+    console.log('图表数据更新成功:', chartData);
+  } catch (error) {
+    console.error('获取图表数据失败:', error);
+    return null;
+  }
+};
+
+onMounted( () => {
+    fetchChartData();
+    fetchExpChartData();
+});
 
 use([
     CanvasRenderer,
@@ -229,10 +365,9 @@ use([
     MapChart,
 ]);
 registerMap('china', chinaMap);
-// 当前时间
+
 const currentTime = ref('');
 
-// 定时更新当前时间
 setInterval(() => {
     const now = new Date();
     currentTime.value = now.toLocaleString('zh-CN', {
@@ -245,6 +380,7 @@ setInterval(() => {
         second: '2-digit',
     });
 }, 1000);
+
 const activities = ref([
     {
         content: '车辆行驶',
@@ -266,7 +402,6 @@ const activities = ref([
     }
 ]);
 
-// 新增通知相关状态
 const newNotification = ref('');
 const addNotification = () => {
     if (newNotification.value.trim()) {
@@ -276,56 +411,35 @@ const addNotification = () => {
             timestamp: '刚刚',
             color: '#f39c12',
         });
-        newNotification.value = ''; // 清空输入框
+        newNotification.value = '';
     } else {
         alert('请输入通知内容！');
     }
 };
 
-const ranks = [
-    {
-        title: '方向盘异常',
-        value: 10000,
-        percent: 80,
-        color: '#f25e43',
-    },
-    {
-        title: '车速异常',
-        value: 8000,
-        percent: 70,
-        color: '#00bcd4',
-        
-    },
-    {
-        title: '加速度异常',
-        value: 6000,
-        percent: 60,
-        color: '#64d572',
-    },
-    {
-        title: '油门异常',
-        value: 5000,
-        percent: 55,
-        color: '#e9a745',
-    },
-    {
-        title: '发动机异常',
-        value: 4000,
-        percent: 50,
-        color: '#009688',
-    },
-];
+const ranks = ref([]);
 
-// 控制显示列表还是图表
+const fetchExpChartData = async () => {
+  try {
+    const response = await axios.get('/abc/api/datacontroller/public/exceptiondata', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const chartData = response.data;
+    ranks.value = chartData;
+    console.log('图表数据更新成功:', chartData);
+  } catch (error) {
+    console.error('获取图表数据失败:', error);
+    return null;
+  }
+};
+
 const showList = ref(false);
-
-// 列表选项
 const options = ref(['选项1', '选项2', '选项3', '选项4', '选项5', '选项6', '选项7', '选项8', '选项9', '选项10']);
-
-// 当前选中的选项（多选）
 const selectedOptions = ref([]);
 
-// 打印选中的选项
 const printSelections = () => {
     if (selectedOptions.value.length > 0) {
         console.log('选中的选项是：', selectedOptions.value);
@@ -335,9 +449,15 @@ const printSelections = () => {
     }
 };
 
-const inputData = ref(''); // 输入数据
-const parsedData = ref(''); // 解析结果
-const parsedTableData = ref([]); // 表格数据
+const inputData = ref('');
+const parsedData = ref('');
+const parsedTableData = ref([]);
+const showInitialParser = ref(true);
+
+const resetParser = () => {
+    parsedData.value = '';
+    showInitialParser.value = true;
+};
 
 const parseData = async () => {
     if (!inputData.value.trim()) {
@@ -345,32 +465,118 @@ const parseData = async () => {
         return;
     }
     try {
-        // 调用后端接口，替换为实际接口地址
-        const response = await fetch('/api/parse', {
+        const token = localStorage.getItem('token') || '';
+        const response = await fetch('/abc/api/mqtt/analysis', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ data: inputData.value }),
+            body: inputData.value ,
         });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! 状态码: ${response.status}`);
+        }
+
         const result = await response.json();
-        parsedData.value = JSON.stringify(result, null, 2); // 格式化 JSON
-        parsedTableData.value = Object.entries(result).map(([key, value]) => ({
-            key,
-            value: typeof value === 'object' ? JSON.stringify(value) : value,
-        }));
+        parsedData.value = JSON.stringify(result, null, 2);
+        showInitialParser.value = false;
+
+        parsedTableData.value = [
+            { key: 'prefix', value: result.prefix },
+            { key: 'dataLen', value: result.dataLen },
+            { key: 'dataCategory', value: result.dataCategory },
+            { key: 'ver', value: result.ver },
+            { key: 'timestamp', value: new Date(result.timestamp).toLocaleString() },
+            { key: 'ctl', value: result.ctl },
+            { key: 'vehicleId', value: result.dataContent.vehicleId },
+            { key: 'messageId', value: result.dataContent.messageId },
+            { key: 'timestampGNSS', value: new Date(result.dataContent.timestampGNSS).toLocaleString() },
+            { key: 'velocityGNSS', value: result.dataContent.velocityGNSS },
+            { key: 'position', value: `经度: ${result.dataContent.position.longitude}, 纬度: ${result.dataContent.position.latitude}, 海拔: ${result.dataContent.position.elevation}` },
+            { key: 'heading', value: result.dataContent.heading },
+            { key: 'tapPos', value: result.dataContent.tapPos },
+            { key: 'steeringAngle', value: result.dataContent.steeringAngle },
+            { key: 'engineTorque', value: result.dataContent.engineTorque },
+            { key: 'destLocation', value: `经度: ${result.dataContent.destLocation.longitude}, 纬度: ${result.dataContent.destLocation.latitude}` },
+            { key: 'passPointsNum', value: result.dataContent.passPointsNum },
+        ];
     } catch (error) {
         console.error('解析失败:', error);
         alert('解析失败，请检查输入或稍后重试！');
     }
 };
+
+const vehicleInfo = ref('');
+const detectionResult = ref('');
+const showDetectionResult = ref(false);
+
+const resetDetection = () => {
+    detectionResult.value = '';
+    showDetectionResult.value = false;
+};
+
+const detectAnomalies = async () => {
+    if (!vehicleInfo.value.trim()) {
+        alert('请输入车辆信息！');
+        return;
+    }
+    try {
+        const token = localStorage.getItem('token') || '';
+        const response = await fetch('/stu/detect-anomaly/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: vehicleInfo.value
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! 状态码: ${response.status}`);
+        }
+
+        const result = await response.json();
+        detectionResult.value = JSON.stringify(result, null, 2);
+        showDetectionResult.value = true;
+        console.log('检测结果:', result);
+    } catch (error) {
+        console.error('检测失败:', error);
+        alert('检测失败，请检查输入或稍后重试！');
+    }
+};
+
+// 新增的复制功能方法
+const copyParsedData = () => {
+  if (!parsedData.value) return
+  navigator.clipboard.writeText(parsedData.value)
+    .then(() => {
+      ElMessage.success('解析结果已复制到剪贴板')
+    })
+    .catch(err => {
+      console.error('复制失败:', err)
+      ElMessage.error('复制失败，请手动复制')
+    })
+}
+
+const copyDetectionResult = () => {
+  if (!detectionResult.value) return
+  navigator.clipboard.writeText(detectionResult.value)
+    .then(() => {
+      ElMessage.success('检测结果已复制到剪贴板')
+    })
+    .catch(err => {
+      console.error('复制失败:', err)
+      ElMessage.error('复制失败，请手动复制')
+    })
+}
 </script>
 
 <style>
 .dashboard{
-    background-color:#4575BD    ;
+    background-color:#4575BD;
 }
-
 
 .card-body {
     display: flex;
@@ -394,27 +600,25 @@ const parseData = async () => {
 .card-icon {
     width: 80px;
     height: 80px;
-    object-fit: contain; /* 确保图片适应容器 */
-    padding: 10px; /* 内边距 */
+    object-fit: contain;
+    padding: 10px;
 }
 
 .bg-blue {
-    background-color: #007bff; /* 蓝色 */
+    background-color: #007bff;
 }
 
 .bg-green {
-    background-color: #28a745; /* 绿色 */
+    background-color: #28a745;
 }
 
 .bg-red {
-    background-color: #dc3545; /* 红色 */
+    background-color: #dc3545;
 }
 
 .bg-orange {
-    background-color: #fd7e14; /* 橙色 */
+    background-color: #fd7e14;
 }
-
-
 
 .color1 {
     color: #b2d2f5;
@@ -440,10 +644,9 @@ const parseData = async () => {
 .card-header {
     display: flex;
     align-items: center;
-    justify-content: space-between; /* 将标题和按钮分开对齐 */
+    justify-content: space-between;
     padding-left: 10px;
-    margin-bottom: 20px;
-    
+    margin-bottom: 5px;
 }
 
 .card-header-left {
@@ -513,44 +716,42 @@ const parseData = async () => {
     height: 350px;
 }
 
-
 .list-container {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     justify-content: space-between;
-    height: 350px; /* 与图表高度一致 */
+    height: 350px;
     padding: 10px;
-
 }
 
 .scrollable-list {
-    flex: 1; /* 占据剩余空间 */
+    flex: 1;
     width: 100%;
-    overflow-y: auto; /* 启用垂直滚动 */
-    padding-right: 10px; /* 防止滚动条遮挡内容 */
+    overflow-y: auto;
+    padding-right: 10px;
     margin-bottom: 10px;
-    border: 1px solid #e0e0e0; /* 添加边框以区分列表 */
+    border: 1px solid #e0e0e0;
     border-radius: 4px;
 }
 
 .checkbox-item {
-    display: block; /* 强制每个选项占据一行 */
-    margin-top: 5px; /* 添加选项之间的间距 */
+    display: block;
+    margin-top: 5px;
     margin-left: 10px;
 }
 
 .scrollable-list ::-webkit-scrollbar {
-    width: 6px; /* 滚动条宽度 */
+    width: 6px;
 }
 
 .scrollable-list ::-webkit-scrollbar-thumb {
-    background-color: #c1c1c1; /* 滚动条颜色 */
+    background-color: #c1c1c1;
     border-radius: 3px;
 }
 
 .scrollable-list ::-webkit-scrollbar-track {
-    background-color: #f5f5f5; /* 滚动条轨道颜色 */
+    background-color: #f5f5f5;
 }
 
 .list-buttons {
@@ -569,14 +770,14 @@ const parseData = async () => {
 .notification-textbox {
     flex: 1;
     margin-right: 10px;
-    height: 30px; /* 调高输入框高度 */
-    font-size: 16px; /* 放大字体 */
+    height: 30px;
+    font-size: 16px;
 }
 
 .notification-button {
     flex-shrink: 0;
-    height: 30px; /* 调高按钮高度 */
-    font-size: 16px; /* 放大字体 */
+    height: 30px;
+    font-size: 16px;
 }
 
 .data-parser {
@@ -588,24 +789,43 @@ const parseData = async () => {
 .parser-input {
     flex: 1;
     margin-right: 10px;
-    height: 100px; /* 增大输入框高度 */
-    
+    height: 100px;
 }
 
 .parser-button {
     flex-shrink: 0;
-    height: 40px; /* 调整按钮高度 */
+    height: 40px;
 }
 
-.parser-result {
+/* 新增的解析结果容器样式 */
+.parser-result-container {
     background-color: #f5f5f5;
-    padding: 10px;
     border-radius: 4px;
+    margin-bottom: 20px;
+    padding: 10px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+.copy-button {
+    padding: 0;
+    margin-left: 10px;
+}
+
+.json-display {
+    margin: 0px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: monospace;
     font-size: 14px;
-    color: #333;
-    white-space: pre-wrap; /* 保留换行 */
-    word-wrap: break-word; /* 自动换行 */
-    overflow-y: auto; /* 启用滚动 */
-    max-height: 250px; /* 限制最大高度 */
+    line-height: 1.5;
 }
 </style>
