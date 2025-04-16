@@ -35,6 +35,9 @@ export default {
     this.fetchPieChartData(); // 调用后端接口获取饼图数据
     this.fetchLineChartData();
     this.fetchbarChartData1();
+    this.fetchbarChartData2();
+    this.fetchbarChartHorizontal();
+    this.fetchpieChart2();
   },
   methods: {
     async fetchPieChartData() {
@@ -144,6 +147,119 @@ export default {
       }
     },
 
+    //活跃数量
+    async fetchpieChart2() {
+      try {
+        // 获取 token
+        const token = localStorage.getItem("token");
+
+        // 调用后端接口
+        const response = await axios.get(
+          "/abc/api/activecontroller/public/vehicle-activity",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`, // 在请求头中传入 token
+            },
+          }
+        );
+
+        const Data = response.data.data || [];
+        const formattedData = Data.map((item) => [
+          item.amount,
+          item.product,
+        ]);
+
+        // 在开头添加 ["count", "id"]
+        formattedData.unshift(["count", "id"]);
+
+        console.log(formattedData);
+
+        const pieChart2 = echarts.getInstanceByDom(
+          this.$refs.pieChart2
+        );
+        pieChart2.setOption({
+          dataset: {
+            source: formattedData,
+          },
+        });
+
+        console.log("活跃数量图数据更新成功:", Data);
+      } catch (error) {
+        console.error("活跃在线数量图数据失败:", error);
+      }
+    },
+
+    //车辆异常数据
+    async fetchbarChartData2() {
+      try {
+        // 获取 token
+        const token = localStorage.getItem("token");
+
+        // 调用后端接口
+        const response = await axios.get(
+          "/abc/api/datacontroller/public/exceptionNumber",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`, // 在请求头中传入 token
+            },
+          }
+        );
+
+        const Data = response.data || [];
+
+        const barChartVertical = echarts.getInstanceByDom(
+          this.$refs.barChartVertical
+        );
+        barChartVertical.setOption({
+          xAxis: {
+            data: Data.map((item) => item.name), // 使用后端返回的数据
+          },
+          series: {
+            data: Data.map((item) => item.value), // 使用后端返回的数据
+          },
+        });
+
+        console.log("车辆异常数据图数据更新成功:", Data);
+      } catch (error) {
+        console.error("车辆异常数据图数据失败:", error);
+      }
+    },
+    //机器学习MSE
+    async fetchbarChartHorizontal() {
+      try {
+        // 获取 token
+        const token = localStorage.getItem("token");
+
+        // 调用后端接口
+        const response = await axios.get(
+          "/abc/api/datacontroller/public/getmlexceptiondata",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`, // 在请求头中传入 token
+            },
+          }
+        );
+
+        const Data = response.data.data.data || [];
+
+        const barChartHorizontal = echarts.getInstanceByDom(
+          this.$refs.barChartHorizontal
+        );
+        barChartHorizontal.setOption({
+          radiusAxis: {
+            data: Data[0], // 使用后端返回的数据
+          },
+          series: {
+            data: Data[1], // 使用后端返回的数据
+          },
+        });
+
+        console.log("机器学习MSE图数据更新成功:", Data);
+      } catch (error) {
+        console.error("机器学习MSE图数据失败:", error);
+      }
+    },
+
     async exportChartsToPDF() {
       const charts = [
         this.$refs.pieChart1,
@@ -219,14 +335,6 @@ export default {
 
       // 模拟数据
 
-      const barDataVertical = [
-        { name: "类别1", value: 120 },
-        { name: "类别2", value: 200 },
-        { name: "类别3", value: 150 },
-        { name: "类别4", value: 180 },
-        { name: "类别5", value: 220 },
-      ];
-
       // 饼图1
       pieChart1.setOption({
         title: {
@@ -275,16 +383,16 @@ export default {
       pieChart2.setOption({
         dataset: {
           source: [
-            ["amount", "product"],
-            [58212, "Matcha Latte"],
-            [78254, "Milk Tea"],
-            [41032, "Cheese Cocoa"],
-            [12755, "Cheese Brownie"],
-            [20145, "Matcha Cocoa"],
-            [79146, "Tea"],
-            [91852, "Orange Juice"],
-            [101852, "Lemon Juice"],
-            [20112, "Walnut Brownie"],
+            // ["amount", "product"],
+            // [58212, "Matcha Latte"],
+            // [78254, "Milk Tea"],
+            // [41032, "Cheese Cocoa"],
+            // [12755, "Cheese Brownie"],
+            // [20145, "Matcha Cocoa"],
+            // [79146, "Tea"],
+            // [91852, "Orange Juice"],
+            // [101852, "Lemon Juice"],
+            // [20112, "Walnut Brownie"],
           ],
         },
         title: {
@@ -501,7 +609,7 @@ export default {
           radius: [30, "80%"],
         },
         angleAxis: {
-          max: 4,
+          max: 1,
           startAngle: 75,
           axisLabel: {
             color: "#00FBFF", // 设置角度轴标签字体颜色
@@ -509,7 +617,7 @@ export default {
         },
         radiusAxis: {
           type: "category",
-          data: ["a", "b", "c", "d"],
+          data: [],
           axisLabel: {
             color: "#00FBFF", // 设置半径轴标签字体颜色
           },
@@ -519,12 +627,12 @@ export default {
         },
         series: {
           type: "bar",
-          data: [2, 1.2, 2.4, 3.6],
+          data: [],
           coordinateSystem: "polar",
           label: {
             show: true,
             position: "middle",
-            formatter: "{b}: {c}",
+            formatter: "{b}",
             color: "#00FBFF", // 设置标签字体颜色
           },
         },
@@ -548,7 +656,7 @@ export default {
         },
         xAxis: {
           type: "category",
-          data: barDataVertical.map((item) => item.name),
+          data: [],
           axisLine: {
             lineStyle: {
               color: "#FFFFFF",
@@ -571,7 +679,7 @@ export default {
         },
         series: [
           {
-            data: barDataVertical.map((item) => item.value),
+            data: [],
             type: "bar",
           },
         ],
@@ -579,16 +687,6 @@ export default {
       barChartVertical1.setOption({
         dataset: {
           source: [
-            // ["amount", "product"],
-            // [58212, "Matcha Latte"],
-            // [78254, "Milk Tea"],
-            // [41032, "Cheese Cocoa"],
-            // [12755, "Cheese Brownie"],
-            // [20145, "Matcha Cocoa"],
-            // [79146, "Tea"],
-            // [91852, "Orange Juice"],
-            // [101852, "Lemon Juice"],
-            // [20112, "Walnut Brownie"],
           ],
         },
         title: {
