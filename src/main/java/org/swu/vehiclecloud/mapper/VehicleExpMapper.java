@@ -16,14 +16,14 @@ public interface VehicleExpMapper {
 //    @Options(useGeneratedKeys = true, keyProperty = "id")
 //    void insertAccelerationExp(AccelerationExp accelerationExp);
 
-//    /**
-//     * 插入速度异常对象
-//     * @param speedExp 速度异常对象
-//     */
-//    @Insert("INSERT INTO speed_exp (vehicleId, velocityGNSS, velocityCAN, timestamp) " +
-//            "VALUES (#{vehicleId}, #{velocityGNSS}, #{velocityCAN}, #{timestamp})")
-//    @Options(useGeneratedKeys = true, keyProperty = "id")
-//    void insertSpeedExp(SpeedExp speedExp);
+    /**
+     * 插入速度异常对象
+     * @param speedExp 速度异常对象
+     */
+    @Insert("INSERT INTO speed_exp (vehicleId, velocityGNSS, timestamp) " +
+            "VALUES (#{vehicleId}, #{velocityGNSS}, #{timestamp})")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    void insertSpeedExp(SpeedExp speedExp);
 
 //    /**
 //     * 插入发动机异常对象

@@ -1,7 +1,5 @@
 package org.swu.vehiclecloud.service.impl;
 
-import cn.hutool.core.thread.ThreadFactoryBuilder;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.*;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
@@ -19,6 +17,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 @Service
@@ -30,12 +29,11 @@ public class MqttServiceImpl implements MqttService {
     private MqttConnectOptions currentConnectOptions;
     private final MqttConfigProperties config;
     private final ApplicationEventPublisher  mqttEventPublisher;
-    private int receiveCount = 0;
-    private int parsedCount = 0;
+    private final AtomicInteger receiveCount = new AtomicInteger(0);
+    private final AtomicInteger parsedCount = new AtomicInteger(0);
     private static final Pattern HEX_TOPIC_PATTERN =
             Pattern.compile("^vpub/obu/state/.*_hex$");
     private ExecutorService messageProcessor;
-    //private boolean isConnected = false;
 
     public MqttServiceImpl(MqttConfigProperties mqttConfigProperties, ApplicationEventPublisher  mqttEventPublisher) throws MqttException {
         this.config = mqttConfigProperties;
@@ -160,46 +158,22 @@ public class MqttServiceImpl implements MqttService {
 
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
-                receiveCount++;
+                receiveCount.incrementAndGet();
 
                 messageProcessor.submit(() -> {
                     try {
                         if (HEX_TOPIC_PATTERN.matcher(topic).matches()) {
+                            long start = System.nanoTime();
                             Map<String, Object> jsonPayload = parsePayload(message.getPayload());
                             mqttEventPublisher.publishEvent(new MqttMessageEvent(this, topic, jsonPayload));
-                            parsedCount++;
+                            parsedCount.incrementAndGet();
+                            logger.trace("Parsed in {} μs", (System.nanoTime() - start) / 1000);
                         }
                     } catch (Exception e) {
                         logger.error("Process failed: topic={}, payload={}", topic,
                                 bytesToHex(message.getPayload()), e);
                     }
                 });
-                /*
-                if(topic.matches("^vpub/obu/state/.*_hex$")){
-                    //Map<String, Object> jsonPayload = parsePayload(message.getPayload());
-                    //System.out.println("jsonPayload: " + parsePayload(message.getPayload()));
-                    mqttEventPublisher.publishEvent(new MqttMessageEvent(this, topic, parsePayload(message.getPayload())));
-                    parsedCount++;
-                } else if(topic.matches("^vpub/obu/state/[^/]+$")){
-
-                    String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
-                    System.out.println("Original Message: " + payload);
-
-                    ObjectMapper mapper = new ObjectMapper();
-                    Map<String, Object> payloadMap = mapper.readValue(payload, Map.class);
-                    mqttEventPublisher.publishEvent(new MqttMessageEvent(this, topic, payloadMap));
-
-                    // 写入本地文件
-                    try (FileWriter writer = new FileWriter("mqtt_messages.txt", true)) {
-                        //writer.write("[" + Instant.now().atZone(ZoneId.systemDefault()) + "] ");
-                        //writer.write("Topic: " + topic + " | ");
-                        writer.write( payload + "\n");
-                    } catch (IOException e) {
-                        logger.error("Failed to write message to file", e);
-                    }
-
-                }
-                 */
             }
 
             @Override
@@ -254,7 +228,8 @@ public class MqttServiceImpl implements MqttService {
         // 3. GNSS时间戳 (8字节)
         content.put("timestampGNSS", buffer.getLong());
         // 4. GNSS速度 (2字节)
-        content.put("velocityGNSS", buffer.getShort() & 0xFF);
+        double velocityGNSS = buffer.getShort() & 0xFFFF;
+        content.put("velocityGNSS", velocityGNSS);
 
         // 5. 位置 (12字节)
         Map<String, Object> position = new LinkedHashMap<>(3);
@@ -373,15 +348,14 @@ public class MqttServiceImpl implements MqttService {
                 try {
                     if (mqttClient.isConnected()) mqttClient.disconnect();
                     mqttClient.close();
-                    System.out.println("receiveCount: " + receiveCount);
-                    System.out.println("parserCount: " + parsedCount);
+                    System.out.println("receiveCount: " + receiveCount.get());
+                    System.out.println("parserCount: " + parsedCount.get());
                 } catch (MqttException e) {
                     throw new Exception("MQTT close failed", e);
                 }
             }
         }
     }
-
 
     public boolean isConnected() {
         return mqttClient != null && mqttClient.isConnected();
