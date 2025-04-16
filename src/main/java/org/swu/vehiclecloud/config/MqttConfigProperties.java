@@ -14,10 +14,14 @@ import java.util.regex.Pattern;
 @ConfigurationProperties(prefix = "spring.mqtt")
 public class MqttConfigProperties {
     private String brokerUrl;
-    private String clientId;
+    private String clientId = generateRandomClientId();
     private String username;
     private String password;
     private List<String> subTopics;
+
+    private String generateRandomClientId() {
+        return "client-" + System.currentTimeMillis() + "-" + (int)(Math.random() * 1000);
+    }
 
     @Bean
     public MqttPahoClientFactory mqttClientFactory() {
