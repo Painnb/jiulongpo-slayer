@@ -337,8 +337,7 @@ public class DataServiceImpl implements DataService {
             result.add(new VehicleExceptionCount("车辆" + vehicleId, (int) count));
         }
 
-        // 3. 确保所有5种车辆都有数据（即使异常数为0）
-       // ensureAllVehiclesPresent(result);
+          
 
         // 4. 按异常数量从大到小排序
         result.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
@@ -346,23 +345,7 @@ public class DataServiceImpl implements DataService {
         return result;
     }
 
-    /**
-     * 确保结果中包含所有5种车辆（111,222,333,444,555），即使异常数为0
-     */
-    private void ensureAllVehiclesPresent(List<VehicleExceptionCount> result) {
-        String[] allVehicleIds = {"111", "222", "333", "444", "555"};
 
-        for (String vehicleId : allVehicleIds) {
-            boolean exists = result.stream()
-                    .anyMatch(item -> item.getName().equals("车辆" + vehicleId));
-
-            if (!exists) {
-                result.add(new VehicleExceptionCount("车辆" + vehicleId, 0));
-            }
-        }
-
-
-    }
     @Override
     public List<Map<String, Object>> getExceptionStatistics () {
         List<Map<String, Object>> result = new ArrayList<>();
