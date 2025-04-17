@@ -37,10 +37,7 @@ public class ProcessExp {
     private static long previousTimestamp = 0;
 
     // 异常数量
-    private static int numOfExp = 0;
-
-    // 间隔执行监听方法
-    private static int eventCount = 0;
+    private int numOfExp = 0;
 
     // 存储每个车辆的上一次数据，线程安全的Map
     private final ConcurrentMap<String, Map<String, Object>> vehicleDataCache = new ConcurrentHashMap<>();
@@ -62,8 +59,6 @@ public class ProcessExp {
 
     @EventListener
     public void handleMqttMessage(MqttMessageEvent event) throws IOException, ParseException {
-        eventCount++;
-
         // 每监听条数据检测一次
         try {
             // 提取车辆数据
@@ -220,6 +215,7 @@ public class ProcessExp {
             numOfExpCar.compute(previousTimestamp, (key, currentValue) ->
                     (currentValue == null ? 0 : currentValue) + numOfExp
             );
+            System.err.println("total: " + numOfExpCar.get(previousTimestamp));
 
         } catch (IOException e) {
             throw new IOException("Internal server error. Please try again later.");
