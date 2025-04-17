@@ -5,6 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.swu.vehiclecloud.config.MqttConfigProperties;
 import org.springframework.boot.CommandLineRunner;
@@ -28,6 +29,7 @@ import java.io.InputStreamReader;
 @MapperScan("org.swu.vehiclecloud.mapper")
 @EnableConfigurationProperties(MqttConfigProperties.class)
 @EnableTransactionManagement
+@EnableScheduling  // 启用定时任务
 @Component
 public class VehicleCloudApplication implements CommandLineRunner {
 

@@ -1,14 +1,19 @@
+
 package org.swu.vehiclecloud.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
-import lombok.Data;
-import java.util.Date;
+import lombok.*;
 
-@Data
+import java.sql.Timestamp;
+
+@Getter
+@Setter
+@ToString
+@NoArgsConstructor
 @TableName("activity_alert")
 public class ActivityAlert {
-    @TableId(type = IdType.AUTO)
-    private Long id;
+    @TableId
+    private Integer id;
 
     @TableField("vehicle_id")
     private String vehicleId;
@@ -19,15 +24,13 @@ public class ActivityAlert {
     @TableField("low_speed_alert")
     private Boolean lowSpeedAlert;
 
-    @TableField("alert_level")
-    private Integer alertLevel; // 1-警告 2-严重
+    @TableField("timestamp")
+    private Timestamp timestamp;
 
-    @TableField(value = "timestamp", fill = FieldFill.INSERT)
-    private Date timestamp;
-
-    @Version
-    private Integer version; // 乐观锁版本号
-
-    @TableLogic
-    private Boolean deleted; // 逻辑删除标志
+    public ActivityAlert(String vehicleId, Boolean noDataAlert, Boolean lowSpeedAlert, Timestamp timestamp) {
+        this.vehicleId = vehicleId;
+        this.noDataAlert = noDataAlert;
+        this.lowSpeedAlert = lowSpeedAlert;
+        this.timestamp = timestamp;
+    }
 }

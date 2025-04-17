@@ -86,24 +86,8 @@ public class DataController {
      */
     @GetMapping("public/activity/seven-days")
     @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN", "USER"})
-    public ResponseEntity<Map<String, Object>> getSevenDaysActivityData() {
-        // 直接硬编码返回你需要的格式
-        Map<String, Object> result = new HashMap<>();
-
-        // 固定的星期几
-        List<String> xAxis = Arrays.asList("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun");
-
-        // 固定的在线数据
-        List<Integer> onlineData = Arrays.asList(120, 200, 150, 80, 70, 110, 130);
-
-        // 固定的活跃数据
-        List<Integer> activeData = Arrays.asList(180, 230, 190, 120, 110, 230, 235);
-
-        result.put("xAxis", xAxis);
-        result.put("onlineData", onlineData);
-        result.put("activeData", activeData);
-
-        return ResponseEntity.ok(result);
+    public ApiResult<Map<String, Object>> getSevenDaysActivityData() {
+        return dataService.getSevenDaysActivityData();
     }
 
     /**
