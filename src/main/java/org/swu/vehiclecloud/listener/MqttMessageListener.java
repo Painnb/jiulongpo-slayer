@@ -70,30 +70,30 @@ public class MqttMessageListener {
     /**
      * 系统启动时初始化一些测试数据
      */
-    @PostConstruct
-    public void init() {
-        logger.info("初始化MqttMessageListener，添加一些测试车辆数据");
-        // 添加一些初始模拟数据，确保系统启动时有数据
-        // 只添加5辆车，与数据库匹配
-        for (int i = 1; i <= 5; i++) {
-            String vehicleId = "vehicle" + i;
-            long timestamp = System.currentTimeMillis();
-            double velocity = 5.0 + Math.random() * 10.0;  // 随机速度，确保大于低速阈值
+    // @PostConstruct
+    // public void init() {
+    //     logger.info("初始化MqttMessageListener，添加一些测试车辆数据");
+    //     // 添加一些初始模拟数据，确保系统启动时有数据
+    //     // 只添加5辆车，与数据库匹配
+    //     for (int i = 1; i <= 5; i++) {
+    //         String vehicleId = "vehicle" + i;
+    //         long timestamp = System.currentTimeMillis();
+    //         double velocity = 5.0 + Math.random() * 10.0;  // 随机速度，确保大于低速阈值
 
-            // 更新车辆状态缓存
-            lastUpdateTime.put(vehicleId, timestamp);
-            lastVelocityGNSS.put(vehicleId, velocity);
-            isActive.put(vehicleId, velocity >= LOW_SPEED_THRESHOLD);
+    //         // 更新车辆状态缓存
+    //         lastUpdateTime.put(vehicleId, timestamp);
+    //         lastVelocityGNSS.put(vehicleId, velocity);
+    //         isActive.put(vehicleId, velocity >= LOW_SPEED_THRESHOLD);
 
-            // 更新车辆在线时间
-            vehicleOnlineTime.put(vehicleId, (long)(Math.random() * 10000));
-        }
+    //         // 更新车辆在线时间
+    //         vehicleOnlineTime.put(vehicleId, (long)(Math.random() * 10000));
+    //     }
 
-        logger.info("初始化完成，当前缓存车辆数: {}", lastUpdateTime.size());
+    //     logger.info("初始化完成，当前缓存车辆数: {}", lastUpdateTime.size());
 
-        // 立即推送一次统计数据
-        pushStatistics();
-    }
+    //     // 立即推送一次统计数据
+    //     pushStatistics();
+    // }
 
     /**
      * 处理MQTT消息事件
@@ -331,10 +331,10 @@ public class MqttMessageListener {
         logger.info("计数结果 - 在线: {}, 活跃: {}", onlineCount, activeCount);
 
         // 确保至少有一些数据返回（用于调试）
-        if (onlineCount == 0 && !lastUpdateTime.isEmpty()) {
-            logger.warn("没有在线车辆，但缓存不为空，强制返回一些数据进行调试");
-            return new int[]{lastUpdateTime.size(), isActive.size()};
-        }
+        // if (onlineCount == 0 && !lastUpdateTime.isEmpty()) {
+        //     logger.warn("没有在线车辆，但缓存不为空，强制返回一些数据进行调试");
+        //     return new int[]{lastUpdateTime.size(), isActive.size()};
+        // }
 
         return new int[]{onlineCount, activeCount};
     }
@@ -352,16 +352,16 @@ public class MqttMessageListener {
 
         logger.debug("更新车辆 {} 在线时间: {} -> {}", vehicleId, prevTime, newTime);
         // 模拟一些初始数据，确保有数据可以展示，但最多只添加5辆车
-        if (vehicleOnlineTime.size() < 5) {
-            for (int i = 1; i <= 5; i++) {
-                String vid = "vehicle" + i;
-                if (!vehicleOnlineTime.containsKey(vid)) {
-                    long time = (long)(Math.random() * 10000);
-                    vehicleOnlineTime.put(vid, time);
-                    logger.debug("添加模拟车辆 {} 在线时间: {}", vid, time);
-                }
-            }
-        }
+        // if (vehicleOnlineTime.size() < 5) {
+        //     for (int i = 1; i <= 5; i++) {
+        //         String vid = "vehicle" + i;
+        //         if (!vehicleOnlineTime.containsKey(vid)) {
+        //             long time = (long)(Math.random() * 10000);
+        //             vehicleOnlineTime.put(vid, time);
+        //             logger.debug("添加模拟车辆 {} 在线时间: {}", vid, time);
+        //         }
+        //     }
+        // }
     }
 
     /**
@@ -397,12 +397,12 @@ public class MqttMessageListener {
         List<Map<String, Object>> result = new ArrayList<>();
 
         // 如果没有实际数据，添加一些模拟数据，但最多只添加5辆车
-        if (vehicleOnlineTime.isEmpty()) {
-            logger.info("车辆在线时间为空，添加模拟数据");
-            for (int i = 1; i <= 5; i++) {
-                vehicleOnlineTime.put("vehicle" + i, (long)(Math.random() * 10000));
-            }
-        }
+        // if (vehicleOnlineTime.isEmpty()) {
+        //     logger.info("车辆在线时间为空，添加模拟数据");
+        //     for (int i = 1; i <= 5; i++) {
+        //         vehicleOnlineTime.put("vehicle" + i, (long)(Math.random() * 10000));
+        //     }
+        // }
 
         // 将车辆在线时间按降序排序
         vehicleOnlineTime.entrySet().stream()
