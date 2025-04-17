@@ -58,7 +58,6 @@ public class ProcessExp {
     public void handleMqttMessage(MqttMessageEvent event) throws IOException, ParseException {
         // 每监听条数据检测一次
         try {
-            System.err.println(vehicleIdSet);
             // 提取车辆数据
             Map<String, Object> payload = event.getMessage();
             // 获取 header 部分
@@ -219,8 +218,6 @@ public class ProcessExp {
                         (currentValue == null ? 0 : currentValue) + 1
                 );
             }
-            System.err.println("total: " + numOfExpCar.get(previousTimestamp));
-
         } catch (IOException e) {
             throw new IOException("Internal server error. Please try again later.");
         } catch (NullPointerException e) {
