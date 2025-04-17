@@ -56,25 +56,15 @@ public class DataController {
      * 获取所有异常的数量
      */
     @GetMapping("public/exceptionpie")
-    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN"})
-    public ResponseEntity<List<Map<String, Object>>> getExceptionStatistics() {
-        List<Map<String, Object>> statistics = dataService.getExceptionStatistics();
-        return ResponseEntity.ok(statistics);
-    }
-
-    /**
-     * 根据时间戳获取所有异常的数量
-     */
-    @GetMapping("/public/getallexceptiondatabytimestamp")
-    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN"})
-    public ResponseEntity<List<Map<String, Object>>> getAllExceptionDataByTimestamp(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
-                                                                                    @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
-        List<Map<String, Object>> statistics = dataService.getAllExceptionDataByTimestamp(startTime, endTime);
+    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN", "USER"})
+    public ResponseEntity<List<Map<String, Object>>> getExceptionStatistics(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
+                                                                            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
+        List<Map<String, Object>> statistics = dataService.getExceptionStatistics(startTime, endTime);
         return ResponseEntity.ok(statistics);
     }
 
     @GetMapping("public/exception-data")
-    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN"})
+    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN", "USER"})
     public ResponseEntity<List<Map<String, Object>>> getExceptionData(
             @RequestParam String tableName,
             @RequestParam(required = false) String vehicleId,
@@ -95,7 +85,7 @@ public class DataController {
      * 获取七天内车辆活跃度统计 - 完全硬编码的版本
      */
     @GetMapping("public/activity/seven-days")
-    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN"})
+    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN", "USER"})
     public ResponseEntity<Map<String, Object>> getSevenDaysActivityData() {
         // 直接硬编码返回你需要的格式
         Map<String, Object> result = new HashMap<>();
@@ -120,21 +110,10 @@ public class DataController {
      * 获取车辆在线时间排行榜 - 硬编码示例数据
      */
     @GetMapping("public/activity/online-time-ranking")
-    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN"})
-    public ResponseEntity<List<Map<String, Object>>> getVehicleOnlineTimeRanking(
-            @RequestParam(value = "limit", defaultValue = "10") int limit) {
-
-        List<Map<String, Object>> result = new ArrayList<>();
-
-        // 创建一些固定的示例数据
-        for (int i = 1; i <= limit; i++) {
-            Map<String, Object> vehicle = new HashMap<>();
-            vehicle.put("vehicleId", "vehicle" + i);
-            vehicle.put("onlineTime", 10000 - (i * 800)); // 降序排列
-            result.add(vehicle);
-        }
-
-        return ResponseEntity.ok(result);
+    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN", "USER"})
+    public ApiResult<Map<String, Object>> getVehicleOnlineTimeRanking(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
+                                                                      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
+        return dataService.getVehicleOnlineTimeRanking(startTime, endTime);
     }
 
     /**
@@ -160,8 +139,10 @@ public class DataController {
      */
     @GetMapping("/public/exceptionNumber")
     @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN", "USER"})
-    public List<VehicleExceptionCount> getExceptionNumber() {
-        return dataService.getVehicleExceptionCounts();
+    public List<VehicleExceptionCount> getExceptionNumber(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
+                                                          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
+
+        return dataService.getVehicleExceptionCounts(startTime, endTime);
     }
 
     /**
@@ -170,7 +151,8 @@ public class DataController {
      */
     @GetMapping("/public/getmlexceptiondata")
     @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN", "USER"})
-    public ApiResult<Map<String, Object>> getMlexceptionData() {
-        return dataService.getMlExceptionData();
+    public ApiResult<Map<String, Object>> getMlexceptionData(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
+                                                             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
+        return dataService.getMlExceptionData(startTime, endTime);
     }
 }

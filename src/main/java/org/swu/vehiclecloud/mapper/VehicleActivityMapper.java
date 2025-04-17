@@ -18,13 +18,14 @@ public interface VehicleActivityMapper {
     @Select("<script>" +
             "SELECT vehicleId, COUNT(*) as activity_count FROM (" +
             "  <foreach collection='tables' item='table' separator=' UNION ALL '>" +
-            "    SELECT vehicleId FROM ${table}" +
+            "    SELECT vehicleId FROM ${table} WHERE timestamp BETWEEN #{startTime} AND #{endTime}" +
             "  </foreach>" +
             ") AS combined_data " +
             "GROUP BY vehicleId " +
             "ORDER BY activity_count DESC" +
             "</script>")
-    List<Map<String, Object>> selectAllVehicleActivities(@Param("tables") List<String> tables);
+    List<Map<String, Object>> selectAllVehicleActivities(@Param("tables") List<String> tables,@Param("startTime") LocalDateTime startTime,
+                                                         @Param("endTime") LocalDateTime endTime);
 
     /**
      * 查询指定表的所有数据

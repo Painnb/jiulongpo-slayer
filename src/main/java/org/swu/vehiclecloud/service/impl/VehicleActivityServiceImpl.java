@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import org.swu.vehiclecloud.mapper.VehicleActivityMapper;
 import org.swu.vehiclecloud.service.VehicleActivityService;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -29,17 +30,17 @@ public class VehicleActivityServiceImpl implements VehicleActivityService {
     }
 
     @Override
-    public Map<String, Object> getVehicleActivityData() {
+    public Map<String, Object> getVehicleActivityData(LocalDateTime startTime, LocalDateTime endTime) {
         // 1. 获取原始数据
-        Object[][] rawData = this.queryRawActivityData();
+        Object[][] rawData = this.queryRawActivityData(startTime, endTime);
 
         // 2. 转换为对象格式
         return this.convertToResponseFormat(rawData);
     }
 
-    private Object[][] queryRawActivityData() {
+    private Object[][] queryRawActivityData(LocalDateTime startTime, LocalDateTime endTime) {
         List<Map<String, Object>> activityList =
-                vehicleActivityMapper.selectAllVehicleActivities(ACTIVITY_TABLES);
+                vehicleActivityMapper.selectAllVehicleActivities(ACTIVITY_TABLES, startTime, endTime);
 
         Object[][] result = new Object[activityList.size() + 1][2];
         result[0] = new Object[]{"amount", "product"};
