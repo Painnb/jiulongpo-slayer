@@ -48,6 +48,14 @@ public interface DataService {
      * @return 包含异常类型和数量的列表
      */
     List<Map<String, Object>> getExceptionStatistics();
+
+    /**
+     * 依据时间戳获取所有异常类型的统计信息
+     * @return 包含异常类型和数量的列表
+     */
+    List<Map<String, Object>> getAllExceptionDataByTimestamp(LocalDateTime startTime,
+                                                             LocalDateTime endTime);
+
     /**
      * 获取指定时间范围内的异常数据
      * @param tableName 异常表名
@@ -90,5 +98,6 @@ public interface DataService {
      * @return 机器学习检测的车辆异常数量统计列表
      */
     ApiResult<Map<String, Object>> getMlExceptionData();
+
 }
 

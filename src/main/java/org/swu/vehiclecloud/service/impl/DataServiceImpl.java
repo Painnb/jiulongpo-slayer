@@ -366,6 +366,28 @@ public class DataServiceImpl implements DataService {
     }
 
     /**
+     * 依据时间戳获取所有异常类型的统计信息
+     */
+    @Override
+    public List<Map<String, Object>> getAllExceptionDataByTimestamp(LocalDateTime startTime,
+                                                                    LocalDateTime endTime) {
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        // 获取所有异常表名
+        List<String> exceptionTables = dataMapper.listExceptionTables();
+
+        // 为每个异常表查询记录数
+        for (String tableName : exceptionTables) {
+            String exceptionName = tableName.replace("_exp", "") + "异常";
+            List<Map<String, Object>> exceptionData = dataMapper.selectExceptionDataWithTimeRange(tableName, startTime, endTime);
+            int count = exceptionData.size();
+            result.add(Map.of("value", count, "name", exceptionName));
+        }
+
+        return result;
+    }
+
+    /**
      * 获取指定时间范围内的异常数据
      */
     public List<Map<String, Object>> getExceptionDataWithTimeRange (
