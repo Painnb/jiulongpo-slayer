@@ -171,22 +171,21 @@ public interface DataMapper {
      * @param endTime 结束时间
      * @return 查询结果
      */
-    @Select("SELECT COUNT(DISTINCT vehicle_id) AS vehicle_count" +
-            "FROM activity_alert" +
+    @Select("SELECT COUNT(DISTINCT vehicle_id) AS vehicle_count " +
+            "FROM activity_alert " +
             "WHERE timestamp BETWEEN #{startTime} AND #{endTime}")
     int selectCountOnlineVehicle(@Param("startTime")LocalDateTime startTime,
                                  @Param("endTime")LocalDateTime endTime);
-
     /**
      * 查询一段时间内内的活跃车数量
      * @param startTime 开始时间
      * @param endTime 结束时间
      * @return 查询结果
      */
-    @Select("SELECT COUNT(DISTINCT vehicle_id) AS vehicle_count" +
-            "    FROM activity_alert" +
-            "    WHERE low_speed_alert = 0" +
-            "    AND timestamp BETWEEN #{startTime} AND #{endTime}")
+    @Select("SELECT COUNT(DISTINCT vehicle_id) AS vehicle_count " +
+            "FROM activity_alert " +
+            "WHERE low_speed_alert = 0 " +
+            "AND timestamp BETWEEN #{startTime} AND #{endTime}")
     int selectCountActivityVehicle(@Param("startTime")LocalDateTime startTime,
                                    @Param("endTime")LocalDateTime endTime);
 
