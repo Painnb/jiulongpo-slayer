@@ -160,9 +160,10 @@ public class MqttServiceImpl implements MqttService {
 
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
-                receiveCount.incrementAndGet();
+
 
                 messageProcessor.submit(() -> {
+                    receiveCount.incrementAndGet();
                     try {
                         if (HEX_TOPIC_PATTERN.matcher(topic).matches()) {
                             long start = System.nanoTime();
