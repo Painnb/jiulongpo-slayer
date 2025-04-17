@@ -97,5 +97,11 @@ public interface DataService {
      * @return status message data
      */
     ApiResult<Map<String, Object>> getVehicleOnlineTimeRanking(LocalDateTime startTime, LocalDateTime endTime);
+
+    /**
+     * 获取2024.08.13-2024.08.15这三天车辆的在线数量和活跃数量
+     * @return status message data
+     */
+    ApiResult<Map<String, Object>> getSevenDaysActivityData();
 }
 

@@ -1,20 +1,23 @@
 package org.swu.vehiclecloud.listener;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.swu.vehiclecloud.entity.ActivityAlert;
 import org.swu.vehiclecloud.event.MqttMessageEvent;
 import org.swu.vehiclecloud.mapper.ActivityAlertMapper;
 import org.swu.vehiclecloud.service.DataService;
 
-import java.io.IOException;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 @Component
 public class MqttMessageListener {
@@ -27,14 +30,17 @@ public class MqttMessageListener {
     // 处理json数据的类
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    // 每隔5秒统计一次这段时间的在线数量和活跃数量
-    private static long previousTimestamp = 0;
+    // 记录在线车辆的线程安全的Set
+    private final ConcurrentSkipListSet<String> vehicleOnlineSet = new ConcurrentSkipListSet<>();
+
+    // 记录活跃车辆的线程安全的Set
+    private final ConcurrentSkipListSet<String> vehicleActivitySet = new ConcurrentSkipListSet<>();
 
     /**
      * 处理MQTT消息事件
      */
     @EventListener
-    public void handleMqttMessage(MqttMessageEvent event) {
+    public void handleMqttMessage(MqttMessageEvent event) throws ParseException {
         try {
             // 提取车辆数据
             Map<String, Object> payload = event.getMessage();
@@ -54,20 +60,39 @@ public class MqttMessageListener {
             // 获取 timestamp (来自header)
             long timestamp = (long) header.get("timestamp");
 
+            vehicleOnlineSet.add(vehicleId);
+
             if(velocityGNSS <= 1.0){
                 // 车辆不活跃
                 activityAlertMapper.insertActivityAlert(new ActivityAlert(vehicleId, false, true, UtcToCst(timestamp)));
             }else{
                 // 车辆活跃
                 activityAlertMapper.insertActivityAlert(new ActivityAlert(vehicleId, false, false, UtcToCst(timestamp)));
+                vehicleActivitySet.add(vehicleId);
             }
         } catch (NullPointerException e) {
             throw new NullPointerException("Bad request. Missing required fields.");
         } catch (NumberFormatException e) {
             throw new NumberFormatException("Bad request. Invalid number format.");
+        } catch (ParseException e) {
+            throw new ParseException("Server error, timestamp parse failed", 1);
         }
     }
 
+    // 每 10 秒推送一次
+    @Scheduled(fixedRate = 10000)
+    public void pushActivityData() throws JsonProcessingException {
+        Map<String, Object> pushOnlineData = new HashMap<>();
+        pushOnlineData.put("numOfOnline", vehicleOnlineSet.size());
+        dataService.setPushContent("10", objectMapper.writeValueAsString(pushOnlineData));
+
+        Map<String, Object> pushActivityData = new HashMap<>();
+        pushActivityData.put("numOfActivity", vehicleActivitySet.size());
+        dataService.setPushContent("11", objectMapper.writeValueAsString(pushActivityData));
+
+        vehicleOnlineSet.clear();
+        vehicleActivitySet.clear();
+    }
     /**
      * 将 UTC 时间戳转换为东八区 Date 对象
      * @param timestamp UTC 时间戳（单位：秒）

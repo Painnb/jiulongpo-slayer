@@ -1,6 +1,7 @@
 package org.swu.vehiclecloud.service.impl;
 
 import cn.hutool.core.util.StrUtil;
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,7 +11,6 @@ import org.swu.vehiclecloud.controller.template.ApiResult;
 import org.swu.vehiclecloud.dto.AnomalyStat;
 import org.swu.vehiclecloud.dto.VehicleExceptionCount;
 
-import org.swu.vehiclecloud.entity.ActivityAlert;
 import org.swu.vehiclecloud.entity.MlExpcetion;
 import org.swu.vehiclecloud.mapper.DataMapper;
 import org.swu.vehiclecloud.service.DataService;
@@ -425,7 +425,6 @@ public class DataServiceImpl implements DataService {
           }
       }
 
-
     @Override
     public ApiResult<Map<String, Object>> getVehicleOnlineTimeRanking(LocalDateTime startTime, LocalDateTime endTime) {
         try{
@@ -453,6 +452,58 @@ public class DataServiceImpl implements DataService {
             // 捕获其他异常并返回 500 错误
             return ApiResult.of(500, "Internal server error: " + e.getMessage(), null);
         }
+    }
+
+    @Override
+    public ApiResult<Map<String, Object>> getSevenDaysActivityData() {
+        try{
+            // 设置2024年8月13日的起始时间和结束时间
+            LocalDateTime startTimeAug13 = LocalDateTime.of(2024, 8, 13, 0, 0, 0, 0); // 2024-08-13 00:00:00
+            LocalDateTime endTimeAug13 = LocalDateTime.of(2024, 8, 13, 23, 59, 59, 999999); // 2024-08-13 23:59:59
+
+            // 设置2024年8月14日的起始时间和结束时间
+            LocalDateTime startTimeAug14 = LocalDateTime.of(2024, 8, 14, 0, 0, 0, 0); // 2024-08-14 00:00:00
+            LocalDateTime endTimeAug14 = LocalDateTime.of(2024, 8, 14, 23, 59, 59, 999999); // 2024-08-14 23:59:59
+
+            // 设置2024年8月15日的起始时间和结束时间
+            LocalDateTime startTimeAug15 = LocalDateTime.of(2024, 8, 15, 0, 0, 0, 0); // 2024-08-15 00:00:00
+            LocalDateTime endTimeAug15 = LocalDateTime.of(2024, 8, 15, 23, 59, 59, 999999); // 2024-08-15 23:59:59
+
+            // 查询每个日期内的在线车数量
+            int countOnlineAug13 = dataMapper.selectCountOnlineVehicle(startTimeAug13, endTimeAug13);
+            int countOnlineAug14 = dataMapper.selectCountOnlineVehicle(startTimeAug14, endTimeAug14);
+            int countOnlineAug15 = dataMapper.selectCountOnlineVehicle(startTimeAug15, endTimeAug15);
+
+            // 查询每个日期内的活跃车数量
+            int countActivityAug13 = dataMapper.selectCountActivityVehicle(startTimeAug13, endTimeAug13);
+            int countActivityAug14 = dataMapper.selectCountActivityVehicle(startTimeAug14, endTimeAug14);
+            int countActivityAug15 = dataMapper.selectCountActivityVehicle(startTimeAug15, endTimeAug15);
+
+            Map<String, Object> resultData = new HashMap<>();
+            resultData.put("2024-08-13", new DateVehicleCount(countOnlineAug13, countActivityAug13));
+            resultData.put("2024-08-14", new DateVehicleCount(countOnlineAug14, countActivityAug14));
+            resultData.put("2024-08-15", new DateVehicleCount(countOnlineAug15, countActivityAug15));
+            return ApiResult.of(200, "OK", resultData);
+
+        }catch(NullPointerException e){
+            throw new NullPointerException("Bad request. Missing required fields.");
+        }catch (Exception e) {
+            // 捕获其他异常并返回 500 错误
+            return ApiResult.of(500, "Internal server error: " + e.getMessage(), null);
+        }
+    }
+
+    // 内部类用于表示每个日期的在线和活跃车辆数量
+    @Getter
+    public static class DateVehicleCount {
+        private int onlineCount;
+        private int activityCount;
+
+        public DateVehicleCount(int onlineCount, int activityCount) {
+            this.onlineCount = onlineCount;
+            this.activityCount = activityCount;
+        }
+
     }
 }
 
