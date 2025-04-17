@@ -36,9 +36,6 @@ public class ProcessExp {
 
     private static long previousTimestamp = 0;
 
-    // 异常数量
-    private int numOfExp = 0;
-
     // 存储每个车辆的上一次数据，线程安全的Map
     private final ConcurrentMap<String, Map<String, Object>> vehicleDataCache = new ConcurrentHashMap<>();
 
@@ -61,6 +58,7 @@ public class ProcessExp {
     public void handleMqttMessage(MqttMessageEvent event) throws IOException, ParseException {
         // 每监听条数据检测一次
         try {
+            System.err.println(vehicleIdSet);
             // 提取车辆数据
             Map<String, Object> payload = event.getMessage();
             // 获取 header 部分
@@ -89,6 +87,10 @@ public class ProcessExp {
             double longitude = (double) position.get("longitude");
             double latitude = (double) position.get("latitude");
 
+            boolean steeringExp = false;
+            boolean timestampExp = false;
+            boolean geoLocationExp = false;
+            boolean speedExp = false;
 //                Map<String, Object> payload = event.getMessage();
 //
 //                Map<String, Object> dataContent = (Map<String, Object>) payload.get("dataContent");
@@ -179,7 +181,7 @@ public class ProcessExp {
             } else {
                 if (Math.abs(timestampGNSS - (Long) previousVehicleData.get("timestamp")) > Math.pow(10, 4)) {
                     // 经纬度异常检测
-                    detectGeoLocationExp(vehicleId, longitude,
+                    geoLocationExp = detectGeoLocationExp(vehicleId, longitude,
                             latitude, (double) previousVehicleData.get("longitude"),
                             (double) previousVehicleData.get("latitude"), datestamp);
 //                        // 检测横摆角速度与方向盘转角变化趋势是否匹配
@@ -196,7 +198,7 @@ public class ProcessExp {
 //                        accelerationVer, datestamp, numOfExp);
 
             // 速度异常检测
-            detectSpeedExp(vehicleId, velocityGNSS, datestamp);
+            speedExp = detectSpeedExp(vehicleId, velocityGNSS, datestamp);
 
             // 发动机异常检测
 //                detectEngineExp(vehicleId, engineSpeed, engineTorque, datestamp, numOfExp);
@@ -205,16 +207,18 @@ public class ProcessExp {
 //                detectBrakeExp(vehicleId, brakeFlag, brakePos, brakePressure, datestamp, numOfExp);
 
             // 转向异常检测
-            detectSteeringExp(vehicleId, steeringAngle, datestamp);
+            steeringExp = detectSteeringExp(vehicleId, steeringAngle, datestamp);
 
             // 时间戳异常检测
-            detectTimestampExp(vehicleId, timestampGNSS, timestamp, datestamp);
+            timestampExp = detectTimestampExp(vehicleId, timestampGNSS, timestamp, datestamp);
 
             // 将对应时间片的异常车数量存入缓存
             // 使用 compute 来更新值
-            numOfExpCar.compute(previousTimestamp, (key, currentValue) ->
-                    (currentValue == null ? 0 : currentValue) + numOfExp
-            );
+            if(steeringExp || timestampExp || geoLocationExp || speedExp) {
+                numOfExpCar.compute(previousTimestamp, (key, currentValue) ->
+                        (currentValue == null ? 0 : currentValue) + 1
+                );
+            }
             System.err.println("total: " + numOfExpCar.get(previousTimestamp));
 
         } catch (IOException e) {
@@ -252,8 +256,9 @@ public class ProcessExp {
 //        }
 //    }
 //
-    private void detectSpeedExp(String vehicleId, double velocityGNSS,
+    private boolean detectSpeedExp(String vehicleId, double velocityGNSS,
                                 Timestamp timestamp) throws JsonProcessingException {
+        int numOfExp = 0;
         // 判断速度是否异常
         if(isSpeedExp(velocityGNSS)){
             if(!vehicleIdSet.contains(vehicleId)){
@@ -276,6 +281,7 @@ public class ProcessExp {
             pushData.put("speedExp", true);
             dataService.setPushContent("6", objectMapper.writeValueAsString(pushData));
         }
+        return numOfExp == 1;
     }
 //
 //    private void detectEngineExp(String vehicleId, double engineSpeed,
@@ -327,8 +333,9 @@ public class ProcessExp {
 //        }
 //    }
 
-    private void detectSteeringExp(String vehicleId, double steeringAngle,
+    private boolean detectSteeringExp(String vehicleId, double steeringAngle,
                                    Timestamp timestamp) throws JsonProcessingException {
+        int numOfExp = 0;
         if(isSteeringExp(steeringAngle)){
             if(!vehicleIdSet.contains(vehicleId)){
                 // 车辆第一次出现异常，计数器+1
@@ -351,7 +358,7 @@ public class ProcessExp {
             pushData.put("steeringExp", true);
             dataService.setPushContent("3", objectMapper.writeValueAsString(pushData));
         }
-
+        return numOfExp == 1;
     }
 
 //    private void detectSwivelAngleExp(String vehicleId, double steeringAngle,
@@ -377,8 +384,9 @@ public class ProcessExp {
 //        }
 //    }
 
-    private void detectTimestampExp(String vehicleId, long timestampGNSS,
+    private boolean detectTimestampExp(String vehicleId, long timestampGNSS,
                                     long timestamp, Timestamp datestamp) throws JsonProcessingException, ParseException {
+        int numOfExp = 0;
         if(isTimeStampExp(timestampGNSS, timestamp)){
             if(!vehicleIdSet.contains(vehicleId)){
                 // 车辆第一次出现异常，计数器+1
@@ -404,11 +412,13 @@ public class ProcessExp {
             pushData.put("timestampExp", true);
             dataService.setPushContent("4", objectMapper.writeValueAsString(pushData));
         }
+        return numOfExp == 1;
     }
 
-    private void detectGeoLocationExp(String vehicleId, double longitude,
+    private boolean detectGeoLocationExp(String vehicleId, double longitude,
                                       double latitude, double previousLongitude,
                                       double previousLatitude, Timestamp datestamp) throws JsonProcessingException {
+        int numOfExp = 0;
         if(isGeoLocationExp(longitude, latitude, previousLongitude, previousLatitude)){
             if(!vehicleIdSet.contains(vehicleId)){
                 // 车辆第一次出现异常，计数器+1
@@ -431,6 +441,7 @@ public class ProcessExp {
             pushData.put("geoLocationExp", true);
             dataService.setPushContent("5", objectMapper.writeValueAsString(pushData));
         }
+        return numOfExp == 1;
     }
 
 //    private boolean isAccelerationExp(double accelerationLon, double accelerationLat,
