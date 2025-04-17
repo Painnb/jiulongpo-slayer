@@ -3,14 +3,18 @@ package org.swu.vehiclecloud.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 import org.swu.vehiclecloud.controller.template.ApiResult;
 import org.swu.vehiclecloud.dto.MqttRequest;
+import org.swu.vehiclecloud.service.MqttMessageService;
 import org.swu.vehiclecloud.service.MqttService;
+import org.swu.vehiclecloud.service.impl.MqttMessageImpl;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,10 +27,12 @@ public class MqttController {
     private static final Logger logger = LoggerFactory.getLogger(MqttController.class);
 
     private final MqttService mqttService;
+    private final MqttMessageService mqttMessage;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public MqttController(MqttService mqttService) {
+    public MqttController(MqttService mqttService, MqttMessageService mqttMessage) {
         this.mqttService = mqttService;
+        this.mqttMessage = mqttMessage;
         objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
     }
 
@@ -41,16 +47,24 @@ public class MqttController {
      *         失败时返回HTTP状态码500和错误信息。
      */
     @PostMapping("/connect")
-    public ResponseEntity<Map<String, Object>> Connection(@RequestParam boolean connect) throws Exception {
+    public Map<String, Object> Connection(@RequestParam boolean connect) throws Exception {
         // 根据connect参数决定是启动还是关闭MQTT连接
         if (connect) {
-            return mqttService.connect();
+            mqttService.initClient();
+            mqttService.connect();
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "200");
+            response.put("message", "MQTT connected");
+
+            return response;
         } else {
+            //mqttMessage.destroy();
             mqttService.close();
             Map<String, Object> response = new HashMap<>();
             response.put("status", "200");
-            response.put("message", "MQTT connected closed");
-            return ResponseEntity.ok(response);
+            response.put("message", "MQTT disconnected");
+
+            return response;
         }
     }
 
@@ -76,11 +90,10 @@ public class MqttController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("status", "200");
-        response.put("message", "MQTT connected closed");
+        response.put("message", "MQTT config updated");
         response.put("config", config);
         return ResponseEntity.ok(response);
     }
-
 
     @PostMapping("/analysis")
     public ResponseEntity<String> processRawData(@RequestBody String rawData) {
@@ -97,5 +110,25 @@ public class MqttController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Failed to reinitialize MQTT client: " + e.getMessage());
         }
+    }
+
+    @PostMapping("subscribe")
+    public ResponseEntity<String> subscribe(@RequestParam boolean subscribe) throws Exception {
+        if(subscribe){
+            mqttMessage.Status(true);
+            mqttMessage.subConnection();
+            Map<String, Object> response = new HashMap<>();
+            response.put("broker", "tcp://ree116bf.ala.dedicated.aliyun.emqxcloud.cn:1883");
+            response.put("username", "admin");
+            response.put("password", "password");
+
+            return ResponseEntity.ok(objectMapper.writeValueAsString(response));
+        } else {
+            mqttMessage.Status(false);
+            mqttMessage.destroy();
+
+            return ResponseEntity.ok("Mqtt publisher closed");
+        }
+
     }
 }
