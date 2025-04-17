@@ -52,10 +52,24 @@ public class DataController {
         dataService.setPushContent(id, content);
     }
 
+    /**
+     * 获取所有异常的数量
+     */
     @GetMapping("public/exceptionpie")
     @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN"})
     public ResponseEntity<List<Map<String, Object>>> getExceptionStatistics() {
         List<Map<String, Object>> statistics = dataService.getExceptionStatistics();
+        return ResponseEntity.ok(statistics);
+    }
+
+    /**
+     * 根据时间戳获取所有异常的数量
+     */
+    @GetMapping("/public/getallexceptiondatabytimestamp")
+    @PreAuthorizeRole(roles = {"SYS_ADMIN", "BIZ_ADMIN"})
+    public ResponseEntity<List<Map<String, Object>>> getAllExceptionDataByTimestamp(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
+                                                                                    @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
+        List<Map<String, Object>> statistics = dataService.getAllExceptionDataByTimestamp(startTime, endTime);
         return ResponseEntity.ok(statistics);
     }
 
