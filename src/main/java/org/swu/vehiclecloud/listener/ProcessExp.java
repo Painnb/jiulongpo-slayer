@@ -12,6 +12,7 @@ import org.swu.vehiclecloud.entity.*;
 import org.swu.vehiclecloud.event.MqttMessageEvent;
 import org.swu.vehiclecloud.mapper.VehicleExpMapper;
 import org.swu.vehiclecloud.service.DataService;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -145,7 +146,7 @@ public class ProcessExp {
                 previousTimestamp = timestamp;
                 numOfExpCar.put(timestamp, 0);
                 // 启动一个任务，每10秒将这10秒内的异常车数量推送给前端
-                scheduler.scheduleAtFixedRate(this::pushNumOfExpData, 0, 10, TimeUnit.SECONDS);
+                // scheduler.scheduleAtFixedRate(this::pushNumOfExpData, 0, 10, TimeUnit.SECONDS);
             }
 
             // 将经纬度推给前端，不论是否异常
@@ -228,6 +229,7 @@ public class ProcessExp {
             throw new ParseException("Server error, timestamp parse failed", 1);
         }
     }
+
 //    private void detectAccelerationExp(String vehicleId, double accelerationLon,
 //                                       double accelerationLat, double accelerationVer,
 //                                       Timestamp timestamp, int numOfExp) throws JsonProcessingException {
@@ -516,10 +518,14 @@ public class ProcessExp {
 
         return Timestamp.valueOf(formattedDate);
     }
-
+    // 每 10 秒推送一次
+    @Scheduled(fixedRate = 10000)
     private void pushNumOfExpData() {
         try {
-            int numOfExp = numOfExpCar.get(previousTimestamp);
+            int numOfExp = 0;
+            if (numOfExpCar.containsKey(previousTimestamp)) {
+                numOfExp = numOfExpCar.get(previousTimestamp);
+            }
             Map<String, Object> pushData = new HashMap<>();
             pushData.put("numOfExp", numOfExp);
             dataService.setPushContent("2", objectMapper.writeValueAsString(pushData));
