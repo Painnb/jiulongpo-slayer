@@ -3,6 +3,7 @@ package org.swu.vehiclecloud.mapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.swu.vehiclecloud.entity.ActivityAlert;
 import org.swu.vehiclecloud.entity.MlExpcetion;
 
 import java.time.LocalDateTime;
@@ -92,35 +93,47 @@ public interface DataMapper {
      */
     @Select("SELECT COUNT(*) FROM engine_exp")
     int countEngineAnomalies();
+
     /**
      * 统计地理位置异常记录数
      * @return geo_location_exp表的记录总数
      */
     @Select("SELECT COUNT(*) FROM geo_location_exp")
     int countGeolocationAnomalies();
+
     /**
      * 统计时间戳异常记录数
      * @return timestamp_exp表的记录总数
      */
     @Select("SELECT COUNT(*) FROM timestamp_exp")
     int countTimestampAnomalies();
-    /**
-     * 统计各车辆的总异常数量（包含所有7个异常表）
-     * @return 包含vehicleId和count的Map列表
-     */
-    @Select("SELECT vehicleId as name, COUNT(*) as value FROM (" +
-            "SELECT vehicleId FROM steering_exp " +
-            "UNION ALL SELECT vehicleId FROM speed_exp " +
-            "UNION ALL SELECT vehicleId FROM acceleration_exp " +
-            "UNION ALL SELECT vehicleId FROM brake_exp " +
-            "UNION ALL SELECT vehicleId FROM engine_exp " +
-            "UNION ALL SELECT vehicleId FROM geo_location_exp " +
-            "UNION ALL SELECT vehicleId FROM timestamp_exp" +
-            ") t GROUP BY vehicleId")
-    List<Map<String, Object>> countExceptionsByVehicle();
 
     /**
-     * 获取机器学习异常数量统计
+     * 统计一段时间内各车辆的总异常数量（包含所有7个异常表）
+     * @return 包含vehicleId和count的Map列表
+     */
+    @Select("SELECT vehicleId AS name, COUNT(*) AS value FROM ( " +
+            "    SELECT vehicleId FROM steering_exp WHERE timestamp BETWEEN #{startTime} AND #{endTime} " +
+            "    UNION ALL " +
+            "    SELECT vehicleId FROM speed_exp WHERE timestamp BETWEEN #{startTime} AND #{endTime} " +
+            "    UNION ALL " +
+            "    SELECT vehicleId FROM acceleration_exp WHERE timestamp BETWEEN #{startTime} AND #{endTime} " +
+            "    UNION ALL " +
+            "    SELECT vehicleId FROM brake_exp WHERE timestamp BETWEEN #{startTime} AND #{endTime} " +
+            "    UNION ALL " +
+            "    SELECT vehicleId FROM engine_exp WHERE timestamp BETWEEN #{startTime} AND #{endTime} " +
+            "    UNION ALL " +
+            "    SELECT vehicleId FROM geo_location_exp WHERE timestamp BETWEEN #{startTime} AND #{endTime} " +
+            "    UNION ALL " +
+            "    SELECT vehicleId FROM timestamp_exp WHERE timestamp BETWEEN #{startTime} AND #{endTime} " +
+            ") t " +
+            "GROUP BY vehicleId")
+    List<Map<String, Object>> countExceptionsByVehicle(@Param("startTime") LocalDateTime startTime,
+                                                       @Param("endTime") LocalDateTime endTime);
+
+
+    /**
+     * 获取一段时间内机器学习异常数量统计
      * @return 机器学习检测的车辆异常数量统计列表
      */
     @Select("SELECT t1.* " +
@@ -128,9 +141,27 @@ public interface DataMapper {
             "JOIN ( " +
             "    SELECT vehicleId, MAX(mse) AS max_mse " +
             "    FROM ml_exp " +
+            "    WHERE timestamp BETWEEN #{startTime} AND #{endTime} " +  // 使用时间范围
             "    GROUP BY vehicleId " +
             ") t2 " +
             "ON t1.vehicleId = t2.vehicleId " +
-            "AND t1.mse = t2.max_mse")
-    List<MlExpcetion> selectMlExceptionData();
+            "AND t1.mse = t2.max_mse " +
+            "WHERE t1.timestamp BETWEEN #{startTime} AND #{endTime}")  // 确保结果也在时间范围内
+    List<MlExpcetion> selectMlExceptionData(@Param("startTime") LocalDateTime startTime,
+                                            @Param("endTime") LocalDateTime endTime);
+
+    /**
+     * 查询所有车辆的no_data_alert为0的条目数量，且根据时间范围进行限制
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return 查询结果
+     */
+    @Select("<script>" +
+            "SELECT vehicle_id AS vehicleId, COUNT(*) AS no_data_alert_count " +
+            "FROM activity_alert " +
+            "WHERE no_data_alert = 0 " +
+            "AND timestamp BETWEEN #{startTime} AND #{endTime} " +
+            "GROUP BY vehicle_id" +
+            "</script>")
+    List<Map<String, Object>> selectVehicleOnlineTimeData(LocalDateTime startTime, LocalDateTime endTime);
 }

@@ -10,6 +10,7 @@ import org.swu.vehiclecloud.controller.template.ApiResult;
 import org.swu.vehiclecloud.dto.AnomalyStat;
 import org.swu.vehiclecloud.dto.VehicleExceptionCount;
 
+import org.swu.vehiclecloud.entity.ActivityAlert;
 import org.swu.vehiclecloud.entity.MlExpcetion;
 import org.swu.vehiclecloud.mapper.DataMapper;
 import org.swu.vehiclecloud.service.DataService;
@@ -325,9 +326,9 @@ public class DataServiceImpl implements DataService {
 
 
     @Override
-    public List<VehicleExceptionCount> getVehicleExceptionCounts() {
+    public List<VehicleExceptionCount> getVehicleExceptionCounts(LocalDateTime startTime, LocalDateTime endTime) {
         // 1. 从数据库获取各车辆异常数量统计（现在包含7个表）
-        List<Map<String, Object>> rawData = dataMapper.countExceptionsByVehicle();
+        List<Map<String, Object>> rawData = dataMapper.countExceptionsByVehicle(startTime, endTime);
 
         // 2. 转换为VehicleExceptionCount对象列表
         List<VehicleExceptionCount> result = new ArrayList<>();
@@ -349,28 +350,7 @@ public class DataServiceImpl implements DataService {
 
 
     @Override
-    public List<Map<String, Object>> getExceptionStatistics () {
-        List<Map<String, Object>> result = new ArrayList<>();
-
-        // 获取所有异常表名
-        List<String> exceptionTables = dataMapper.listExceptionTables();
-
-        // 为每个异常表查询记录数
-        for (String tableName : exceptionTables) {
-            String exceptionName = tableName.replace("_exp", "") + "异常";
-            int count = dataMapper.countExceptionRecords(tableName);
-            result.add(Map.of("value", count, "name", exceptionName));
-        }
-
-        return result;
-    }
-
-    /**
-     * 依据时间戳获取所有异常类型的统计信息
-     */
-    @Override
-    public List<Map<String, Object>> getAllExceptionDataByTimestamp(LocalDateTime startTime,
-                                                                    LocalDateTime endTime) {
+    public List<Map<String, Object>> getExceptionStatistics (LocalDateTime startTime, LocalDateTime endTime) {
         List<Map<String, Object>> result = new ArrayList<>();
 
         // 获取所有异常表名
@@ -413,9 +393,9 @@ public class DataServiceImpl implements DataService {
       * @return 机器学习检测的车辆异常数量统计列表
       */
       @Override
-      public ApiResult<Map<String, Object>> getMlExceptionData() {
+      public ApiResult<Map<String, Object>> getMlExceptionData(LocalDateTime startTime, LocalDateTime endTime) {
           try{
-              List<MlExpcetion> mlExceptionData = dataMapper.selectMlExceptionData();
+              List<MlExpcetion> mlExceptionData = dataMapper.selectMlExceptionData(startTime, endTime);
   
               if(!StrUtil.isEmptyIfStr(mlExceptionData)) {
                   // 存储 vehicleId 和 mse 的列表
@@ -445,7 +425,34 @@ public class DataServiceImpl implements DataService {
           }
       }
 
+
+    @Override
+    public ApiResult<Map<String, Object>> getVehicleOnlineTimeRanking(LocalDateTime startTime, LocalDateTime endTime) {
+        try{
+            List<Map<String, Object>> vehicleOnlineTimeData = dataMapper.selectVehicleOnlineTimeData(startTime, endTime);
+
+            // 返回结果
+            Map<String, Object> resultData = new HashMap<>();
+
+            // 遍历数据，加入vehicleId和no_data_alert_count
+            for (Map<String, Object> data : vehicleOnlineTimeData) {
+                // 提取vehicleId和no_data_alert_count
+                String vehicleId = (String) data.get("vehicleId");  // 获取 vehicleId
+                int noDataAlertCount = (int) data.get("no_data_alert_count");  // 获取 no_data_alert_count
+
+                // 将数据加入到当前的data Map中
+                resultData.put("vehicleId", vehicleId);  // 将 vehicleId 放入 Map
+                resultData.put("onlineTime", noDataAlertCount);  // 将 no_data_alert_count 放入 Map
+            }
+
+            // 返回包装的ApiResult
+            return ApiResult.of(200, "OK", resultData);
+        }catch(NullPointerException e){
+            throw new NullPointerException("Bad request. Missing required fields.");
+        }catch (Exception e) {
+            // 捕获其他异常并返回 500 错误
+            return ApiResult.of(500, "Internal server error: " + e.getMessage(), null);
+        }
+    }
 }
-
-
 
