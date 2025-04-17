@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 import org.swu.vehiclecloud.controller.template.ApiResult;
 import org.swu.vehiclecloud.dto.MqttRequest;
@@ -49,18 +50,21 @@ public class MqttController {
     public Map<String, Object> Connection(@RequestParam boolean connect) throws Exception {
         // 根据connect参数决定是启动还是关闭MQTT连接
         if (connect) {
+            mqttService.initClient();
             mqttService.connect();
             Map<String, Object> response = new HashMap<>();
             response.put("status", "200");
             response.put("message", "MQTT connected");
-            response.put("broker", "tcp://ree116bf.ala.dedicated.aliyun.emqxcloud.cn:1883");
-            response.put("username", "admin");
-            response.put("password", "password");
 
             return response;
         } else {
-            mqttMessage.destroy();
-            return (Map<String, Object>) mqttService.close();
+            //mqttMessage.destroy();
+            mqttService.close();
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "200");
+            response.put("message", "MQTT disconnected");
+
+            return response;
         }
     }
 
@@ -106,5 +110,25 @@ public class MqttController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Failed to reinitialize MQTT client: " + e.getMessage());
         }
+    }
+
+    @PostMapping("subscribe")
+    public ResponseEntity<String> subscribe(@RequestParam boolean subscribe) throws Exception {
+        if(subscribe){
+            mqttMessage.Status(true);
+            mqttMessage.subConnection();
+            Map<String, Object> response = new HashMap<>();
+            response.put("broker", "tcp://ree116bf.ala.dedicated.aliyun.emqxcloud.cn:1883");
+            response.put("username", "admin");
+            response.put("password", "password");
+
+            return ResponseEntity.ok(objectMapper.writeValueAsString(response));
+        } else {
+            mqttMessage.Status(false);
+            mqttMessage.destroy();
+
+            return ResponseEntity.ok("Mqtt publisher closed");
+        }
+
     }
 }

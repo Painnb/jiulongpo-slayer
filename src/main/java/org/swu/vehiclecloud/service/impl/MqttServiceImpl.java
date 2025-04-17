@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
 public class MqttServiceImpl implements MqttService {
     private static final Logger logger = LoggerFactory.getLogger(MqttServiceImpl.class);
     private static final int DEFAULT_QOS = 0;
-    private MqttClient mqttClient;
+    private MqttAsyncClient mqttClient;
     private MqttConnectOptions currentConnectOptions;
     private final MqttConfigProperties config;
     private final ApplicationEventPublisher  mqttEventPublisher;
@@ -42,7 +42,7 @@ public class MqttServiceImpl implements MqttService {
         this.mqttEventPublisher = mqttEventPublisher;
     }
 
-    private void initClient() {
+    public void initClient() {
         if (this.messageProcessor != null) {
             shutdownExecutor(this.messageProcessor);
         }
@@ -55,7 +55,7 @@ public class MqttServiceImpl implements MqttService {
                 this.mqttClient.close();
             }
 
-            this.mqttClient = new MqttClient(
+            this.mqttClient = new MqttAsyncClient(
                     config.getBrokerUrl(),
                     config.getClientId(),
                     new MemoryPersistence()
@@ -99,7 +99,7 @@ public class MqttServiceImpl implements MqttService {
                 this.mqttClient.close();
             }
 
-            this.mqttClient = new MqttClient(
+            this.mqttClient = new MqttAsyncClient(
                     config.getBrokerUrl(),
                     config.getClientId(),
                     new MemoryPersistence()
@@ -306,7 +306,7 @@ public class MqttServiceImpl implements MqttService {
     }
 
     // 延时初始化
-    public ResponseEntity<Map<String, Object>> connect() throws MqttException {
+    public synchronized ResponseEntity<Map<String, Object>> connect() throws MqttException {
         if (mqttClient == null) {
             initClient();
             //return ResponseEntity.of(Optional.of(Map.of("status", "error", "message", "MQTT initialization successfully")));
@@ -314,7 +314,7 @@ public class MqttServiceImpl implements MqttService {
 
         try {
             if (!mqttClient.isConnected()) {
-                mqttClient.connect(currentConnectOptions);
+                mqttClient.connect(currentConnectOptions).waitForCompletion();
                 logger.info("MQTT connected to {}", config.getBrokerUrl());
                 subscribeToDefaultTopics();
             }

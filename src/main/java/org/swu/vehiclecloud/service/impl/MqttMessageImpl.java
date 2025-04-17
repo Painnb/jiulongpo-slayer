@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.swu.vehiclecloud.config.MqttConfigProperties;
 import org.swu.vehiclecloud.event.MqttMessageEvent;
 import org.swu.vehiclecloud.service.MqttMessageService;
@@ -22,13 +21,13 @@ public class MqttMessageImpl implements MqttMessageService {  // 实现销毁接
     private final MqttConfigProperties config;
     private final String clientId = "test2";
     private final String broker = "tcp://ree116bf.ala.dedicated.aliyun.emqxcloud.cn:1883";
+    private boolean isSubscribed = false;
 
     public MqttMessageImpl(MqttConfigProperties config) {
         this.config = config;
-        initializeConnection();  // 初始化时建立长连接
     }
 
-    private synchronized void initializeConnection() {
+    public synchronized void subConnection() {
         try {
             if (msgClient == null || !msgClient.isConnected()) {
                 MemoryPersistence persistence = new MemoryPersistence();
@@ -50,20 +49,21 @@ public class MqttMessageImpl implements MqttMessageService {  // 实现销毁接
     }
 
     @EventListener
-    @Transactional
     public void handleMqttMessage(MqttMessageEvent event) {
         try {
-            if (msgClient == null || !msgClient.isConnected()) {
-                initializeConnection();  // 确保连接有效
-            }
+            if(isSubscribed){
+                if (msgClient == null || !msgClient.isConnected()) {
+                    subConnection();  // 确保连接有效
+                }
 
-            String defaultTopic = event.getTopic();
-            String topic = defaultTopic.replace("_hex", "");
-            MqttMessage message = new MqttMessage(event.getMessageAsString().getBytes(StandardCharsets.UTF_8));
-            System.out.println(message);
-            message.setQos(config.getDefaultQos());
-            msgClient.publish(topic, message);
-            logger.info("Message published to topic: {}", topic);
+                String defaultTopic = event.getTopic();
+                String topic = defaultTopic.replace("_hex", "");
+                MqttMessage message = new MqttMessage(event.getMessageAsString().getBytes(StandardCharsets.UTF_8));
+                System.out.println(message);
+                message.setQos(config.getDefaultQos());
+                msgClient.publish(topic, message);
+                logger.info("Message published to topic: {}", topic);
+            }
         } catch (Exception e) {
             logger.error("Message publish failed", e);
         }
@@ -76,5 +76,9 @@ public class MqttMessageImpl implements MqttMessageService {  // 实现销毁接
             msgClient.close();
             logger.info("MQTT client disconnected");
         }
+    }
+
+    public void Status(boolean status) {
+        this.isSubscribed = status;
     }
 }

@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
 public interface MqttService {
+    void initClient();
     void reinitialize(String brokerUrl, String clientId, String username, String password, List<String> topic) throws MqttException;
     void subscribeToDefaultTopics() throws MqttException;
     ResponseEntity<Map<String, Object>> connect() throws MqttException;
