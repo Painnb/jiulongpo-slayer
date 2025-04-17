@@ -18,6 +18,7 @@ public class MqttConfigProperties {
     private String username;
     private String password;
     private List<String> subTopics;
+    private int defaultQos = 0;
 
     private String generateRandomClientId() {
         return "client-" + System.currentTimeMillis() + "-" + (int)(Math.random() * 1000);

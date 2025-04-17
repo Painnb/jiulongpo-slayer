@@ -6,6 +6,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.swu.vehiclecloud.config.MqttConfigProperties;
@@ -26,7 +27,7 @@ import java.util.regex.Pattern;
 public class MqttServiceImpl implements MqttService {
     private static final Logger logger = LoggerFactory.getLogger(MqttServiceImpl.class);
     private static final int DEFAULT_QOS = 0;
-    private MqttClient mqttClient;
+    private MqttAsyncClient mqttClient;
     private MqttConnectOptions currentConnectOptions;
     private final MqttConfigProperties config;
     private final ApplicationEventPublisher  mqttEventPublisher;
@@ -41,7 +42,7 @@ public class MqttServiceImpl implements MqttService {
         this.mqttEventPublisher = mqttEventPublisher;
     }
 
-    private void initClient() {
+    public void initClient() {
         if (this.messageProcessor != null) {
             shutdownExecutor(this.messageProcessor);
         }
@@ -54,7 +55,7 @@ public class MqttServiceImpl implements MqttService {
                 this.mqttClient.close();
             }
 
-            this.mqttClient = new MqttClient(
+            this.mqttClient = new MqttAsyncClient(
                     config.getBrokerUrl(),
                     config.getClientId(),
                     new MemoryPersistence()
@@ -98,7 +99,7 @@ public class MqttServiceImpl implements MqttService {
                 this.mqttClient.close();
             }
 
-            this.mqttClient = new MqttClient(
+            this.mqttClient = new MqttAsyncClient(
                     config.getBrokerUrl(),
                     config.getClientId(),
                     new MemoryPersistence()
@@ -159,9 +160,10 @@ public class MqttServiceImpl implements MqttService {
 
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
-                receiveCount.incrementAndGet();
+
 
                 messageProcessor.submit(() -> {
+                    receiveCount.incrementAndGet();
                     try {
                         if (HEX_TOPIC_PATTERN.matcher(topic).matches()) {
                             long start = System.nanoTime();
@@ -303,27 +305,25 @@ public class MqttServiceImpl implements MqttService {
         result.put("body", content);
     }
 
-
-
     // 延时初始化
-    public ResponseEntity<Map<String, Object>> connect() throws MqttException {
+    public synchronized ResponseEntity<Map<String, Object>> connect() throws MqttException {
         if (mqttClient == null) {
             initClient();
-            return ResponseEntity.of(Optional.of(Map.of("status", "error", "message", "MQTT initialization failed")));
+            //return ResponseEntity.of(Optional.of(Map.of("status", "error", "message", "MQTT initialization successfully")));
         }
 
         try {
             if (!mqttClient.isConnected()) {
-                mqttClient.connect(currentConnectOptions);
+                mqttClient.connect(currentConnectOptions).waitForCompletion();
                 logger.info("MQTT connected to {}", config.getBrokerUrl());
                 subscribeToDefaultTopics();
-                return ResponseEntity.ok(Map.of("status", "200", "message", "MQTT connected"));
             }
         } catch (MqttException e) {
             logger.error("Failed to connect: {}", e.getMessage());
-            throw e; // 抛出异常让调用方处理
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("status", "error", "message", "Failed to connect to MQTT broker"));
         }
-        return ResponseEntity.ok(Map.of("status", "error", "message", "MQTT connected missing"));
+        return ResponseEntity.ok(Map.of("status", "200", "message", "MQTT connected"));
     }
 
     public void subscribe(String topic, int qos) throws MqttException {
@@ -345,7 +345,7 @@ public class MqttServiceImpl implements MqttService {
     }
 
     @Override
-    public void close() throws Exception {
+    public ResponseEntity<Map<String, Object>> close() throws Exception {
         try {
             shutdownExecutor(messageProcessor); // 复用关闭逻辑
         } finally {
@@ -353,12 +353,15 @@ public class MqttServiceImpl implements MqttService {
                 try {
                     if (mqttClient.isConnected()) mqttClient.disconnect();
                     mqttClient.close();
+                    logger.info("MQTT disconnected");
+
                     System.out.println("receiveCount: " + receiveCount.get());
                     System.out.println("parserCount: " + parsedCount.get());
                 } catch (MqttException e) {
                     throw new Exception("MQTT close failed", e);
                 }
             }
+            return ResponseEntity.ok(Map.of("status", "200", "message", "MQTT disconnected"));
         }
     }
 
