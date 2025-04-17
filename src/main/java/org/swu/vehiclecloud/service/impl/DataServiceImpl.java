@@ -429,22 +429,32 @@ public class DataServiceImpl implements DataService {
     public ApiResult<Map<String, Object>> getVehicleOnlineTimeRanking(LocalDateTime startTime, LocalDateTime endTime) {
         try{
             List<Map<String, Object>> vehicleOnlineTimeData = dataMapper.selectVehicleOnlineTimeData(startTime, endTime);
-
-            // 返回结果
-            Map<String, Object> resultData = new HashMap<>();
-
-            // 遍历数据，加入vehicleId和no_data_alert_count
+            
+            // 创建包含所有车辆排名的列表
+            List<Map<String, Object>> rankingList = new ArrayList<>();
+            
             for (Map<String, Object> data : vehicleOnlineTimeData) {
-                // 提取vehicleId和no_data_alert_count
-                String vehicleId = (String) data.get("vehicleId");  // 获取 vehicleId
-                int noDataAlertCount = (int) data.get("no_data_alert_count");  // 获取 no_data_alert_count
-
-                // 将数据加入到当前的data Map中
-                resultData.put("vehicleId", vehicleId);  // 将 vehicleId 放入 Map
-                resultData.put("onlineTime", noDataAlertCount);  // 将 no_data_alert_count 放入 Map
+                String vehicleId = (String) data.get("vehicleId");
+                // 安全处理Long到Integer的转换
+                Number onlineTime = (Number) data.get("no_data_alert_count");
+                int onlineTimeValue = onlineTime != null ? onlineTime.intValue() : 0;
+                
+                rankingList.add(Map.of(
+                    "vehicleId", vehicleId,
+                    "onlineTime", onlineTimeValue
+                ));
             }
-
-            // 返回包装的ApiResult
+        
+            // 按在线时间从高到低排序
+            rankingList.sort((a, b) -> Integer.compare(
+                (Integer)b.get("onlineTime"), 
+                (Integer)a.get("onlineTime")
+            ));
+        
+            // 构建最终返回结果
+            Map<String, Object> resultData = new HashMap<>();
+            resultData.put("ranking", rankingList);
+            
             return ApiResult.of(200, "OK", resultData);
         }catch(NullPointerException e){
             throw new NullPointerException("Bad request. Missing required fields.");
