@@ -20,6 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.*;
 
 /*
@@ -36,16 +37,16 @@ public class ProcessExp {
     private static long previousTimestamp = 0;
 
     // 异常数量
-    private static int numOfExp = 0;
-
-    // 间隔执行监听方法
-    private static int eventCount = 0;
+    private int numOfExp = 0;
 
     // 存储每个车辆的上一次数据，线程安全的Map
     private final ConcurrentMap<String, Map<String, Object>> vehicleDataCache = new ConcurrentHashMap<>();
 
     // 存储某个时间片异常车的数量，线程安全的Map
     private final ConcurrentMap<Long, Integer> numOfExpCar = new ConcurrentHashMap<>();
+
+    // 记录异常车辆的线程安全的Set
+    private final ConcurrentSkipListSet<String> vehicleIdSet = new ConcurrentSkipListSet<>();
 
     // 线程池调度器
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -58,8 +59,6 @@ public class ProcessExp {
 
     @EventListener
     public void handleMqttMessage(MqttMessageEvent event) throws IOException, ParseException {
-        eventCount++;
-
         // 每监听条数据检测一次
         try {
             // 提取车辆数据
@@ -216,6 +215,7 @@ public class ProcessExp {
             numOfExpCar.compute(previousTimestamp, (key, currentValue) ->
                     (currentValue == null ? 0 : currentValue) + numOfExp
             );
+            System.err.println("total: " + numOfExpCar.get(previousTimestamp));
 
         } catch (IOException e) {
             throw new IOException("Internal server error. Please try again later.");
@@ -256,8 +256,13 @@ public class ProcessExp {
                                 Timestamp timestamp) throws JsonProcessingException {
         // 判断速度是否异常
         if(isSpeedExp(velocityGNSS)){
-            // 车辆有异常
-            numOfExp = 1;
+            if(!vehicleIdSet.contains(vehicleId)){
+                // 车辆第一次出现异常，计数器+1
+                numOfExp = 1;
+
+                // 向集合中加入该车辆，之后的10秒内如果该车辆继续出现异常则不重复计数
+                vehicleIdSet.add(vehicleId);
+            }
 
             // 创建速度异常对象
             SpeedExp speedExp = new SpeedExp(vehicleId, velocityGNSS / 100, timestamp);
@@ -325,8 +330,13 @@ public class ProcessExp {
     private void detectSteeringExp(String vehicleId, double steeringAngle,
                                    Timestamp timestamp) throws JsonProcessingException {
         if(isSteeringExp(steeringAngle)){
-            // 车辆有异常
-            numOfExp = 1;
+            if(!vehicleIdSet.contains(vehicleId)){
+                // 车辆第一次出现异常，计数器+1
+                numOfExp = 1;
+
+                // 向集合中加入该车辆，之后的10秒内如果该车辆继续出现异常则不重复计数
+                vehicleIdSet.add(vehicleId);
+            }
 
             // 创建转向异常对象
             SteeringExp steeringExp = new SteeringExp(vehicleId, steeringAngle / 10000,
@@ -370,8 +380,13 @@ public class ProcessExp {
     private void detectTimestampExp(String vehicleId, long timestampGNSS,
                                     long timestamp, Timestamp datestamp) throws JsonProcessingException, ParseException {
         if(isTimeStampExp(timestampGNSS, timestamp)){
-            // 车辆有异常
-            numOfExp = 1;
+            if(!vehicleIdSet.contains(vehicleId)){
+                // 车辆第一次出现异常，计数器+1
+                numOfExp = 1;
+
+                // 向集合中加入该车辆，之后的10秒内如果该车辆继续出现异常则不重复计数
+                vehicleIdSet.add(vehicleId);
+            }
 
             // 将UTC时间戳转换为东八区(CST)时间戳
             Timestamp datestampGNSS = UtcToCst(timestampGNSS);
@@ -395,8 +410,13 @@ public class ProcessExp {
                                       double latitude, double previousLongitude,
                                       double previousLatitude, Timestamp datestamp) throws JsonProcessingException {
         if(isGeoLocationExp(longitude, latitude, previousLongitude, previousLatitude)){
-            // 车辆有异常
-            numOfExp = 1;
+            if(!vehicleIdSet.contains(vehicleId)){
+                // 车辆第一次出现异常，计数器+1
+                numOfExp = 1;
+
+                // 向集合中加入该车辆，之后的10秒内如果该车辆继续出现异常则不重复计数
+                vehicleIdSet.add(vehicleId);
+            }
 
             // 创建地理位置异常对象
             GeoLocationExp geoLocationExp = new GeoLocationExp(vehicleId, longitude,
@@ -494,13 +514,12 @@ public class ProcessExp {
             int numOfExp = numOfExpCar.get(previousTimestamp);
             Map<String, Object> pushData = new HashMap<>();
             pushData.put("numOfExp", numOfExp);
-            // Convert the map to JSON and push the content to the frontend
             dataService.setPushContent("2", objectMapper.writeValueAsString(pushData));
 
-            // Clear the map after sending the data
+            // 清除缓存
             numOfExpCar.clear();
+            vehicleIdSet.clear();
         } catch (JsonProcessingException e) {
-            // Log the exception or handle it in another way
             logger.error("Error while processing JSON for push data: {}", e.getMessage());
         }
     }
