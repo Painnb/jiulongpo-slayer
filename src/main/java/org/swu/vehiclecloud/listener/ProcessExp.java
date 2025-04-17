@@ -2,7 +2,6 @@ package org.swu.vehiclecloud.listener;
 
 import cn.hutool.core.util.StrUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,9 +17,6 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -69,20 +65,40 @@ public class ProcessExp {
 
                 // 提取车辆数据
                 Map<String, Object> payload = event.getMessage();
+                Map<String, Object> header = (Map<String, Object>) payload.get("header");
+                Map<String, Object> body = (Map<String, Object>) payload.get("body");
+                Map<String, Object> position = (Map<String, Object>) body.get("position");
+                String vehicleId =  (String)body.get("vehicleId");
 
-                Map<String, Object> dataContent = (Map<String, Object>) payload.get("dataContent");
-                Map<String, Object> position = (Map<String, Object>) dataContent.get("position");
+                int steeringAngle = (int)payload.get("steeringAngle");
 
-                String vehicleId = (String) dataContent.get("vehicleId");
-                int steeringAngle = (int) dataContent.get("steeringAngle");
+                double velocityGNSS = (double)body.get("velocityGNSS");
 
-                double velocityGNSS = (double) dataContent.get("velocityGNSS");
+                long timestampGNSS = (long)body.get("timestampGNSS");
+                long timestamp = (long)header.get("timestamp");
 
-                long timestampGNSS = (long) dataContent.get("timestampGNSS");
-                long timestamp = (long) payload.get("timestamp");
+                double longitude = (double)position.get("longitude");
+                double latitude = (double)position.get("latitude");
+//                Map<String, Object> payload = event.getMessage();
+//
+//                Map<String, Object> dataContent = (Map<String, Object>) payload.get("dataContent");
+//                Map<String, Object> position = (Map<String, Object>) dataContent.get("position");
+//
+//                String vehicleId = (String) dataContent.get("vehicleId");
+//                int steeringAngle = (int) dataContent.get("steeringAngle");
+//
+//                double velocityGNSS = (double) dataContent.get("velocityGNSS");
+//
+//                long timestampGNSS = (long) dataContent.get("timestampGNSS");
+//                long timestamp = (long) payload.get("timestamp");
+//
+//                double longitude = (double) position.get("longitude");
+//                double latitude = (double) position.get("latitude");
 
-                double longitude = (double) position.get("longitude");
-                double latitude = (double) position.get("latitude");
+                // 打印成一排
+                System.err.println("vehicleId: " + vehicleId + ", steeringAngle: " + steeringAngle +
+                        ", velocityGNSS: " + velocityGNSS + ", timestampGNSS: " + timestampGNSS +
+                        ", timestamp: " + timestamp + ", longitude: " + longitude + ", latitude: " + latitude);
 
 //                JsonNode headerNode = messageNode.get("header");
 //                JsonNode bodyNode = messageNode.get("body");
@@ -149,11 +165,12 @@ public class ProcessExp {
                     // 启动一个任务，如果10秒之内没有收到该车辆的新数据，则从缓存中删除该车辆数据
                     scheduler.schedule(() -> {
                         Map<String, Object> cachedData = vehicleDataCache.get(vehicleId);
-                        if (cachedData == null)
+                        if (StrUtil.isEmptyIfStr(cachedData)) {
                             vehicleDataCache.remove(vehicleId);
+                        }
                     }, 10, TimeUnit.SECONDS);
                 } else {
-                    if (Math.abs(timestamp - (Long) previousVehicleData.get("timestamp")) > Math.pow(10, 4)) {
+                    if (Math.abs(timestampGNSS - (Long) previousVehicleData.get("timestamp")) > Math.pow(10, 4)) {
                         // 经纬度异常检测
                         detectGeoLocationExp(vehicleId, longitude,
                                 latitude, (double) previousVehicleData.get("longitude"),
@@ -237,7 +254,7 @@ public class ProcessExp {
             numOfExp = 1;
 
             // 创建速度异常对象
-            SpeedExp speedExp = new SpeedExp(vehicleId, velocityGNSS, timestamp);
+            SpeedExp speedExp = new SpeedExp(vehicleId, velocityGNSS / 100, timestamp);
 
             // 插入速度异常对象
             vehicleExpMapper.insertSpeedExp(speedExp);
@@ -401,7 +418,7 @@ public class ProcessExp {
 //    }
 //
     private boolean isSpeedExp(double velocityGNSS) {
-        return velocityGNSS > 80;
+        return velocityGNSS / 100 > 10;
     }
 //
 //    private boolean isEngineExp(double engineSpeed, double engineTorque) {
@@ -479,6 +496,7 @@ public class ProcessExp {
 
             // Clear the map after sending the data
             numOfExpCar.clear();
+            System.err.println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa");
         } catch (JsonProcessingException e) {
             // Log the exception or handle it in another way
             logger.error("Error while processing JSON for push data: {}", e.getMessage());
