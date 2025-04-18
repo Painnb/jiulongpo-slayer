@@ -82,6 +82,7 @@ public class MqttMessageListener {
     // 每 10 秒推送一次
     @Scheduled(fixedRate = 10000)
     public void pushActivityData() throws JsonProcessingException {
+        System.err.println("执行");
         Map<String, Object> pushOnlineData = new HashMap<>();
         pushOnlineData.put("numOfOnline", vehicleOnlineSet.size());
         dataService.setPushContent("10", objectMapper.writeValueAsString(pushOnlineData));
