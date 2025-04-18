@@ -112,7 +112,7 @@ public class MqttController {
         }
     }
 
-    @PostMapping("subscribe")
+    @PostMapping("/subscribe")
     public ResponseEntity<String> subscribe(@RequestParam boolean subscribe) throws Exception {
         if(subscribe){
             mqttMessage.Status(true);

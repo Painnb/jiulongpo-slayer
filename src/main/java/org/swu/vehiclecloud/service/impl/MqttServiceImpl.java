@@ -168,6 +168,8 @@ public class MqttServiceImpl implements MqttService {
                         if (HEX_TOPIC_PATTERN.matcher(topic).matches()) {
                             long start = System.nanoTime();
                             Map<String, Object> jsonPayload = parsePayload(message.getPayload());
+                            HexFormat hexFormat = HexFormat.of();
+                            System.out.println(hexFormat.formatHex(message.getPayload()));
                             mqttEventPublisher.publishEvent(new MqttMessageEvent(this, topic, jsonPayload));
                             parsedCount.incrementAndGet();
                             logger.trace("Parsed in {} μs", (System.nanoTime() - start) / 1000);
