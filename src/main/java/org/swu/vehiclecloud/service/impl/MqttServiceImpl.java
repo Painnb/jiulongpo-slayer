@@ -1,5 +1,7 @@
 package org.swu.vehiclecloud.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.*;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
@@ -14,6 +16,7 @@ import org.swu.vehiclecloud.service.MqttService;
 import org.swu.vehiclecloud.event.MqttMessageEvent;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -173,6 +176,15 @@ public class MqttServiceImpl implements MqttService {
                             mqttEventPublisher.publishEvent(new MqttMessageEvent(this, topic, jsonPayload));
                             parsedCount.incrementAndGet();
                             logger.trace("Parsed in {} μs", (System.nanoTime() - start) / 1000);
+                        } else if(topic.equals("test/vehicle")){
+                            String payloadStr = new String(message.getPayload(), StandardCharsets.UTF_8);
+                            ObjectMapper objectMapper = new ObjectMapper();
+                            Map<String, Object> jsonPayload = objectMapper.readValue(
+                                    payloadStr,
+                                    new TypeReference<Map<String, Object>>() {}
+                            );
+                            System.out.println(jsonPayload);
+                            mqttEventPublisher.publishEvent(new MqttMessageEvent(this, topic, jsonPayload));
                         }
                     } catch (Exception e) {
                         logger.error("Process failed: topic={}, payload={}", topic,
