@@ -268,37 +268,37 @@ public class DataServiceImpl implements DataService {
         }
     }
 
-    /**
-     * 调度资源清理任务
-     *
-     * @param id 需要清理的数据流标识符
-     */
-    private void scheduleCleanup(String id) {
-        try {
-            log.debug("开始调度清理任务 ID[{}]", id);
-            Mono.delay(Duration.ofSeconds(30))
-                    .doOnSubscribe(s -> log.debug("清理任务已调度 ID[{}]", id))
-                    .subscribe(v -> {
-                        try {
-                            int count = subscriberCounts.getOrDefault(id, new AtomicInteger()).get();
-                            if (count == 0) {
-                                log.info("执行资源清理 ID: {}", id);
-                                activeStreams.remove(id);
-                                // contentSinks.remove(id);
-                                subscriberCounts.remove(id);
-                                log.debug("资源清理完成 ID[{}]", id);
-                            } else {
-                                log.debug("清理任务取消 ID[{}], 当前订阅数: {}", id, count);
-                            }
-                        } catch (Exception e) {
-                            log.error("清理任务执行异常 ID[{}]: {}", id, e.getMessage());
-                        }
-                    }, e -> log.error("清理任务调度异常 ID[{}]: {}", id, e.getMessage()));
-        } catch (Exception e) {
-            log.error("调度清理任务异常 ID[{}]: {}", id, e.getMessage());
-            throw e;
-        }
-    }
+    // /**
+    //  * 调度资源清理任务
+    //  *
+    //  * @param id 需要清理的数据流标识符
+    //  */
+    // private void scheduleCleanup(String id) {
+    //     try {
+    //         log.debug("开始调度清理任务 ID[{}]", id);
+    //         Mono.delay(Duration.ofSeconds(30))
+    //                 .doOnSubscribe(s -> log.debug("清理任务已调度 ID[{}]", id))
+    //                 .subscribe(v -> {
+    //                     try {
+    //                         int count = subscriberCounts.getOrDefault(id, new AtomicInteger()).get();
+    //                         if (count == 0) {
+    //                             log.info("执行资源清理 ID: {}", id);
+    //                             activeStreams.remove(id);
+    //                             // contentSinks.remove(id);
+    //                             subscriberCounts.remove(id);
+    //                             log.debug("资源清理完成 ID[{}]", id);
+    //                         } else {
+    //                             log.debug("清理任务取消 ID[{}], 当前订阅数: {}", id, count);
+    //                         }
+    //                     } catch (Exception e) {
+    //                         log.error("清理任务执行异常 ID[{}]: {}", id, e.getMessage());
+    //                     }
+    //                 }, e -> log.error("清理任务调度异常 ID[{}]: {}", id, e.getMessage()));
+    //     } catch (Exception e) {
+    //         log.error("调度清理任务异常 ID[{}]: {}", id, e.getMessage());
+    //         throw e;
+    //     }
+    // }
     
 
     @Autowired
