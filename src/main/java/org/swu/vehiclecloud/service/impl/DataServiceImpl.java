@@ -265,33 +265,7 @@ public class DataServiceImpl implements DataService {
             throw e;
         }
     }
-
-    /**
-     * 获取指定ID的当前订阅数 (冗余方法)
-     *
-     * @param id 数据流ID
-     * @return 当前订阅数，如果ID不存在返回0
-     */
-    public int getSubscriberCount(String id) {
-        if (id == null || id.trim().isEmpty()) {
-            return 0;
-        }
-        AtomicInteger counter = subscriberCounts.get(id);
-        return counter != null ? counter.get() : 0;
-    }
-
-    /**
-     * 检查指定ID的数据流是否活跃 (冗余方法)
-     *
-     * @param id 数据流ID
-     * @return 是否活跃
-     */
-    public boolean isStreamActive(String id) {
-        if (id == null || id.trim().isEmpty()) {
-            return false;
-        }
-        return activeStreams.containsKey(id);
-    }
+    
 
     @Autowired
     private DataMapper dataMapper;
