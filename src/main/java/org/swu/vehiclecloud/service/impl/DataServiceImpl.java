@@ -70,7 +70,6 @@ public class DataServiceImpl implements DataService {
     @Override
     public Flux<ServerSentEvent<String>> streamData(String id) {
         if (id == null || id.trim().isEmpty()) {
-            log.error("无效的数据流ID: {}", id);
             return Flux.error(new IllegalArgumentException("数据流ID不能为空"));
         }
 
@@ -78,7 +77,7 @@ public class DataServiceImpl implements DataService {
             log.debug("获取数据流 ID[{}], 当前活跃流数量: {}", id, activeStreams.size());
             return activeStreams.computeIfAbsent(id, this::createAndShareStreamForId)
                     .doOnSubscribe(subscription -> handleSubscribe(id))
-                    .doOnCancel(() -> handleCancel(id))
+                    .doFinally(signalType -> handleCancel(id))
                     .doOnError(e -> log.error("数据流处理异常 ID[{}]: {}", id, e.getMessage()));
         } catch (Exception e) {
             log.error("创建数据流失败 ID[{}]: {}", id, e.getMessage());
@@ -95,27 +94,57 @@ public class DataServiceImpl implements DataService {
      * @param content 要推送的内容（不可为null）
      * @throws IllegalArgumentException 如果content为null时抛出
      */
+    // 限流相关：每个ID维护最近推送时间戳和计数
+    private final Map<String, AtomicLong> lastPushTimestamp = new ConcurrentHashMap<>();
+    private final Map<String, AtomicInteger> pushCountInWindow = new ConcurrentHashMap<>();
+    private static final long RATE_LIMIT_WINDOW_MS = 333; // 每...毫秒内
+    private static final int RATE_LIMIT_MAX_PUSH = 1; //最多发送多少次
+    
     @Override
     public void setPushContent(String id, String content) {
         if (content == null) {
-            log.error("推送内容为空 ID[{}]", id);
             throw new IllegalArgumentException("推送内容不能为null");
         }
-
+    
         if (id == null || id.trim().isEmpty()) {
-            log.error("无效的数据流ID: {}", id);
             throw new IllegalArgumentException("数据流ID不能为空");
         }
-
+    
+        // 检查当前订阅者数量
+        AtomicInteger counter = subscriberCounts.get(id);
+        int subscriberCount = (counter != null) ? counter.get() : 0;
+        if (subscriberCount <= 0) {
+            log.info("当前无订阅者，推送内容被丢弃 ID[{}]: {}", id, content);
+            return;
+        }
+    
+        // 限流逻辑
+        long now = System.currentTimeMillis();
+        AtomicLong lastTs = lastPushTimestamp.computeIfAbsent(id, k -> new AtomicLong(0));
+        AtomicInteger count = pushCountInWindow.computeIfAbsent(id, k -> new AtomicInteger(0));
+        synchronized (lastTs) {
+            long last = lastTs.get();
+            if (now - last >= RATE_LIMIT_WINDOW_MS) {
+                lastTs.set(now);
+                count.set(1);
+            } else {
+                int cur = count.incrementAndGet();
+                if (cur > RATE_LIMIT_MAX_PUSH) {
+                    return;
+                }
+            }
+        }
+    
         log.info("设置推送内容 ID[{}]: {}", id, content);
-
+    
         try {
             Sinks.Many<String> sink = contentSinks.computeIfAbsent(id,
                     key -> {
                         log.debug("创建新的内容发射器 ID[{}]", key);
-                        return Sinks.many().multicast().onBackpressureBuffer();
+                        // 设置缓冲区最大10条，超出丢弃最老的
+                        return Sinks.many().multicast().onBackpressureBuffer(10, false);
                     });
-
+    
             // 确保立即推送新内容给所有订阅者
             Sinks.EmitResult result = sink.tryEmitNext(content);
             if (result.isFailure()) {
@@ -151,14 +180,13 @@ public class DataServiceImpl implements DataService {
         log.info("创建新SSE数据流 ID: {}", id);
 
         Sinks.Many<String> contentSink = contentSinks.computeIfAbsent(id,
-                key -> Sinks.many().multicast().onBackpressureBuffer());
-
-        // 直接监听 Sinks 的数据流，并转换为 SSE 事件
+                key -> Sinks.many().multicast().onBackpressureBuffer(10, false));
+        // 推送一条初始化消息，确保流激活
+        contentSink.tryEmitNext("init");
+        // 不做replay缓存，客户端断开重连只能收到新消息
         return contentSink.asFlux()
                 .map(this::buildSSE)
-                .publishOn(Schedulers.boundedElastic())
-                .replay(1) // 缓存最近的一条消息，供新订阅者使用
-                .refCount(1, Duration.ofSeconds(30)); // 在无订阅者时延迟清理资源
+                .publishOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -224,9 +252,15 @@ public class DataServiceImpl implements DataService {
                 remaining = 0;
             }
 
+            // 订阅者为0时立即清理资源
             if (remaining == 0) {
-                log.debug("调度清理任务 ID[{}]", id);
-                scheduleCleanup(id);
+                log.debug("立即清理资源 ID[{}]", id);
+                activeStreams.remove(id);
+                contentSinks.remove(id);
+                subscriberCounts.remove(id);
+                lastPushTimestamp.remove(id);
+                pushCountInWindow.remove(id);
+                log.debug("资源清理完成 ID[{}]", id);
             }
         } catch (Exception e) {
             log.error("处理取消订阅异常 ID[{}]: {}", id, e.getMessage());
@@ -234,64 +268,38 @@ public class DataServiceImpl implements DataService {
         }
     }
 
-    /**
-     * 调度资源清理任务
-     *
-     * @param id 需要清理的数据流标识符
-     */
-    private void scheduleCleanup(String id) {
-        try {
-            log.debug("开始调度清理任务 ID[{}]", id);
-            Mono.delay(Duration.ofSeconds(30))
-                    .doOnSubscribe(s -> log.debug("清理任务已调度 ID[{}]", id))
-                    .subscribe(v -> {
-                        try {
-                            int count = subscriberCounts.getOrDefault(id, new AtomicInteger()).get();
-                            if (count == 0) {
-                                log.info("执行资源清理 ID: {}", id);
-                                activeStreams.remove(id);
-                                contentSinks.remove(id);
-                                subscriberCounts.remove(id);
-                                log.debug("资源清理完成 ID[{}]", id);
-                            } else {
-                                log.debug("清理任务取消 ID[{}], 当前订阅数: {}", id, count);
-                            }
-                        } catch (Exception e) {
-                            log.error("清理任务执行异常 ID[{}]: {}", id, e.getMessage());
-                        }
-                    }, e -> log.error("清理任务调度异常 ID[{}]: {}", id, e.getMessage()));
-        } catch (Exception e) {
-            log.error("调度清理任务异常 ID[{}]: {}", id, e.getMessage());
-            throw e;
-        }
-    }
-
-    /**
-     * 获取指定ID的当前订阅数 (冗余方法)
-     *
-     * @param id 数据流ID
-     * @return 当前订阅数，如果ID不存在返回0
-     */
-    public int getSubscriberCount(String id) {
-        if (id == null || id.trim().isEmpty()) {
-            return 0;
-        }
-        AtomicInteger counter = subscriberCounts.get(id);
-        return counter != null ? counter.get() : 0;
-    }
-
-    /**
-     * 检查指定ID的数据流是否活跃 (冗余方法)
-     *
-     * @param id 数据流ID
-     * @return 是否活跃
-     */
-    public boolean isStreamActive(String id) {
-        if (id == null || id.trim().isEmpty()) {
-            return false;
-        }
-        return activeStreams.containsKey(id);
-    }
+    // /**
+    //  * 调度资源清理任务
+    //  *
+    //  * @param id 需要清理的数据流标识符
+    //  */
+    // private void scheduleCleanup(String id) {
+    //     try {
+    //         log.debug("开始调度清理任务 ID[{}]", id);
+    //         Mono.delay(Duration.ofSeconds(30))
+    //                 .doOnSubscribe(s -> log.debug("清理任务已调度 ID[{}]", id))
+    //                 .subscribe(v -> {
+    //                     try {
+    //                         int count = subscriberCounts.getOrDefault(id, new AtomicInteger()).get();
+    //                         if (count == 0) {
+    //                             log.info("执行资源清理 ID: {}", id);
+    //                             activeStreams.remove(id);
+    //                             // contentSinks.remove(id);
+    //                             subscriberCounts.remove(id);
+    //                             log.debug("资源清理完成 ID[{}]", id);
+    //                         } else {
+    //                             log.debug("清理任务取消 ID[{}], 当前订阅数: {}", id, count);
+    //                         }
+    //                     } catch (Exception e) {
+    //                         log.error("清理任务执行异常 ID[{}]: {}", id, e.getMessage());
+    //                     }
+    //                 }, e -> log.error("清理任务调度异常 ID[{}]: {}", id, e.getMessage()));
+    //     } catch (Exception e) {
+    //         log.error("调度清理任务异常 ID[{}]: {}", id, e.getMessage());
+    //         throw e;
+    //     }
+    // }
+    
 
     @Autowired
     private DataMapper dataMapper;
