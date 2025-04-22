@@ -18,7 +18,7 @@ public interface ActivityAlertMapper extends BaseMapper<ActivityAlert> {
      * @param activityAlert 车辆活跃度对象
      */
     @Insert("INSERT INTO activity_alert (vehicle_id, no_data_alert, low_speed_alert, timestamp) " +
-            "VALUES (#{vehicleId}, #{no_data_alert}, #{low_speed_alert}, #{timestamp})")
+            "VALUES (#{vehicleId}, #{noDataAlert}, #{lowSpeedAlert}, #{timestamp})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     void insertActivityAlert(ActivityAlert activityAlert);
 

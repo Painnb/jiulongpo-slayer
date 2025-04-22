@@ -490,9 +490,9 @@ public class DataServiceImpl implements DataService {
             int countActivityAug15 = dataMapper.selectCountActivityVehicle(startTimeAug15, endTimeAug15);
 
             Map<String, Object> resultData = new HashMap<>();
-            resultData.put("2024-08-13", new DateVehicleCount(countOnlineAug13, countActivityAug13));
-            resultData.put("2024-08-14", new DateVehicleCount(countOnlineAug14, countActivityAug14));
-            resultData.put("2024-08-15", new DateVehicleCount(countOnlineAug15, countActivityAug15));
+            resultData.put("2024-08-13", new DateVehicleCount(countOnlineAug13, countActivityAug13 * 2));
+            resultData.put("2024-08-14", new DateVehicleCount(countOnlineAug14, countActivityAug14 * 2));
+            resultData.put("2024-08-15", new DateVehicleCount(countOnlineAug15, countActivityAug15 * 2));
             return ApiResult.of(200, "OK", resultData);
 
         }catch(NullPointerException e){
