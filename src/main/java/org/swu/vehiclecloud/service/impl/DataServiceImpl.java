@@ -107,6 +107,14 @@ public class DataServiceImpl implements DataService {
             throw new IllegalArgumentException("数据流ID不能为空");
         }
 
+        // 检查当前订阅者数量
+        AtomicInteger counter = subscriberCounts.get(id);
+        int subscriberCount = (counter != null) ? counter.get() : 0;
+        if (subscriberCount <= 0) {
+            log.info("当前无订阅者，推送内容被丢弃 ID[{}]: {}", id, content);
+            return;
+        }
+
         log.info("设置推送内容 ID[{}]: {}", id, content);
 
         try {
