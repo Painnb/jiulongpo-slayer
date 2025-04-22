@@ -250,7 +250,7 @@ public class DataServiceImpl implements DataService {
                             if (count == 0) {
                                 log.info("执行资源清理 ID: {}", id);
                                 activeStreams.remove(id);
-                                contentSinks.remove(id);
+                                // contentSinks.remove(id);
                                 subscriberCounts.remove(id);
                                 log.debug("资源清理完成 ID[{}]", id);
                             } else {
