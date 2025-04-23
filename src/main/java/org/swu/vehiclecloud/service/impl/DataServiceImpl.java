@@ -97,7 +97,7 @@ public class DataServiceImpl implements DataService {
     // 限流相关：每个ID维护最近推送时间戳和计数
     private final Map<String, AtomicLong> lastPushTimestamp = new ConcurrentHashMap<>();
     private final Map<String, AtomicInteger> pushCountInWindow = new ConcurrentHashMap<>();
-    private static final long RATE_LIMIT_WINDOW_MS = 333; // 每...毫秒内
+    private static final long RATE_LIMIT_WINDOW_MS = 250; // 每...毫秒内
     private static final int RATE_LIMIT_MAX_PUSH = 1; //最多发送多少次
     
     @Override
