@@ -69,4 +69,13 @@ public interface VehicleExpMapper {
             "VALUES (#{vehicleId}, #{longitude}, #{latitude}, #{timestamp})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     void insertGeoLocationExp(GeoLocationExp geoLocationExp);
+
+    /**
+     * 插入机器学习检测的车辆异常对象
+     * @param mlExpcetion 机器学习检测的车辆异常对象
+     */
+    @Insert("INSERT INTO ml_exp (vehicleId, timestamp, mse) " +
+            "VALUES (#{vehicleId}, #{timestamp}, #{mse})")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    void insertMlExp(MlExpcetion mlExpcetion);
 }
