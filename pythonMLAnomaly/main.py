@@ -445,7 +445,7 @@ async def detect(record: Record):
     try:
         vehicle_id, anomaly, mse = detect_anomaly(record, model, scaler, threshold=0.1, device=DEVICE)
         status = "异常" if anomaly else "正常" # 异常/正常
-        return {"message": f"车辆编号: {vehicle_id}, 状态: {status}"}
+        return {"message": f"车辆编号: {vehicle_id}, 状态: {status}, mse: {mse}"}
     except HTTPException as http_exc:
         # 直接重新抛出 HTTPException
         raise http_exc
