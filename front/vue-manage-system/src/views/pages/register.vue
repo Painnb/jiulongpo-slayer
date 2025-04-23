@@ -83,7 +83,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         if (valid) {
             try {
                 // 调用后端 API
-                const response = await axios.post('http://111.231.191.2:8080/api/usermanage/public/register', {
+                const response = await axios.post('/abc/api/usermanage/public/register', {
                     username: param.username,
                     password: param.password,
                     email: param.email,

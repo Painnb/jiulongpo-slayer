@@ -6,18 +6,22 @@ import Components from 'unplugin-vue-components/vite';
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers';
 export default defineConfig({
 	server: {
+		port: 3000, // 设置开发服务器的端口号
+    	host: "0.0.0.0", // 可选：设置为 0.0.0.0 允许外部访问
+    	open: true, // 可选：启动项目时自动打开浏览器
 		proxy: {
 			'/abc': {
 				//target: 'http://127.0.0.1:8080',
-				target: 'http://111.231.191.2:8080',
+				//target: 'http://111.231.191.2:8080',
 
-				//target: 'http://192.168.120.135:8080',
+				target: 'http://10.135.249.135:8080',
 
 				changeOrigin: true,
 				rewrite: (path) => path.replace(/^\/abc/, '')
 			},
 			'/stu': {
-				target: 'http://111.231.191.2:8081',
+				target: 'http://10.135.249.135:8081',
+				//target: 'http://111.231.191.2:8081',
 				changeOrigin: true,
 				rewrite: (path) => path.replace(/^\/stu/, '')
 			}

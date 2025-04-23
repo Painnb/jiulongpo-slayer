@@ -59,7 +59,7 @@ onBeforeRouteUpdate((to) => {
 // 关闭全部标签
 const closeAll = () => {
     tabs.clearTabs();
-    router.push('/');
+    router.push('/dashboard');
 };
 // 关闭其他标签
 const closeOther = () => {
@@ -94,7 +94,7 @@ const closeTabs = (path: string) => {
     const index = tabs.list.findIndex((item) => item.path === path);
     tabs.delTabsItem(index);
     const item = tabs.list[index] || tabs.list[index - 1];
-    router.push(item ? item.path : '/');
+    router.push(item ? item.path : '/dashboard');
 };
 
 watch(

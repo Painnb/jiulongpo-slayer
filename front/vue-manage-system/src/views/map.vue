@@ -141,6 +141,7 @@
 import * as echarts from "echarts";
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { createSSEConnection } from '../utils/sse'; 
+import { onActivated, onDeactivated } from 'vue';
 
 let sseConnection: { close: () => void } | null = null;
 let sseConnection1: { close: () => void } | null = null;
@@ -151,7 +152,7 @@ let sseConnection4: { close: () => void } | null = null;
 const vehicleMap = new Map(); // 存储车辆数据
 const token = localStorage.getItem('token') || ''; // 假设 token 存储在 localStorage 中
 
-onMounted(() => {
+onActivated(() => {
   sseConnection = createSSEConnection('/abc/api/datacontroller/public/ssestream/1', token, {
     onOpen: () => {
       console.log('SSE连接已建立');
@@ -308,12 +309,13 @@ onMounted(() => {
     },
   });
 });
-onUnmounted(() => {
+onDeactivated(() => {
   sseConnection?.close();
   sseConnection1?.close();
   sseConnection2?.close();
   sseConnection3?.close();
   sseConnection4?.close();
+  console.log('SSE连接已关闭');
 });
 
 const updateMarkersOnMap = () => {
@@ -336,8 +338,8 @@ const showMarkerList = ref(false);
 
 // 信息面板相关
 const infoPanelVisible = ref(false);
-const selectedPoint = ref({});
-const infoPanelStyle = ref({});
+const selectedPoint = ref({ longitude: 0, latitude: 0, vehicleId: '', steeringExp: false, timestampExp: false, geoLocationExp: false, speedExp: false });
+const infoPanelStyle = ref<{ left: string; top: string }>({ left: "0px", top: "0px" });
 const hoveredMarkerIndex = ref(null);
 const currentTime = ref("");
 
@@ -482,7 +484,7 @@ const showVehicleInfo = (point, index) => {
     top: "80px",
   };
 
-  // 随机生成车辆状态（演示用）
+  // 车辆状态
   statuses.value = {
     steering: selectedPoint.value.steeringExp ?? false, // 默认为正常
     timestamp: selectedPoint.value.timestampExp ?? false, // 默认为正常
@@ -530,8 +532,8 @@ let dragStartY = 0;
 
 const startDrag = (event) => {
   isDragging = true;
-  dragStartX = event.clientX - parseInt(infoPanelStyle.value.left || 0, 10);
-  dragStartY = event.clientY - parseInt(infoPanelStyle.value.top || 0, 10);
+  dragStartX = event.clientX - parseInt(infoPanelStyle.value.left || "0", 10);
+  dragStartY = event.clientY - parseInt(infoPanelStyle.value.top || "0", 10);
 
   document.addEventListener("mousemove", handleDrag);
   document.addEventListener("mouseup", stopDrag);
@@ -552,7 +554,7 @@ const stopDrag = () => {
 
 // 分页相关
 const currentPage = ref(1);
-const pageSize = ref(15);
+const pageSize = ref(5);
 const paginatedMarkers = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value;
   const end = start + pageSize.value;
@@ -613,6 +615,7 @@ body,
   flex-direction: column;
   padding: 16px;
   overflow-y: auto;
+  height: auto;
 }
 
 .list-title {

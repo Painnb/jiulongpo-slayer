@@ -87,4 +87,11 @@ const sidebar = useSidebarStore();
 .sidebar-el-menu {
     min-height: 100%;
 }
+
+/* 调整菜单项字体大小 */
+.sidebar-el-menu .el-menu-item,
+.sidebar-el-menu .el-sub-menu__title {
+    font-size: 18px; /* 设置字体大小 */
+
+}
 </style>

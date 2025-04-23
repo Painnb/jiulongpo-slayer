@@ -3,11 +3,12 @@ import { usePermissStore } from '../store/permiss';
 import Home from '../views/home.vue';
 import NProgress from 'nprogress';
 import 'nprogress/nprogress.css';
+import { requestManager } from '@/utils/requestManager';
 
 const routes: RouteRecordRaw[] = [
     {
         path: '/',
-        redirect: '/dashboard',
+        redirect: '/login',
     },
     {
         path: '/',
@@ -45,7 +46,7 @@ const routes: RouteRecordRaw[] = [
                 path: '/dataScreen',
                 name: 'dataScreen',
                 meta: {
-                    title: '数据大屏',
+                    title: '数据报表',
                     permiss: '7',
                 },
                 component: () => import(/* webpackChunkName: "dataScreen" */ '../views/pages/dataScreen.vue'),
@@ -54,7 +55,7 @@ const routes: RouteRecordRaw[] = [
                 path: '/history',
                 name: 'history',
                 meta: {
-                    title: '历史记录',
+                    title: '数据导出',
                     permiss: '7',
                 },
                 component: () => import(/* webpackChunkName: "history" */ '../views/pages/history.vue'),
@@ -309,18 +310,21 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
     NProgress.start();
+    
+    // 在切换页面前中断所有未完成的请求
+    requestManager.abortAll();
+    
     const role = localStorage.getItem('vuems_name');
     const permiss = usePermissStore();
-
+  
     if (!role && to.meta.noAuth !== true) {
-        next('/login');
-    } else if (typeof to.meta.permiss == 'string' && !permiss.key.includes(to.meta.permiss)) {
-        // 如果没有权限，则进入403
-        next('/403');
+      next('/login');
+    } else if (typeof to.meta.permiss === 'string' && !permiss.key.includes(to.meta.permiss)) {
+      next('/403');
     } else {
-        next();
+      next();
     }
-});
+  });
 
 router.afterEach(() => {
     NProgress.done();

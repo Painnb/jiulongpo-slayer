@@ -20,16 +20,6 @@
                         <i class="el-icon-lx-skin"></i>
                     </el-tooltip>
                 </div>
-                <div class="btn-icon" @click="router.push('/ucenter')">
-                    <el-tooltip
-                        effect="dark"
-                        :content="message ? `有${message}条未读消息` : `消息中心`"
-                        placement="bottom"
-                    >
-                        <i class="el-icon-lx-notice"></i>
-                    </el-tooltip>
-                    <span class="btn-bell-badge" v-if="message"></span>
-                </div>
                 <div class="btn-icon" @click="setFullScreen">
                     <el-tooltip effect="dark" content="全屏" placement="bottom">
                         <i class="el-icon-lx-full"></i>
@@ -190,6 +180,7 @@ const setFullScreen = () => {
     cursor: pointer;
     display: flex;
     align-items: center;
+    font-size: 18px;
 }
 
 .el-dropdown-menu__item {

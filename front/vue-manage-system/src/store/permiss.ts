@@ -13,7 +13,7 @@ export const usePermissStore = defineStore('permiss', {
         const Auth = localStorage.getItem('auth');
         console.log(Auth);
         return {
-            key: (Auth == 'BIZ_ADMIN' ? defaultList.admin : defaultList.user) as string[],
+            key: (Auth == 'BIZ_ADMIN'||'SYS_ADMIN' ? defaultList.admin : defaultList.user) as string[],
             defaultList,
         };
     },

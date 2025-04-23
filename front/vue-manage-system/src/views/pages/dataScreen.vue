@@ -1,6 +1,21 @@
 <template>
   <div class="container">
-    <button @click="exportChartsToPDF" class="export-button">导出为PDF</button>
+    <div class="controls">
+      <el-date-picker
+        v-model="selectedDate"
+        type="date"
+        placeholder="选择日期"
+        class="date-picker"
+      />
+      <button @click="handleView" class="view-button">查看</button>
+      <button
+        v-if="userRole !== 'USER'"
+        @click="exportChartsToPDF"
+        class="export-button"
+      >
+        导出为PDF
+      </button>
+    </div>
     <div class="left">
       <!-- 左侧上半部分：地图 -->
       <div class="map-chart chart" ref="mapChart"></div>
@@ -22,15 +37,36 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import * as echarts from "echarts";
 import chinaJson from "@/utils/china"; // 引入中国地图数据
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import axios from "axios";
-import { graphic } from 'echarts/core';
+import { graphic } from "echarts/core";
+import { requestManager } from "@/utils/requestManager"; // 引入请求管理器
+
+export const makeRequest = (url: string, options = {}) => {
+  const controller = new AbortController();
+  // 将该控制器添加到全局管理器中
+  requestManager.add(controller);
+
+  return axios({
+    url,
+    ...options,
+    signal: controller.signal, // 将 AbortSignal 传递给 Axios
+  });
+};
 export default {
   name: "DataVisualization",
+  data() {
+    return {
+      userRole: localStorage.getItem("auth"), // 从 localStorage 获取用户角色
+      selectedDate: new Date(), // 添加 selectedDate 数据
+      startTime: new Date(2024, 4, 1, 0, 0, 0),
+      endTime: new Date(2025, 10, 1, 0, 0, 0),
+    };
+  },
   mounted() {
     this.initCharts();
     this.fetchPieChartData(); // 调用后端接口获取饼图数据
@@ -39,35 +75,48 @@ export default {
     this.fetchbarChartData2();
     this.fetchbarChartHorizontal();
     this.fetchpieChart2();
+
+    // 每五分钟更新一次图表
+    this.updateInterval = setInterval(() => {
+      this.handleView();
+    }, 5 * 60 * 1000); // 5 分钟 = 5 * 60 * 1000 毫秒
+  },
+  beforeDestroy() {
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+    }
   },
   methods: {
     async fetchPieChartData() {
       try {
-        // 获取 token
         const token = localStorage.getItem("token");
-
-        // 调用后端接口
-        const response = await axios.get(
+    
+        const response = await makeRequest(
           "/abc/api/datacontroller/public/exceptionpie",
           {
+            method: "GET",
             headers: {
-              Authorization: `Bearer ${token}`, // 在请求头中传入 token
+              Authorization: `Bearer ${token}`,
+            },
+            params: {
+              startTime: this.startTime,
+              endTime: this.endTime,
             },
           }
         );
-
+    
         const pieData = response.data || [];
-
+    
         // 更新 pieChart1 的数据
         const pieChart1 = echarts.getInstanceByDom(this.$refs.pieChart1);
         pieChart1.setOption({
           series: [
             {
-              data: pieData, // 使用后端返回的数据
+              data: pieData,
             },
           ],
         });
-
+    
         console.log("饼图数据更新成功:", pieData);
       } catch (error) {
         console.error("获取饼图数据失败:", error);
@@ -79,25 +128,40 @@ export default {
         const token = localStorage.getItem("token");
 
         // 调用后端接口
-        const response = await axios.get(
+        const response = await makeRequest(
           "/abc/api/datacontroller/public/activity/seven-days",
           {
+            method: "GET",
             headers: {
               Authorization: `Bearer ${token}`, // 在请求头中传入 token
             },
           }
         );
 
-        const lineData = response.data || [];
+        const lineData = response.data.data || [];
+        console.log("折线图数据：", lineData);
+        // 提取日期作为 xAxis 数据
+        const xAxisData = Object.keys(lineData);
+
+        // 提取 onlineCount 和 activityCount 作为 series 数据
+        const onlineData = Object.values(lineData).map(
+          (item) => item.onlineCount
+        );
+        const activityData = Object.values(lineData).map(
+          (item) => item.activityCount
+        );
 
         const lineChart = echarts.getInstanceByDom(this.$refs.lineChart);
         lineChart.setOption({
+          xAxis: {
+            data: xAxisData,
+          },
           series: [
             {
-              data: lineData.onlineData, // 使用后端返回的数据
+              data: onlineData, // 使用后端返回的数据
             },
             {
-              data: lineData.activeData, // 使用后端返回的数据
+              data: activityData, // 使用后端返回的数据
             },
           ],
         });
@@ -113,23 +177,29 @@ export default {
         const token = localStorage.getItem("token");
 
         // 调用后端接口
-        const response = await axios.get(
+        const response = await makeRequest(
           "/abc/api/datacontroller/public/activity/online-time-ranking",
           {
+            method: "GET",
             headers: {
               Authorization: `Bearer ${token}`, // 在请求头中传入 token
+            },
+            params: {
+              startTime: this.startTime,
+              endTime: this.endTime,
             },
           }
         );
 
-        const Data = response.data || [];
+        console.log("在线：", response.data);
+
+        const Data = response.data.data.ranking || [];
         const formattedData = Data.map((item) => [
           item.onlineTime,
           item.vehicleId,
         ]);
 
-        // 在开头添加 ["count", "id"]
-        formattedData.unshift(["count", "id"]);
+        formattedData.unshift(["second", "id"]);
 
         console.log(formattedData);
 
@@ -155,29 +225,28 @@ export default {
         const token = localStorage.getItem("token");
 
         // 调用后端接口
-        const response = await axios.get(
+        const response = await makeRequest(
           "/abc/api/activecontroller/public/vehicle-activity",
           {
+            method: "GET",
             headers: {
               Authorization: `Bearer ${token}`, // 在请求头中传入 token
+            },
+            params: {
+              startTime: this.startTime,
+              endTime: this.endTime,
             },
           }
         );
 
         const Data = response.data.data || [];
-        const formattedData = Data.map((item) => [
-          item.amount,
-          item.product,
-        ]);
+        const formattedData = Data.map((item) => [item.amount, item.product]);
 
-        // 在开头添加 ["count", "id"]
-        formattedData.unshift(["count", "id"]);
+        formattedData.unshift(["second", "id"]);
 
         console.log(formattedData);
 
-        const pieChart2 = echarts.getInstanceByDom(
-          this.$refs.pieChart2
-        );
+        const pieChart2 = echarts.getInstanceByDom(this.$refs.pieChart2);
         pieChart2.setOption({
           dataset: {
             source: formattedData,
@@ -197,11 +266,16 @@ export default {
         const token = localStorage.getItem("token");
 
         // 调用后端接口
-        const response = await axios.get(
+        const response = await makeRequest(
           "/abc/api/datacontroller/public/exceptionNumber",
           {
+            method: "GET",
             headers: {
               Authorization: `Bearer ${token}`, // 在请求头中传入 token
+            },
+            params: {
+              startTime: this.startTime,
+              endTime: this.endTime,
             },
           }
         );
@@ -232,11 +306,16 @@ export default {
         const token = localStorage.getItem("token");
 
         // 调用后端接口
-        const response = await axios.get(
+        const response = await makeRequest(
           "/abc/api/datacontroller/public/getmlexceptiondata",
           {
+            method: "GET",
             headers: {
               Authorization: `Bearer ${token}`, // 在请求头中传入 token
+            },
+            params: {
+              startTime: this.startTime,
+              endTime: this.endTime,
             },
           }
         );
@@ -273,15 +352,10 @@ export default {
       ];
 
       const pdf = new jsPDF("p", "mm", "a4"); // 使用A4纸张
-      const currentTime = new Date();
+      const currentTime = this.selectedDate; // 使用选中的日期
       const formattedTime = `${currentTime.getFullYear()}-${String(
         currentTime.getMonth() + 1
-      ).padStart(2, "0")}-${String(currentTime.getDate()).padStart(
-        2,
-        "0"
-      )} ${String(currentTime.getHours()).padStart(2, "0")}:${String(
-        currentTime.getMinutes()
-      ).padStart(2, "0")}`;
+      ).padStart(2, "0")}-${String(currentTime.getDate()).padStart(2, "0")}`;
       const title = `${formattedTime} `;
 
       // 添加标题
@@ -319,9 +393,47 @@ export default {
       }
 
       // 动态命名文件
-      const fileName = `${formattedTime} 导出报表.pdf`;
+      const fileName = `${formattedTime} 报表.pdf`;
       pdf.save(fileName);
     },
+    handleView() {
+      if (this.selectedDate) {
+        // 获取选择的日期
+        const startDate = new Date(this.selectedDate);
+        const endDate = new Date(this.selectedDate);
+
+        // 设置时间为 00:00:00 和 23:59:59
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+
+        // 格式化日期为 YYYY-MM-DD HH:mm:ss
+        this.startTime = startDate;
+        this.endTime = endDate;
+
+        this.fetchPieChartData(); // 调用后端接口获取饼图数据
+        this.fetchLineChartData();
+        this.fetchbarChartData1();
+        this.fetchbarChartData2();
+        this.fetchbarChartHorizontal();
+        this.fetchpieChart2();
+
+        // 打印结果
+        console.log("开始时间:", this.startTime);
+        console.log("结束时间:", this.endTime);
+      }
+    },
+
+    formatDate(date) {
+      if (!date) return null;
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const hours = String(date.getHours()).padStart(2, "0");
+      const minutes = String(date.getMinutes()).padStart(2, "0");
+      const seconds = String(date.getSeconds()).padStart(2, "0");
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    },
+
     initCharts() {
       const pieChart1 = echarts.init(this.$refs.pieChart1);
       const pieChart2 = echarts.init(this.$refs.pieChart2);
@@ -349,7 +461,7 @@ export default {
           trigger: "item",
         },
         legend: {
-          top: "75%",
+          top: "10%",
           left: "center",
           textStyle: {
             color: "#00FBFF",
@@ -357,7 +469,7 @@ export default {
         },
         series: [
           {
-            name: "Access From",
+            name: "",
             type: "pie",
             radius: ["40%", "70%"],
             avoidLabelOverlap: false,
@@ -383,8 +495,13 @@ export default {
       // 饼图2
       pieChart2.setOption({
         dataset: {
-          source: [
-          ],
+          source: [],
+        },
+        tooltip: {
+          trigger: "axis",
+          axisPointer: {
+            type: "shadow",
+          },
         },
         title: {
           text: "活跃时长",
@@ -395,7 +512,7 @@ export default {
         },
         grid: { containLabel: true },
         xAxis: {
-          name: "amount",
+          name: "seconds",
           axisLine: {
             lineStyle: {
               color: "#FFFFFF",
@@ -543,7 +660,7 @@ export default {
         },
         xAxis: {
           type: "category",
-          data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+          data: [],
           axisLine: {
             lineStyle: {
               color: "#FFFFFF",
@@ -598,6 +715,10 @@ export default {
         angleAxis: {
           max: 1,
           startAngle: 75,
+          name: "MSE",
+          nameTextStyle: {
+            color: "#00FBFF",
+          },
           axisLabel: {
             color: "#00FBFF", // 设置角度轴标签字体颜色
           },
@@ -616,19 +737,13 @@ export default {
           type: "bar",
           data: [],
           coordinateSystem: "polar",
-          label: {
-            show: true,
-            position: "middle",
-            formatter: "{b}",
-            color: "#00FBFF", // 设置标签字体颜色
-          },
         },
       });
 
       // 竖向条形图
       barChartVertical.setOption({
         title: {
-          text: "车辆异常",
+          text: "车辆异常次数",
           left: "center",
           textStyle: {
             color: "#00FBFF",
@@ -673,19 +788,24 @@ export default {
       });
       barChartVertical1.setOption({
         dataset: {
-          source: [
-          ],
+          source: [],
+        },
+        tooltip: {
+          trigger: "axis",
+          axisPointer: {
+            type: "shadow",
+          },
         },
         title: {
           text: "在线时长",
-          left: "center",
+          left: "left",
           textStyle: {
             color: "#00FBFF",
           },
         },
         grid: { containLabel: true },
         xAxis: {
-          name: "count",
+          name: "seconds",
           axisLine: {
             lineStyle: {
               color: "#FFFFFF",
@@ -725,10 +845,26 @@ export default {
 
 <style scoped>
 .export-button {
-  position: absolute;
-  top: 52px;
-  right: 22px;
   z-index: 1000;
+  padding: 10px 20px;
+  background-color: #30399f;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.export-button:hover {
+  background-color: #00bfff;
+}
+
+.date-picker {
+  margin-left: 10px;
+}
+
+.view-button {
+  margin-left: 10px;
   padding: 10px 20px;
   background-color: #30399f;
   color: #fff;
@@ -737,7 +873,7 @@ export default {
   cursor: pointer;
 }
 
-.export-button:hover {
+.view-button:hover {
   background-color: #00bfff;
 }
 
@@ -748,6 +884,17 @@ export default {
   background-size: cover;
   color: #fff;
   font-family: "Microsoft YaHei", Arial, sans-serif;
+}
+
+.controls {
+  position: absolute;
+  top: 52px;
+  right: 22px;
+  z-index: 1000;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  flex-direction: row;
 }
 
 .left {

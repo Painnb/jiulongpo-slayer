@@ -85,7 +85,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         if (valid) {
             try {
                 // 调用后端 API
-                const response = await axios.post('http://111.231.191.2:8080/api/usermanage/public/login', {
+                const response = await axios.post('/abc/api/usermanage/public/login', {
                     username: param.username,
                     password: param.password,
                 });
@@ -107,7 +107,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
                     localStorage.setItem('token', userData.token);
 
                     // 根据后端返回的 key 设置权限
-                    if (key === 'BIZ_ADMIN') {
+                    if (key === 'BIZ_ADMIN'||'SYS_ADMIN') {
                         permiss.handleSet(permiss.defaultList.admin);
                     } else if (key === 'USER') {
                         permiss.handleSet(permiss.defaultList.user);
@@ -117,7 +117,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
                     }
 
                     // 跳转到首页
-                    router.push('/');
+                    router.push('/dashboard');
 
                     // 处理记住密码逻辑
                     if (checked.value) {

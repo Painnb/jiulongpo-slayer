@@ -69,9 +69,22 @@
   </div>
 </template>
 
-<script setup>
+<script lang="ts" setup>
 import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
+import { requestManager } from "@/utils/requestManager"; // 引入请求管理器
+
+const makeRequest = (url: string, options = {}) => {
+  const controller = new AbortController();
+  // 将该控制器添加到全局管理器中
+  requestManager.add(controller);
+
+  return axios({
+    url,
+    ...options,
+    signal: controller.signal, // 将 AbortSignal 传递给 Axios
+  });
+};
 
 // 过滤条件
 const filters = ref({
@@ -139,10 +152,12 @@ const initCharts = async () => {
     const apiUrl = '/abc/api/query/business/tables/all-vehicles-exceptions-query';
 
     // 调用后端接口
-    const response = await axios.post(apiUrl, params, {
+    const response = await makeRequest(apiUrl,  {
+      METHOD: 'POST',
       headers: {
         Authorization: `Bearer ${token}`, // 添加 token
       },
+      params: params,
     });
 
     // 格式化返回的数据
@@ -187,6 +202,12 @@ const resetFilters = () => {
 
 const exportData = async () => {
   try {
+    // 检查用户权限
+    const userRole = localStorage.getItem("auth"); // 假设用户权限存储在 localStorage 中
+    if (userRole === "USER") {
+      ElMessage.error("无权限导出数据"); // 使用 ElMessage 弹出提示
+      return; // 停止后续操作
+    }
     const formatDateTime = (date) => {
       if (!date) return null;
       const year = date.getFullYear();
@@ -217,11 +238,13 @@ const exportData = async () => {
     const apiUrl = filters.value.vehicleId ? '/abc/api/dataprocess/business/tables/combined-export' : '/abc/api/dataprocess/business/tables/all-vehicles-exceptions-export';
 
     // 调用后端接口
-    const response = await axios.post(apiUrl, params, {
+    const response = await makeRequest(apiUrl,  {
+      method: 'POST',
       responseType: 'blob', // 确保接收的是文件流
       headers: {
         Authorization: `Bearer ${token}`, // 在请求头中加入 token
       },
+      params: params
     });
 
     // 从响应头获取文件名

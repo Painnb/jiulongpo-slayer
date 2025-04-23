@@ -8,6 +8,7 @@
 body {
 	font-family: 'PingFang SC', 'Helvetica Neue', Helvetica, 'microsoft yahei', arial, STHeiTi, sans-serif;
 	/* cursor: url('../img/logo.svg'), auto;  */
+	
 }
 
 a {
@@ -15,6 +16,7 @@ a {
 }
 i {
 	font-style: normal;
+	
 }
 
 .container {
