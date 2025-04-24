@@ -1,6 +1,7 @@
 package org.swu.vehiclecloud.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+//import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.*;
@@ -42,6 +43,7 @@ public class MqttServiceImpl implements MqttService {
     private static final Pattern HEX_TOPIC_PATTERN =
             Pattern.compile("^vpub/obu/state/.*_hex$");
     private ExecutorService messageProcessor;
+    ObjectMapper objectMapper = new ObjectMapper();
 
     public MqttServiceImpl(MqttConfigProperties mqttConfigProperties, ApplicationEventPublisher  mqttEventPublisher) throws MqttException {
         this.config = mqttConfigProperties;
@@ -52,7 +54,7 @@ public class MqttServiceImpl implements MqttService {
         if (this.messageProcessor != null) {
             shutdownExecutor(this.messageProcessor);
         }
-        // 2. 创建新的线程�?
+        // 2. 创建新的线程 ?
         this.messageProcessor = createThreadPool();
 
         try {
@@ -85,7 +87,7 @@ public class MqttServiceImpl implements MqttService {
         if (this.messageProcessor != null) {
             shutdownExecutor(this.messageProcessor);
         }
-        // 2. 创建新的线程�?
+        // 2. 创建新的线程 ?
         this.messageProcessor = createThreadPool();
 
         // 更新配置
@@ -122,7 +124,7 @@ public class MqttServiceImpl implements MqttService {
         }
     }
 
-    // 创建新的线程�?
+    // 创建新的线程 ?
     private ExecutorService createThreadPool() {
         return new ThreadPoolExecutor(
                 4, 8, 30, TimeUnit.SECONDS,
@@ -132,7 +134,7 @@ public class MqttServiceImpl implements MqttService {
     }
 
     private void shutdownExecutor(ExecutorService executor) {
-        executor.shutdown(); // 停止接收新任�?
+        executor.shutdown(); // 停止接收新任 ?
         try {
             if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
                 List<Runnable> droppedTasks = executor.shutdownNow(); // 强制终止
@@ -144,19 +146,19 @@ public class MqttServiceImpl implements MqttService {
         }
     }
 
-        // 创建连接配置
+    // 创建连接配置
     private MqttConnectOptions createConnectOptions(String username, String password) throws MqttException {
         MqttConnectOptions options = new MqttConnectOptions();
         options.setUserName(username);
         options.setPassword(password.toCharArray());
         options.setCleanSession(true);
         options.setAutomaticReconnect(true); // 启用重连机制
-        options.setConnectionTimeout(10); // 设置连接超时时间�?10�?
+        options.setConnectionTimeout(10); // 设置连接超时时间 ?10 ?
 
         return options;
     }
 
-    // 自定义回调函�?
+    // 自定义回调函 ?
     private void setupCallbacks() {
         mqttClient.setCallback(new MqttCallback() {
             @Override
@@ -181,15 +183,21 @@ public class MqttServiceImpl implements MqttService {
                             mqttEventPublisher.publishEvent(new MqttMessageEvent(this, topic, jsonPayload));
                             parsedCount.incrementAndGet();
                             logger.trace("Parsed in {} μs", (System.nanoTime() - start) / 1000);
-                        } else if(topic.equals("text/vehicle/")){
-                            String payloadStr = new String(message.getPayload(), StandardCharsets.UTF_8);
-                            ObjectMapper objectMapper = new ObjectMapper();
+                        } else {
+                            //String payloadStr = new String(message.getPayload(), StandardCharsets.UTF_8);
+                            //ObjectMapper objectMapper = new ObjectMapper();
+                            /*
                             Map<String, Object> jsonPayload = objectMapper.readValue(
                                     payloadStr,
                                     new TypeReference<Map<String, Object>>() {}
                             );
-                            System.out.println(jsonPayload);
-                            mqttEventPublisher.publishEvent(new MqttMessageEvent(this, topic, jsonPayload));
+                             */
+                            System.out.println("---------------------------");
+                            String data = new String(message.getPayload(), StandardCharsets.UTF_8);
+                            // Convert the JSON string into a Map<String, Object>
+                            Map<String, Object> mapData = objectMapper.readValue(data, Map.class);
+                            //System.out.println(jsonPayload);
+                            mqttEventPublisher.publishEvent(new MqttMessageEvent(this, topic, mapData));
                         }
                     } catch (Exception e) {
                         logger.error("Process failed: topic={}, payload={}", topic,
@@ -206,7 +214,7 @@ public class MqttServiceImpl implements MqttService {
     }
 
     public Map<String, Object> parsePayload(byte[] payload) throws Exception {
-        if (payload == null || payload.length < 16) { // 最小长度检�?
+        if (payload == null || payload.length < 16) { // 最小长度检 ?
             throw new IllegalArgumentException("Invalid data content length");
         }
         Map<String, Object> result = new LinkedHashMap<>();
@@ -238,18 +246,18 @@ public class MqttServiceImpl implements MqttService {
     }
 
     private void parseDataContent(byte[] dataContent, Map<String, Object> result) throws Exception {
-        if (dataContent == null || dataContent.length < 8 + 8 + 8 + 2) { // 最小长度检�?
+        if (dataContent == null || dataContent.length < 8 + 8 + 8 + 2) { // 最小长度检 ?
             throw new IllegalArgumentException("Invalid data content length");
         }
         ByteBuffer buffer = ByteBuffer.wrap(dataContent).order(ByteOrder.BIG_ENDIAN);
-        Map<String, Object> content = new LinkedHashMap<>(24); // 预分配足够容�?
-        // 1. 车辆编号 (8字节字符�?)
+        Map<String, Object> content = new LinkedHashMap<>(24); // 预分配足够容 ?
+        // 1. 车辆编号 (8字节字符 ?)
         byte[] vehicleIdBytes = new byte[8];
         buffer.get(vehicleIdBytes);
         content.put("vehicleId", new String(vehicleIdBytes).trim());
         // 2. 消息编号 (8字节)
         content.put("messageId", buffer.getLong());
-        // 3. GNSS时间�? (8字节)
+        // 3. GNSS时间 ? (8字节)
         content.put("timestampGNSS", buffer.getLong());
         // 4. GNSS速度 (2字节)
         double velocityGNSS = buffer.getShort() & 0xFFFF;
@@ -263,9 +271,9 @@ public class MqttServiceImpl implements MqttService {
         position.put("latitude", buffer.getInt() * 1e-7 - 90);
         position.put("elevation", buffer.getInt() - 5000);
         content.put("position", position);
-        // 6. 航向�? (4字节)
+        // 6. 航向 ? (4字节)
         content.put("heading", buffer.getInt() * 1e-4);
-        // 7-21. 车辆状态数�?
+        // 7-21. 车辆状态数 ?
         //byte[] statusBytes = new byte[1 + 4 + 2 + 2*6 + 4 + 1 + 2*3 + 2 + 1];
         byte[] statusBytes = new byte[9];
         buffer.get(statusBytes);
@@ -291,14 +299,14 @@ public class MqttServiceImpl implements MqttService {
 
 
         //error
-        // 22. 目的地位�? (8字节)
+        // 22. 目的地位 ? (8字节)
         Map<String, Object> destLocation = new LinkedHashMap<>(2);
         int destLocationLongitude = buffer.getInt();
         destLocation.put("longitude", (destLocationLongitude == -1 ? 0 : destLocationLongitude) * 1e-7 - 180);// 解析值无意义
         int destLocationLatitude = buffer.getInt();
         destLocation.put("latitude", (destLocationLatitude == -1 ? 0 : destLocationLatitude) * 1e-7 - 90); // 解析值无意义
         content.put("destLocation", destLocation);
-        // 23. 途经�?
+        // 23. 途经 ?
         //int passPointsNum = buffer.get() & 0xFF;
         //content.put("passPointsNum", passPointsNum);
         int passPointsNum = buffer.get();
@@ -324,7 +332,7 @@ public class MqttServiceImpl implements MqttService {
         result.put("body", content);
     }
 
-    // 延时初始�?
+    // 延时初始 ?
     public synchronized ResponseEntity<Map<String, Object>> connect() throws MqttException {
         if (mqttClient == null) {
             initClient();
@@ -353,7 +361,7 @@ public class MqttServiceImpl implements MqttService {
         log.info("Subscribed to topic: {}", topic);
     }
 
-    // 订阅默认的主题列�?
+    // 订阅默认的主题列 ?
     public void subscribeToDefaultTopics() throws MqttException {
         if (config.getSubTopics() != null) {
             for (String topic : config.getSubTopics()) {
