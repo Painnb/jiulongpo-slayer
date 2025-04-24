@@ -581,3 +581,567 @@ public class ExcelServiceImpl implements ExcelService {
         }
     }
 }
+
+// package org.swu.vehiclecloud.service.impl;
+
+// import com.alibaba.excel.EasyExcel;
+// import com.alibaba.excel.write.metadata.style.WriteCellStyle;
+// import com.alibaba.excel.write.metadata.style.WriteFont;
+// import com.alibaba.excel.write.style.HorizontalCellStyleStrategy;
+// import org.apache.poi.ss.usermodel.FillPatternType;
+// import org.apache.poi.ss.usermodel.IndexedColors;
+// import org.springframework.beans.factory.annotation.Autowired;
+// import org.springframework.core.io.ByteArrayResource;
+// import org.springframework.core.io.Resource;
+// import org.springframework.http.HttpHeaders;
+// import org.springframework.http.MediaType;
+// import org.springframework.http.ResponseEntity;
+// import org.springframework.stereotype.Service;
+// import org.swu.vehiclecloud.mapper.ExcelMapper;
+// import org.swu.vehiclecloud.service.ExcelService;
+// import org.swu.vehiclecloud.util.SQLInjectionProtector;
+
+// import java.io.ByteArrayOutputStream;
+// import java.time.LocalDateTime;
+// import java.time.format.DateTimeFormatter;
+// import java.util.*;
+// import java.util.stream.Collectors;
+
+// /**
+//  * Excel 导出服务实现类 (EasyExcel 版本)
+//  * 该类实现了 ExcelService 接口，提供将数据库表数据导出为 Excel 文件的功能
+//  * 使用 Alibaba EasyExcel 库操作 Excel 文件，支持 .xlsx 格式
+//  * 主要功能包括：
+//  * 1. 从数据库查询指定表的数据或组合数据
+//  * 2. 使用 EasyExcel 生成 Excel 文件内容
+//  * 3. 将 Excel 文件作为 HTTP 响应返回
+//  */
+// @Service
+// public class ExcelServiceImpl implements ExcelService {
+
+//     @Autowired
+//     private ExcelMapper excelMapper; // 数据库操作 Mapper
+
+//     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+//     /**
+//      * 导出指定表的 Excel 文件
+//      *
+//      * @param tableName 要导出的表名
+//      * @return ResponseEntity 包含 Excel 文件的资源
+//      * @throws RuntimeException 当导出失败时抛出
+//      */
+//     @Override
+//     public ResponseEntity<Resource> exportExcel(String tableName) {
+//         // 1. SQL 注入防护
+//         if (!SQLInjectionProtector.validateTableName(tableName)) {
+//             throw new IllegalArgumentException("非法的表名: " + tableName);
+//         }
+
+//         // 2. 查询数据
+//         List<Map<String, Object>> data;
+//         try {
+//             data = excelMapper.selectAllFromTable(tableName);
+//         } catch (Exception e) {
+//             throw new RuntimeException("查询表数据失败: " + tableName + ", 原因: " + e.getMessage(), e);
+//         }
+
+
+//         // 3. 准备 EasyExcel 需要的数据格式
+//         List<List<String>> head = new ArrayList<>();
+//         List<List<Object>> dataList = new ArrayList<>();
+
+//         if (data != null && !data.isEmpty()) {
+//             // 3.1 创建表头 (从第一行数据的 key 获取)
+//             List<String> headerKeys = new ArrayList<>(data.get(0).keySet());
+//             head = headerKeys.stream().map(Collections::singletonList).collect(Collectors.toList());
+
+//             // 3.2 转换数据格式 (List<Map<String, Object>> -> List<List<Object>>)
+//             // 确保数据顺序与表头一致
+//             for (Map<String, Object> rowMap : data) {
+//                 List<Object> rowData = new ArrayList<>();
+//                 for (String key : headerKeys) {
+//                     Object value = rowMap.get(key);
+//                     // 处理 LocalDateTime 格式化
+//                     if (value instanceof LocalDateTime) {
+//                          rowData.add(((LocalDateTime) value).format(DATE_TIME_FORMATTER));
+//                     } else {
+//                         rowData.add(value != null ? value.toString() : ""); // 处理 null 值
+//                     }
+//                 }
+//                 dataList.add(rowData);
+//             }
+//         } else {
+//              // 如果没有数据，可以创建一个空表头或返回空文件，这里创建一个空文件
+//              // 或者根据业务需求抛出异常或返回特定响应
+//              head.add(Collections.singletonList("无数据")); // 添加一个提示表头
+//         }
+
+
+//         // 4. 使用 EasyExcel 写入到内存输出流
+//         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+//         try {
+//             EasyExcel.write(outputStream)
+//                     .head(head) // 设置表头
+//                     .sheet(tableName) // 设置工作表名称
+//                     .doWrite(dataList); // 写入数据
+//         } catch (Exception e) {
+//             throw new RuntimeException("使用 EasyExcel 生成 Excel 文件失败: " + e.getMessage(), e);
+//         }
+
+//         // 5. 构建 HTTP 响应
+//         HttpHeaders headers = new HttpHeaders();
+//         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+//         // 文件名编码，防止中文乱码 (如果需要更严格的浏览器兼容性，可以考虑 URLEncoder)
+//         String encodedFileName = tableName + ".xlsx";
+//         headers.setContentDispositionFormData("attachment", encodedFileName);
+
+//         return ResponseEntity.ok()
+//                 .headers(headers)
+//                 .body(new ByteArrayResource(outputStream.toByteArray()));
+//     }
+
+
+//     /**
+//      * 导出指定车辆和时间范围内的组合数据 Excel 文件
+//      *
+//      * @param vehicleId       车辆ID
+//      * @param startTime       开始时间
+//      * @param endTime         结束时间
+//      * @param selectedTables  选定的表名列表
+//      * @param selectedColumns 每个表选定的列名映射
+//      * @return ResponseEntity 包含 Excel 文件的资源
+//      * @throws RuntimeException 当导出失败时抛出
+//      */
+//     @Override
+//     public ResponseEntity<Resource> exportCombinedExcel(
+//             String vehicleId,
+//             LocalDateTime startTime,
+//             LocalDateTime endTime,
+//             List<String> selectedTables,
+//             Map<String, List<String>> selectedColumns) {
+
+//         // 1. 验证参数和表名
+//         validateInput(startTime, endTime, selectedTables, selectedColumns); // 抽取验证逻辑
+//         selectedTables.forEach(this::validateTableName); // 验证每个表名
+
+//         boolean hasTimeRange = startTime != null && endTime != null && startTime.isBefore(endTime);
+
+//         // 2. 构建表头和列索引映射 (与原逻辑类似)
+//         List<List<String>> head = new ArrayList<>();
+//         Map<String, Integer> columnIndexMap = new LinkedHashMap<>(); // 使用 LinkedHashMap 保持插入顺序
+//         int cellNum = 0;
+
+//         // 固定列
+//         head.add(Collections.singletonList("vehicleId"));
+//         columnIndexMap.put("vehicleId", cellNum++);
+//         boolean includeTimestamp = hasTimeRange; // 时间戳列只在有时间范围时添加
+//         if (includeTimestamp) {
+//             head.add(Collections.singletonList("timestamp"));
+//             columnIndexMap.put("timestamp", cellNum++);
+//         }
+
+//         // 动态添加选定列
+//         for (String table : selectedTables) {
+//             List<String> columns = selectedColumns.getOrDefault(table, Collections.emptyList());
+//             for (String column : columns) {
+//                 String headerName = table + "_" + column;
+//                 head.add(Collections.singletonList(headerName));
+//                 columnIndexMap.put(headerName, cellNum++);
+//             }
+//         }
+//         // 添加未选列的表作为标记列
+//         for (String table : selectedTables) {
+//              if (selectedColumns.getOrDefault(table, Collections.emptyList()).isEmpty()) {
+//                  head.add(Collections.singletonList(table));
+//                  columnIndexMap.put(table, cellNum++);
+//              }
+//         }
+
+//         // 3. 获取基础数据 (查询逻辑保持不变)
+//         // 注意：原逻辑中获取 baseData 的部分似乎是为了确定所有可能的时间点，
+//         // 但在填充数据时又对每个表和时间点进行了单独查询，这可能导致性能问题。
+//         // 这里假设原查询逻辑是正确的，并继续沿用。
+//         // 优化建议：考虑一次性查询所有相关数据，然后在内存中进行组合。
+
+//         // 3.1 获取所有相关的时间点（如果需要按时间点聚合）
+//         //    或者获取所有相关记录（如果不需要严格按时间点聚合）
+//         //    这里沿用原逻辑，获取一个基础数据集（可能包含重复的时间点，需要后续处理）
+//          List<Map<String, Object>> baseData = new ArrayList<>();
+//          try {
+//              for (String table : selectedTables) {
+//                  List<Map<String, Object>> tableData;
+//                  if (hasTimeRange) {
+//                      tableData = excelMapper.selectFromTableWithFilter(table, vehicleId, startTime, endTime);
+//                  } else {
+//                      tableData = excelMapper.selectByVehicleId(table, vehicleId);
+//                  }
+//                  // 添加来源表信息，便于后续处理（如果需要）
+//                  if (tableData != null) {
+//                     tableData.forEach(row -> row.put("__source_table__", table)); // 临时标记来源
+//                     baseData.addAll(tableData);
+//                  }
+//              }
+//          } catch (Exception e) {
+//              throw new RuntimeException("查询组合数据失败: " + e.getMessage(), e);
+//          }
+
+//         // 4. 准备 EasyExcel 数据 (List<List<Object>>)
+//         List<List<Object>> dataList = new ArrayList<>();
+//         // 用于跟踪已处理的 vehicleId + timestamp 组合，避免重复行（如果 baseData 包含重复）
+//         Set<String> processedKeys = new HashSet<>();
+
+//         for (Map<String, Object> baseRow : baseData) {
+//             String currentVehicleId = baseRow.get("vehicleId").toString();
+//             LocalDateTime currentTimestamp = null;
+//             Object timestampObj = baseRow.get("timestamp");
+
+//              if (timestampObj instanceof LocalDateTime) {
+//                  currentTimestamp = (LocalDateTime) timestampObj;
+//              } else if (timestampObj != null) {
+//                  // 尝试解析，如果格式已知且固定
+//                  try {
+//                      currentTimestamp = LocalDateTime.parse(timestampObj.toString(), DATE_TIME_FORMATTER);
+//                  } catch (Exception e) {
+//                      System.err.println("警告: 无法解析时间戳 " + timestampObj + " for vehicle " + currentVehicleId);
+//                      // 可以选择跳过此行或记录错误
+//                  }
+//              }
+
+//              // 构建唯一键（如果需要按时间戳聚合）
+//              String uniqueKey = currentVehicleId + "_" + (includeTimestamp && currentTimestamp != null ? currentTimestamp.format(DATE_TIME_FORMATTER) : "NO_TIMESTAMP");
+
+//              // 如果不需要按时间戳聚合，或者已经处理过这个组合，则跳过
+//              if (!includeTimestamp || processedKeys.contains(uniqueKey)) {
+//                  // 如果没有时间范围，我们可能只需要处理每个 vehicleId 一次，
+//                  // 或者需要一种不同的聚合逻辑。当前逻辑基于时间戳。
+//                  // 如果没有时间范围，可能需要调整 uniqueKey 的生成方式或跳过此检查。
+//                  // 为了保持与原POI代码的逻辑（它似乎为每个 baseRow 创建一行），我们暂时注释掉这个检查
+//                  // continue; // 如果需要去重，取消注释此行
+//              }
+//              processedKeys.add(uniqueKey); // 标记为已处理
+
+
+//             List<Object> excelRowData = new ArrayList<>(Collections.nCopies(columnIndexMap.size(), "")); // 初始化为空字符串
+
+//             // 填充固定列
+//             excelRowData.set(columnIndexMap.get("vehicleId"), currentVehicleId);
+//             if (includeTimestamp && currentTimestamp != null) {
+//                  excelRowData.set(columnIndexMap.get("timestamp"), currentTimestamp.format(DATE_TIME_FORMATTER));
+//             } else if (includeTimestamp) {
+//                  excelRowData.set(columnIndexMap.get("timestamp"), ""); // 或其他占位符
+//             }
+
+
+//             // 填充动态列和标记列 (需要根据 vehicleId 和 timestamp 重新查询或在内存中查找)
+//             // --- 这是原逻辑中比较复杂且可能低效的部分 ---
+//             // 为了保持功能，我们模拟原逻辑的查询行为。
+//             // 更好的方法是在步骤3中获取所有需要的数据，然后在内存中高效查找。
+//             try {
+//                 for (String table : selectedTables) {
+//                     List<String> columns = selectedColumns.getOrDefault(table, Collections.emptyList());
+//                     boolean isMarkColumnTable = columns.isEmpty();
+
+//                     if (!isMarkColumnTable) {
+//                         // 查询具体列的数据
+//                         List<Map<String, Object>> detailData;
+//                         if (hasTimeRange && currentTimestamp != null) {
+//                              // 注意：原逻辑这里传递了两次 timestampDate，可能需要确认 mapper 实现
+//                              // 假设是查询精确时间点的数据
+//                             detailData = excelMapper.selectFromTableWithFilter(table, currentVehicleId, currentTimestamp, currentTimestamp);
+//                         } else if (!hasTimeRange) {
+//                             // 如果没有时间范围，可能需要不同的查询逻辑，或者直接使用 baseRow 中的数据（如果适用）
+//                             // 假设查询该 vehicleId 的所有数据，然后找到匹配的行（如果 baseRow 不可靠）
+//                             // 为了简化，我们暂时假设 baseRow 包含了当前行所需的数据（如果 __source_table__ 匹配）
+//                             if(table.equals(baseRow.get("__source_table__"))) {
+//                                 detailData = Collections.singletonList(baseRow);
+//                             } else {
+//                                 // 如果 baseRow 不是来自当前表，需要单独查询
+//                                 detailData = excelMapper.selectByVehicleId(table, currentVehicleId);
+//                                 // 这里需要进一步逻辑来确定使用哪条记录，原逻辑未明确
+//                                 // 暂时取第一条（如果存在）
+//                                 detailData = detailData.isEmpty() ? Collections.emptyList() : Collections.singletonList(detailData.get(0));
+//                             }
+//                         } else {
+//                             detailData = Collections.emptyList(); // 时间范围存在但当前行时间戳无效
+//                         }
+
+
+//                         if (!detailData.isEmpty()) {
+//                             Map<String, Object> dataRow = detailData.get(0); // 取第一条匹配记录
+//                             for (String column : columns) {
+//                                 Object value = dataRow.get(column);
+//                                 Integer colIndex = columnIndexMap.get(table + "_" + column);
+//                                 if (colIndex != null) {
+//                                      excelRowData.set(colIndex, formatValue(value));
+//                                 }
+//                             }
+//                         }
+//                     } else {
+//                         // 标记列：检查记录是否存在
+//                         int exists;
+//                          if (hasTimeRange && currentTimestamp != null) {
+//                             exists = excelMapper.checkRecordExists(table, currentVehicleId, currentTimestamp);
+//                          } else if (!hasTimeRange) {
+//                             exists = excelMapper.checkRecordExistsByVehicle(table, currentVehicleId);
+//                          } else {
+//                             exists = 0; // 时间戳无效
+//                          }
+//                         Integer colIndex = columnIndexMap.get(table);
+//                         if (colIndex != null) {
+//                             excelRowData.set(colIndex, exists);
+//                         }
+//                     }
+//                 }
+//             } catch (Exception e) {
+//                  System.err.println("处理行数据时出错: vehicleId=" + currentVehicleId + ", timestamp=" + currentTimestamp + ", error: " + e.getMessage());
+//                  // 可以选择继续处理下一行或抛出异常
+//                  // throw new RuntimeException("处理行数据时出错: " + e.getMessage(), e);
+//             }
+
+
+//             dataList.add(excelRowData);
+//         }
+
+
+//         // 5. 使用 EasyExcel 写入
+//         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+//         try {
+//             EasyExcel.write(outputStream)
+//                     .head(head)
+//                     .sheet("CombinedData")
+//                     // 可选：添加样式策略
+//                     // .registerWriteHandler(getStyleStrategy())
+//                     .doWrite(dataList);
+//         } catch (Exception e) {
+//             throw new RuntimeException("使用 EasyExcel 生成组合 Excel 文件失败: " + e.getMessage(), e);
+//         }
+
+//         // 6. 构建 HTTP 响应
+//         HttpHeaders headers = new HttpHeaders();
+//         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+//         headers.setContentDispositionFormData("attachment", "vehicle_data.xlsx");
+
+//         return ResponseEntity.ok()
+//                 .headers(headers)
+//                 .body(new ByteArrayResource(outputStream.toByteArray()));
+//     }
+
+
+//     /**
+//      * 导出时间段内所有车辆的异常数据到 Excel 文件
+//      *
+//      * @param startTime       开始时间
+//      * @param endTime         结束时间
+//      * @param selectedTables  选定的表名列表
+//      * @param selectedColumns 每个表选定的列名映射
+//      * @return ResponseEntity 包含 Excel 文件的资源
+//      * @throws RuntimeException 当导出失败时抛出
+//      */
+//     @Override
+//     public ResponseEntity<Resource> exportAllVehiclesExceptions(
+//             LocalDateTime startTime,
+//             LocalDateTime endTime,
+//             List<String> selectedTables,
+//             Map<String, List<String>> selectedColumns) {
+
+//         // 1. 验证参数和表名
+//         validateInput(startTime, endTime, selectedTables, selectedColumns);
+//         selectedTables.forEach(this::validateTableName);
+
+//         // 2. 构建表头和列索引映射 (与 exportCombinedExcel 类似)
+//          List<List<String>> head = new ArrayList<>();
+//          Map<String, Integer> columnIndexMap = new LinkedHashMap<>();
+//          int cellNum = 0;
+
+//          head.add(Collections.singletonList("vehicleId"));
+//          columnIndexMap.put("vehicleId", cellNum++);
+//          head.add(Collections.singletonList("timestamp"));
+//          columnIndexMap.put("timestamp", cellNum++);
+
+//          for (String table : selectedTables) {
+//              List<String> columns = selectedColumns.getOrDefault(table, Collections.emptyList());
+//              for (String column : columns) {
+//                  String headerName = table + "_" + column;
+//                  head.add(Collections.singletonList(headerName));
+//                  columnIndexMap.put(headerName, cellNum++);
+//              }
+//          }
+//          for (String table : selectedTables) {
+//               if (selectedColumns.getOrDefault(table, Collections.emptyList()).isEmpty()) {
+//                   head.add(Collections.singletonList(table));
+//                   columnIndexMap.put(table, cellNum++);
+//               }
+//          }
+
+//         // 3. 获取所有车辆和时间戳的组合 (查询逻辑保持不变)
+//         List<Map<String, Object>> timeSlots;
+//         try {
+//             timeSlots = excelMapper.selectDistinctVehicleTimeSlots(selectedTables, startTime, endTime);
+//             if (timeSlots == null || timeSlots.isEmpty()) {
+//                  // 返回一个空文件或带提示的文件，而不是抛出异常
+//                  System.out.println("在指定时间范围内没有找到任何车辆数据");
+//                  timeSlots = Collections.emptyList(); // 确保后续流程能处理空列表
+//                  // 或者可以直接构建空响应返回
+//                  // return buildEmptyExcelResponse("all_vehicles_exceptions.xlsx", "无数据");
+//             }
+//         } catch (Exception e) {
+//             throw new RuntimeException("查询车辆时间点失败: " + e.getMessage(), e);
+//         }
+
+//         // 4. 预加载各表数据 (优化：一次性加载所需时间范围内所有表的数据)
+//         Map<String, List<Map<String, Object>>> tableDataMap = new HashMap<>();
+//          try {
+//              for (String table : selectedTables) {
+//                  List<Map<String, Object>> tableData = excelMapper.selectTableDataWithTimeRange(table, startTime, endTime);
+//                  tableDataMap.put(table, tableData != null ? tableData : Collections.emptyList());
+//              }
+//          } catch (Exception e) {
+//              throw new RuntimeException("预加载表数据失败: " + e.getMessage(), e);
+//          }
+
+//         // 5. 准备 EasyExcel 数据 (List<List<Object>>)
+//         List<List<Object>> dataList = new ArrayList<>();
+//         for (Map<String, Object> timeSlot : timeSlots) {
+//             String vehicleId = timeSlot.get("vehicleId").toString();
+//              // 确保 timestamp 是 LocalDateTime 类型
+//              Object tsObj = timeSlot.get("timestamp");
+//              LocalDateTime timestamp = null;
+//              if (tsObj instanceof LocalDateTime) {
+//                  timestamp = (LocalDateTime) tsObj;
+//              } else if (tsObj != null) {
+//                  try {
+//                      // 尝试根据已知格式解析，如果数据库返回的是字符串或其他类型
+//                      timestamp = LocalDateTime.parse(tsObj.toString(), DATE_TIME_FORMATTER);
+//                  } catch (Exception e) {
+//                       System.err.println("警告: 无法解析时间戳 " + tsObj + " for vehicle " + vehicleId);
+//                       continue; // 跳过此时间点
+//                  }
+//              } else {
+//                  System.err.println("警告: 时间戳为空 for vehicle " + vehicleId);
+//                  continue; // 跳过此时间点
+//              }
+
+//              final LocalDateTime finalTimestamp = timestamp; // Lambda 表达式需要 final 或 effectively final
+
+//             List<Object> excelRowData = new ArrayList<>(Collections.nCopies(columnIndexMap.size(), ""));
+
+//             // 填充固定列
+//             excelRowData.set(columnIndexMap.get("vehicleId"), vehicleId);
+//             excelRowData.set(columnIndexMap.get("timestamp"), timestamp.format(DATE_TIME_FORMATTER));
+
+//             // 填充动态列和标记列 (从预加载的数据中查找)
+//             for (String table : selectedTables) {
+//                 List<String> columns = selectedColumns.getOrDefault(table, Collections.emptyList());
+//                 boolean isMarkColumnTable = columns.isEmpty();
+//                 List<Map<String, Object>> currentTableData = tableDataMap.getOrDefault(table, Collections.emptyList());
+
+//                 // 在预加载的数据中查找匹配的行
+//                 Optional<Map<String, Object>> matchingRow = currentTableData.stream()
+//                         .filter(row -> vehicleId.equals(row.get("vehicleId") != null ? row.get("vehicleId").toString() : null) &&
+//                                        finalTimestamp.equals(row.get("timestamp"))) // 直接比较 LocalDateTime
+//                         .findFirst();
+
+
+//                 if (!isMarkColumnTable) {
+//                     // 填充选定列的值
+//                     if (matchingRow.isPresent()) {
+//                         Map<String, Object> dataRow = matchingRow.get();
+//                         for (String column : columns) {
+//                             Object value = dataRow.get(column);
+//                             Integer colIndex = columnIndexMap.get(table + "_" + column);
+//                             if (colIndex != null) {
+//                                 excelRowData.set(colIndex, formatValue(value));
+//                             }
+//                         }
+//                     }
+//                     // 如果 matchingRow 不存在，则这些列保持空字符串
+//                 } else {
+//                     // 标记列：检查是否存在匹配行
+//                     Integer colIndex = columnIndexMap.get(table);
+//                     if (colIndex != null) {
+//                         excelRowData.set(colIndex, matchingRow.isPresent() ? 1 : 0);
+//                     }
+//                 }
+//             }
+//             dataList.add(excelRowData);
+//         }
+
+//         // 6. 使用 EasyExcel 写入
+//         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+//         try {
+//             // 如果没有数据，写入一个带提示的空文件
+//             if (dataList.isEmpty() && !head.isEmpty()) {
+//                  head.clear(); // 清除之前的表头
+//                  head.add(Collections.singletonList("在指定时间范围内没有找到任何车辆数据"));
+//             }
+
+//             EasyExcel.write(outputStream)
+//                     .head(head)
+//                     .sheet("AllVehiclesExceptions")
+//                     // .registerWriteHandler(getStyleStrategy()) // 可选样式
+//                     .doWrite(dataList);
+//         } catch (Exception e) {
+//             throw new RuntimeException("使用 EasyExcel 生成所有车辆异常 Excel 文件失败: " + e.getMessage(), e);
+//         }
+
+//         // 7. 构建 HTTP 响应
+//         HttpHeaders headers = new HttpHeaders();
+//         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+//         headers.setContentDispositionFormData("attachment", "all_vehicles_exceptions.xlsx");
+
+//         return ResponseEntity.ok()
+//                 .headers(headers)
+//                 .body(new ByteArrayResource(outputStream.toByteArray()));
+//     }
+
+//     // --- Helper Methods ---
+
+//     /**
+//      * 验证表名合法性
+//      * @param tableName 表名
+//      */
+//     private void validateTableName(String tableName) {
+//         if (!SQLInjectionProtector.validateTableName(tableName)) {
+//             throw new IllegalArgumentException("非法的表名: " + tableName);
+//         }
+//     }
+
+//     /**
+//      * 验证组合导出和所有车辆异常导出的输入参数
+//      */
+//      private void validateInput(LocalDateTime startTime, LocalDateTime endTime, List<String> selectedTables, Map<String, List<String>> selectedColumns) {
+//          // 对于 exportAllVehiclesExceptions，时间是必需的
+//          // 对于 exportCombinedExcel，时间是可选的，但如果提供，则 start 必须在 end 之前
+//          if (startTime != null && endTime != null && startTime.isAfter(endTime)) {
+//              throw new IllegalArgumentException("开始时间不能晚于结束时间");
+//          }
+//          if (selectedTables == null || selectedTables.isEmpty()) {
+//              throw new IllegalArgumentException("必须至少选择一个表");
+//          }
+//          if (selectedColumns == null) {
+//              // 允许 selectedColumns 为空，表示所有表都只作为标记列
+//              // throw new IllegalArgumentException("列选择映射不能为空");
+//          }
+//      }
+
+//     /**
+//      * 格式化单元格值，特别是处理日期和 null
+//      * @param value 原始值
+//      * @return 格式化后的字符串或原始对象（如果 EasyExcel 可以处理）
+//      */
+//     private Object formatValue(Object value) {
+//         if (value == null) {
+//             return "";
+//         }
+//         if (value instanceof LocalDateTime) {
+//             return ((LocalDateTime) value).format(DATE_TIME_FORMATTER);
+//         }
+//         // 可以添加对其他类型的处理，如 Date, Timestamp 等
+//         // if (value instanceof java.sql.Timestamp) { ... }
+//         // if (value instanceof java.util.Date) { ... }
+
+//         // 对于其他类型，让 EasyExcel 尝试自动转换
+//         return value;
+//     }
+// }
